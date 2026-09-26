@@ -27,6 +27,7 @@ To render a specific example, pass its short name:
 ```bash
 npm run example -- react-card
 npm run example -- three-camera
+npm run example -- css-3d-transforms
 ```
 
 The `examples` directory is one consumer package, and each example is normally one file. A complex example can still use its own folder when needed. See every available example with:
@@ -124,6 +125,8 @@ local.animateCamera(this.camera)
 DOM, SVG, React, and Three.js roots consume this same sampled camera state. Supported camera animation verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. See [`examples/three-camera.ts`](./examples/three-camera.ts).
 
 Camera configuration also includes `fov()`, `viewHeight()`, `viewWidth()`, `clipping()`, `zoom()`, `zoomIn()`, and `zoomOut()`. `forward()`, `right()`, and `frameBoundsAtZ()` expose deterministic camera geometry for layout. Objects use world depth by default; use `.depthMode("overlay")` for camera-independent titles or UI and `.layer()` for painter ordering inside that overlay.
+
+Every visual also has complete XYZ transforms through `position()`, `rotation3D()`, and `scale3D()`, with matching `positionTo()`, `rotate3DTo()`, and `scale3DTo()` animation verbs. Existing `at()`, `rotate()`, and `scale()` remain concise 2D/uniform forms. See [`examples/css-3d-transforms.ts`](./examples/css-3d-transforms.ts).
 
 ## Commands
 

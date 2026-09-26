@@ -261,17 +261,29 @@ export class AnimationBuilder<State extends TattvaState> {
     return this.commit({ x, y, z } as Partial<State>);
   }
 
+  positionTo(point: Point): Timeline {
+    return this.moveTo(point);
+  }
+
   moveBy(delta: Point): Timeline {
     const [x, y, z = 0] = delta;
     return this.commit({ x, y, z } as Partial<State>, undefined, false, true);
   }
 
   scaleTo(scale: number): Timeline {
-    return this.commit({ scale } as Partial<State>);
+    return this.scale3DTo([scale, scale, scale]);
+  }
+
+  scale3DTo([scaleX, scaleY, scaleZ]: Vec3): Timeline {
+    return this.commit({ scaleX, scaleY, scaleZ } as Partial<State>);
   }
 
   rotateTo(rotation: number): Timeline {
-    return this.commit({ rotation } as Partial<State>);
+    return this.commit({ rotationZ: rotation } as Partial<State>);
+  }
+
+  rotate3DTo([rotationX, rotationY, rotationZ]: Vec3): Timeline {
+    return this.commit({ rotationX, rotationY, rotationZ } as Partial<State>);
   }
 
   fadeTo(opacity: number): Timeline {
@@ -414,6 +426,10 @@ export class MultiAnimationBuilder {
     return this.apply((animation) => animation.moveTo(point));
   }
 
+  positionTo(point: Point): Timeline {
+    return this.apply((animation) => animation.positionTo(point));
+  }
+
   moveBy(delta: Point): Timeline {
     return this.apply((animation) => animation.moveBy(delta));
   }
@@ -422,8 +438,16 @@ export class MultiAnimationBuilder {
     return this.apply((animation) => animation.scaleTo(scale));
   }
 
+  scale3DTo(scale: Vec3): Timeline {
+    return this.apply((animation) => animation.scale3DTo(scale));
+  }
+
   rotateTo(rotation: number): Timeline {
     return this.apply((animation) => animation.rotateTo(rotation));
+  }
+
+  rotate3DTo(rotation: Vec3): Timeline {
+    return this.apply((animation) => animation.rotate3DTo(rotation));
   }
 
   fadeTo(opacity: number): Timeline {

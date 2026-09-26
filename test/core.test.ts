@@ -5,6 +5,7 @@ import {
   Arrow,
   HStack,
   Label,
+  Rectangle,
   Scene,
   Square,
   Tattva,
@@ -39,8 +40,12 @@ test("samples a scene deterministically at arbitrary virtual times", () => {
     x: 2,
     y: 0,
     z: 0,
-    scale: 1,
-    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    scaleZ: 1,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: 0,
     opacity: 1,
     background: "#808080",
   });
@@ -428,4 +433,50 @@ test("separates world depth from painter-order overlay layers", () => {
   assert.equal(object.renderLayer, 42);
   assert.equal(object.depthModeValue, "overlay");
   assert.throws(() => object.layer(Number.NaN), /Layer must be finite/);
+});
+
+test("authors and samples complete XYZ transforms deterministically", () => {
+  class TransformScene extends Scene {
+    readonly card = Rectangle()
+      .position([1, 2, -3])
+      .rotation3D([10, 20, 30])
+      .scale3D([1, 2, 0.5]);
+
+    override construct(): void {
+      this.add(this.card);
+      const animation = new Timeline();
+      animation.animate(this.card).duration(2).ease("linear").positionTo([5, 4, 1]);
+      animation.animate(this.card).duration(2).ease("linear").rotate3DTo([30, 60, 90]);
+      animation.animate(this.card).duration(2).ease("linear").scale3DTo([3, 4, 1.5]);
+      this.play(animation);
+    }
+  }
+
+  const scene = new TransformScene().prepare();
+  const halfway = scene.sampleAt(1).get(scene.card);
+  assert.equal(halfway?.x, 3);
+  assert.equal(halfway?.y, 3);
+  assert.equal(halfway?.z, -1);
+  assert.equal(halfway?.rotationX, 20);
+  assert.equal(halfway?.rotationY, 40);
+  assert.equal(halfway?.rotationZ, 60);
+  assert.equal(halfway?.scaleX, 2);
+  assert.equal(halfway?.scaleY, 3);
+  assert.equal(halfway?.scaleZ, 1);
+});
+
+test("maps 2D transform conveniences onto the complete 3D state", () => {
+  const card = Rectangle().size([4, 2]).at([1, 2]).scale(2).rotate(30);
+  assert.deepEqual(
+    {
+      position: [card.initialState.x, card.initialState.y, card.initialState.z],
+      scale: [card.initialState.scaleX, card.initialState.scaleY, card.initialState.scaleZ],
+      rotation: [card.initialState.rotationX, card.initialState.rotationY, card.initialState.rotationZ],
+    },
+    { position: [1, 2, 0], scale: [2, 2, 2], rotation: [0, 0, 30] },
+  );
+
+  const tilted = Rectangle().size([4, 2]).rotation3D([0, 60, 0]);
+  assert.ok(Math.abs(tilted.getLayoutSize().width - 2) < 1e-10);
+  assert.equal(tilted.getLayoutSize().height, 2);
 });

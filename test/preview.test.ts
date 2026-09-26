@@ -68,3 +68,34 @@ test("preview scrubs semantic text and path reveals", { timeout: 60_000 }, async
     },
   });
 });
+
+test("preview composes hierarchical XYZ transforms while overlays stay camera-independent", { timeout: 60_000 }, async () => {
+  await previewScene(resolve("examples/css-3d-transforms.ts"), {
+    headless: true,
+    async ready(page) {
+      const seek = (time: number) => page.locator("#venu-scrub").evaluate((input, value) => {
+        const scrub = input as HTMLInputElement;
+        scrub.value = String(value);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      }, time);
+      const worldRoot = page.locator('[data-venu-layer="world"] > .venu-transform').first();
+      const child = worldRoot.locator(".venu-transform").first();
+      const overlay = page.locator('[data-venu-layer="overlay"] > .venu-transform').first();
+
+      await seek(0);
+      const initialRootTransform = await worldRoot.evaluate((element) => (element as HTMLElement).style.transform);
+      const initialOverlay = await overlay.boundingBox();
+      await seek(2);
+      const animatedRootTransform = await worldRoot.evaluate((element) => (element as HTMLElement).style.transform);
+      const childTransform = await child.evaluate((element) => (element as HTMLElement).style.transform);
+      const animatedOverlay = await overlay.boundingBox();
+      const childBounds = await child.boundingBox();
+
+      assert.match(initialRootTransform, /matrix3d/);
+      assert.notEqual(animatedRootTransform, initialRootTransform);
+      assert.match(childTransform, /rotateX\(/);
+      assert.ok(childBounds && childBounds.width > 0 && childBounds.height > 0);
+      assert.deepEqual(animatedOverlay, initialOverlay);
+    },
+  });
+});

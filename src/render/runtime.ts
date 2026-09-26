@@ -1,6 +1,7 @@
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import {
+  Euler,
   Matrix4,
   OrthographicCamera,
   PerspectiveCamera,
@@ -64,7 +65,7 @@ function applyOverlayFrame(
   wrapper.style.left = "50%";
   wrapper.style.top = "50%";
   wrapper.style.visibility = "visible";
-  wrapper.style.transform = `translate(-50%, -50%) translate(${state.x * pixelsPerUnit}px, ${-state.y * pixelsPerUnit}px) scale(${state.scale}) rotate(${-state.rotation}deg)`;
+  wrapper.style.transform = `translate(-50%, -50%) translate3d(${state.x * pixelsPerUnit}px, ${-state.y * pixelsPerUnit}px, ${state.z * pixelsPerUnit}px) rotateX(${state.rotationX}deg) rotateY(${-state.rotationY}deg) rotateZ(${-state.rotationZ}deg) scale3d(${state.scaleX}, ${state.scaleY}, ${state.scaleZ})`;
   wrapper.style.opacity = String(state.opacity);
   if (typeof state.color === "string") content.style.color = state.color;
   if (typeof state.background === "string") content.style.background = state.background;
@@ -82,14 +83,16 @@ function applyWorldFrame(
     state.y * pixelsPerUnit,
     state.z * pixelsPerUnit,
   );
-  const rotation = new Quaternion().setFromAxisAngle(
-    new Vector3(0, 0, 1),
-    state.rotation * Math.PI / 180,
-  );
+  const rotation = new Quaternion().setFromEuler(new Euler(
+    state.rotationX * Math.PI / 180,
+    state.rotationY * Math.PI / 180,
+    state.rotationZ * Math.PI / 180,
+    "XYZ",
+  ));
   const objectMatrix = new Matrix4().compose(
     position,
     rotation,
-    new Vector3(state.scale, state.scale, state.scale),
+    new Vector3(state.scaleX, state.scaleY, state.scaleZ),
   );
   const projected = new Vector3(state.x, state.y, state.z).project(camera);
   const visible = Number.isFinite(projected.z) && projected.z >= -1 && projected.z <= 1;
@@ -246,7 +249,9 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
     left: "50%",
     top: "50%",
     transformOrigin: "center",
+    transformStyle: "preserve-3d",
   });
+  content.style.transformStyle = "preserve-3d";
   applyCSS(content, tattva.initialStyle);
   if (tattva.children.length > 0) content.style.position = "relative";
   if (tattva.worldSize) {

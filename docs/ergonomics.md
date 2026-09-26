@@ -79,6 +79,25 @@ Circle()
   .css({ mixBlendMode: "screen" });
 ```
 
+All visual objects have a complete 3D transform. The concise 2D builders map directly onto it: `at([x, y])` uses `z = 0`, `rotate(degrees)` rotates around Z, and `scale(value)` applies uniform XYZ scale. Explicit 3D authoring uses vectors in degrees and world units:
+
+```ts
+Rectangle()
+  .position([2, 1, -3])
+  .rotation3D([20, 45, 0])
+  .scale3D([1, 1.5, 0.75]);
+```
+
+The same state is available through deterministic animation builders:
+
+```ts
+local.animate(card).duration(2).positionTo([0, 1, 2]);
+local.animate(card).duration(2).rotate3DTo([0, 180, 0]);
+local.animate(card).duration(2).scale3DTo([1.2, 1.2, 1.2]);
+```
+
+Group children retain local transforms and inherit the complete parent matrix. Authored layout bounds use the object's transformed XY footprint; camera projection is applied later by the renderer.
+
 Shared visual builders include `at`, `scale`, `rotate`, `opacity`, `visible`, `layer`, `className`, `css`, and `cssVar`. Type-specific builders remain on the relevant object.
 
 `css()` accepts typed CSS data and merges repeated calls. `cssVar()` adds a custom property:

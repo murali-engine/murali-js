@@ -19,7 +19,7 @@ Status values:
 | World coordinates | coordinate-system docs | partial | 1 |
 | Landscape/portrait/square frames | `engine/frame.rs` | partial | 1 |
 | Typed visual references | `TattvaId` and Python handles | baseline | 1 |
-| Visibility, position, scale, rotation, opacity | scene intent helpers | baseline | 1 |
+| Visibility, XYZ position/rotation/scale, opacity | scene intent helpers | parity | 1 |
 | Layers and depth modes | frontend props | planned | 3 |
 | Object removal/lifecycle | scene lifecycle | planned | 3 |
 
@@ -123,7 +123,13 @@ A capability reaches `parity` only when it has:
 4. A comparison against the corresponding Murali example.
 5. Documented intentional platform differences.
 
-## Camera parity comparison
+## Parity comparisons
+
+### Transform parity
+
+Murali's `DrawableProps` represents position as `Vec3`, rotation as a quaternion, and scale as `Vec3`; parent model matrices compose through the scene graph. Venu provides the same visible capability through XYZ position, degree-based XYZ Euler rotation, XYZ scale, and hierarchical CSS `matrix3d()` composition. The runnable comparison is `examples/css-3d-transforms.ts`, with deterministic interpolation and browser hierarchy coverage in the core and preview tests. Euler degrees are an intentional JavaScript/CSS-facing authoring difference; Venu converts them to quaternions when constructing render matrices. The 2D `at`, `rotate`, and `scale` builders are shorthand for the corresponding 3D state.
+
+### Camera parity
 
 Venu's scene camera matches Murali's camera model: orthographic projection by default, opt-in perspective, frame-aware aspect, position/target/up vectors, forward/right helpers, visible bounds on a world Z plane, orthographic zoom, and deterministic `frameTo`, `moveTo`, `lookAt`, `zoomTo`, and `fovTo` animation. `toEdge` resolves against the camera intersection at the object's Z plane. World and overlay depth modes are distinct.
 

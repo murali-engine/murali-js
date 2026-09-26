@@ -9,8 +9,12 @@ export interface TattvaState {
   x: number;
   y: number;
   z: number;
-  scale: number;
-  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  scaleZ: number;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
   opacity: number;
   color?: string;
   background?: string;
@@ -68,8 +72,12 @@ export class Tattva<State extends TattvaState = TattvaState> {
       x: 0,
       y: 0,
       z: 0,
-      scale: 1,
-      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      scaleZ: 1,
+      rotationX: 0,
+      rotationY: 0,
+      rotationZ: 0,
       opacity: 1,
       ...options.state,
     } as State;
@@ -81,12 +89,36 @@ export class Tattva<State extends TattvaState = TattvaState> {
     return this.setInitial({ x, y, z } as Partial<State>);
   }
 
+  position(point: Point): this {
+    return this.at(point);
+  }
+
   scale(value: number): this {
-    return this.setInitial({ scale: value } as Partial<State>);
+    return this.scale3D([value, value, value]);
+  }
+
+  scale3D([scaleX, scaleY, scaleZ]: Vec3): this {
+    return this.setInitial({ scaleX, scaleY, scaleZ } as Partial<State>);
   }
 
   rotate(degrees: number): this {
-    return this.setInitial({ rotation: degrees } as Partial<State>);
+    return this.setInitial({ rotationZ: degrees } as Partial<State>);
+  }
+
+  rotation3D([rotationX, rotationY, rotationZ]: Vec3): this {
+    return this.setInitial({ rotationX, rotationY, rotationZ } as Partial<State>);
+  }
+
+  rotateX(degrees: number): this {
+    return this.setInitial({ rotationX: degrees } as Partial<State>);
+  }
+
+  rotateY(degrees: number): this {
+    return this.setInitial({ rotationY: degrees } as Partial<State>);
+  }
+
+  rotateZ(degrees: number): this {
+    return this.rotate(degrees);
   }
 
   opacity(value: number): this {
@@ -137,17 +169,48 @@ export class Tattva<State extends TattvaState = TattvaState> {
   getLayoutSize(): Size {
     const width = (this.worldSize?.width ?? 0) + (this.worldStrokeWidth ?? 0) * 2;
     const height = (this.worldSize?.height ?? 0) + (this.worldStrokeWidth ?? 0) * 2;
-    const scale = Math.abs(this.initialState.scale);
-    const radians = this.initialState.rotation * Math.PI / 180;
-    const cosine = Math.abs(Math.cos(radians));
-    const sine = Math.abs(Math.sin(radians));
+    const corners = [
+      [-width / 2 * this.initialState.scaleX, -height / 2 * this.initialState.scaleY, 0],
+      [width / 2 * this.initialState.scaleX, -height / 2 * this.initialState.scaleY, 0],
+      [width / 2 * this.initialState.scaleX, height / 2 * this.initialState.scaleY, 0],
+      [-width / 2 * this.initialState.scaleX, height / 2 * this.initialState.scaleY, 0],
+    ].map((corner) => rotateXYZ(corner as unknown as Vec3, [
+      this.initialState.rotationX,
+      this.initialState.rotationY,
+      this.initialState.rotationZ,
+    ]));
+    const xs = corners.map(([x]) => x);
+    const ys = corners.map(([, y]) => y);
     return {
-      width: (width * cosine + height * sine) * scale,
-      height: (width * sine + height * cosine) * scale,
+      width: Math.max(...xs) - Math.min(...xs),
+      height: Math.max(...ys) - Math.min(...ys),
     };
   }
 
   contentHTML(): string | undefined {
     return this.html;
   }
+}
+
+function rotateXYZ([x, y, z]: Vec3, [rotationX, rotationY, rotationZ]: Vec3): Vec3 {
+  const rx = rotationX * Math.PI / 180;
+  const ry = rotationY * Math.PI / 180;
+  const rz = rotationZ * Math.PI / 180;
+  const cosX = Math.cos(rx);
+  const sinX = Math.sin(rx);
+  const cosY = Math.cos(ry);
+  const sinY = Math.sin(ry);
+  const cosZ = Math.cos(rz);
+  const sinZ = Math.sin(rz);
+  const afterX: Vec3 = [x, y * cosX - z * sinX, y * sinX + z * cosX];
+  const afterY: Vec3 = [
+    afterX[0] * cosY + afterX[2] * sinY,
+    afterX[1],
+    -afterX[0] * sinY + afterX[2] * cosY,
+  ];
+  return [
+    afterY[0] * cosZ - afterY[1] * sinZ,
+    afterY[0] * sinZ + afterY[1] * cosZ,
+    afterY[2],
+  ];
 }
