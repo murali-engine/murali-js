@@ -26,6 +26,8 @@ export * from "./mobjects/teaching.ts";
 export * from "./mobjects/tensor.ts";
 export * from "./mobjects/stepwise.ts";
 export * from "./mobjects/chat.ts";
+export * from "./mobjects/opening.ts";
+export * from "./mobjects/word-cloud.ts";
 
 import type { SceneConstructor } from "./render/render.ts";
 import type { RenderOverrides } from "./render/config.ts";

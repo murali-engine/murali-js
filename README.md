@@ -150,6 +150,31 @@ timeline.animate(flow).at(3).duration(3).to({ signal: 1 });
 
 If connections are omitted, Venu creates a linear chain. A cyclic graph must provide an explicit `sequence()`. See [`examples/stepwise-storytelling.ts`](./examples/stepwise-storytelling.ts).
 
+### Word clouds
+
+Word clouds use deterministic seeded placement and keep every word as an ordinary label, so the existing timeline API can animate them individually:
+
+```ts
+const cloud = this.add(WordCloud([
+  { text: "Venu", weight: 100 },
+  { text: "animation", weight: 80 },
+  { text: "TypeScript", weight: 65 },
+])
+  .size([12, 6])
+  .fontRange([0.22, 1.1])
+  .palette([TEAL_C, BLUE_B, GOLD_C])
+  .rotations([0, 0, 0, -90, 90])
+  .shape("ellipse")
+  .seed(2026));
+
+timeline.animate(cloud.words)
+  .stagger(0.05)
+  .duration(0.5)
+  .appear();
+```
+
+The builder also supports rectangular clouds, custom padding, font family, font weight, and per-word colors. See [`examples/word-cloud.ts`](./examples/word-cloud.ts).
+
 ## Commands
 
 ```bash
@@ -185,4 +210,4 @@ The core has no dependency on Chromium, esbuild, or ffmpeg; those concerns stay 
 - [`docs/example-parity.md`](./docs/example-parity.md) tracks all 51 Murali reference examples.
 - [`docs/golden-examples`](./docs/golden-examples) contains compact API-design examples.
 
-Venu currently has runnable counterparts for 49 of the 51 Murali examples. The immediate priority is API stabilization, followed by package/runtime consistency, visual parity verification, and browser-measured DOM/React layout.
+Venu has runnable counterparts for all 51 Murali examples. The immediate priority is API stabilization, followed by package/runtime consistency, visual parity verification, and browser-measured DOM/React layout.

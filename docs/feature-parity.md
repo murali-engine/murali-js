@@ -109,7 +109,7 @@ The original Murali collections belong above the core language and renderer. The
 | Collection | Venu status |
 | --- | --- |
 | Themes and named colors | partial |
-| Cards, title cards, openings | planned |
+| Cards, title cards, openings | partial |
 | Neural-network diagrams | partial |
 | Transformer and attention views | partial |
 | Tensor views and operations | partial |

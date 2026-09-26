@@ -82,6 +82,9 @@ import {
   layerNormRows,
   nextTokenChoice,
   ChatInput,
+  Opening,
+  openingDuration,
+  WordCloud,
   Stepwise,
   type StepwiseStoryBuilder,
   bubbleOutline,
@@ -1165,6 +1168,72 @@ test("builds linear stepwise stories and validates cyclic scripts", () => {
     story.step("Known");
     story.connect(0, 2);
   }), /unknown step 2/);
+});
+
+test("authors a reusable opening on the ordinary scene timeline", () => {
+  class OpeningTestScene extends Scene {
+    readonly composition = Opening("VENU", "DETERMINISTIC VISUALS")
+      .style({ particleCount: 24 })
+      .timing({ introDelay: 0.2, endHold: 0.4 })
+      .addTo(this);
+
+    override construct(): void {
+      const timeline = new Timeline();
+      this.composition.animate(timeline, { at: 0.5 });
+      this.play(timeline);
+    }
+  }
+
+  const scene = new OpeningTestScene().prepare();
+  const { visual, tagline, duration } = scene.composition;
+  assert.equal(scene.duration, 0.5 + duration);
+  const openingAt = (time: number) => scene.sampleAt(time).get(visual) as unknown as { openingTime: number };
+  assert.equal(openingAt(0).openingTime, 0);
+  assert.ok(Math.abs(openingAt(0.5 + duration / 2).openingTime - duration / 2) < 1e-9);
+  assert.equal(scene.sampleAt(0).get(tagline)?.opacity, 0);
+  assert.equal(scene.sampleAt(scene.duration).get(tagline)?.opacity, 1);
+  assert.ok(openingDuration(4) > 5);
+  assert.throws(() => Opening("Venu", "invalid").duration(), /ASCII capitals/);
+  assert.throws(() => Opening("   ", "invalid").duration(), /at least one capital/);
+  assert.throws(() => Opening("VENU", "invalid").style({ particleCount: 0 }).duration(), /positive integer/);
+});
+
+test("lays out word clouds deterministically without overlapping labels", () => {
+  const entries = [
+    { text: "Venu", weight: 10 },
+    { text: "timeline", weight: 8 },
+    { text: "CSS", weight: 6 },
+    { text: "camera", weight: 5 },
+    { text: "render", weight: 4 },
+    { text: "scene", weight: 3 },
+  ];
+  const build = () => WordCloud(entries)
+    .size([8, 4])
+    .fontRange([0.2, 0.8])
+    .rotations([0, 0, 90])
+    .seed(42);
+  const first = build();
+  const second = build();
+  const snapshot = (cloud: ReturnType<typeof build>) => cloud.words.map((word) => ({
+    x: word.initialState.x,
+    y: word.initialState.y,
+    rotation: word.initialState.rotationZ,
+    color: word.initialState.color,
+    size: word.getLayoutSize(),
+  }));
+  assert.deepEqual(snapshot(first), snapshot(second));
+  const layout = snapshot(first);
+  for (let left = 0; left < layout.length; left += 1) {
+    for (let right = left + 1; right < layout.length; right += 1) {
+      const a = layout[left]!;
+      const b = layout[right]!;
+      const separated = Math.abs(a.x - b.x) >= (a.size.width + b.size.width) / 2
+        || Math.abs(a.y - b.y) >= (a.size.height + b.size.height) / 2;
+      assert.equal(separated, true);
+    }
+  }
+  assert.throws(() => WordCloud([]), /at least one word/);
+  assert.throws(() => WordCloud([{ text: "bad", weight: 0 }]), /must be positive/);
 });
 
 test("projects one vector onto another and labels the angle", () => {

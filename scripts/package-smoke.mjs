@@ -21,9 +21,9 @@ writeFileSync(join(temporaryDirectory, "package.json"), JSON.stringify({
 }));
 execFileSync(npmCommand, ["install", "--ignore-scripts"], { cwd: temporaryDirectory, stdio: "inherit" });
 writeFileSync(join(temporaryDirectory, "smoke.mjs"), `
-  import { Camera3D, Circle, Label, Scene, ThreeTattva, Timeline, render } from "venu";
+  import { Camera3D, Circle, Label, Opening, Scene, ThreeTattva, Timeline, WordCloud, render } from "venu";
   import { renderScene } from "venu/render";
-  if ([Circle, Label, Scene, ThreeTattva, Timeline, render, renderScene].some((value) => typeof value !== "function") || typeof Camera3D.perspective !== "function") {
+  if ([Circle, Label, Opening, Scene, ThreeTattva, Timeline, WordCloud, render, renderScene].some((value) => typeof value !== "function") || typeof Camera3D.perspective !== "function") {
     throw new Error("Published exports are incomplete");
   }
 `);

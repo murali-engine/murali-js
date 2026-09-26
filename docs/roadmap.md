@@ -24,14 +24,14 @@ The project is already a broad working implementation, not an early prototype.
 | --- | --- | --- |
 | Authoring | Single-file scenes, fluent Tattvas, scene helpers, clips, timelines, overlap, nesting, multi-target animation, stagger | A few APIs have inconsistent state, validation, or composition semantics |
 | Styling and layout | Typed CSS, CSS variables, animated styles, groups, stacks, authored bounds, frame and camera-edge layout | Browser-measured DOM/React bounds, measurement invalidation, shape-safe CSS paints |
-| 2D and text | Shapes, labels, lines, arrows, paths, tables, code, MathML, semantic reveals | Morph and match transforms, general font and asset handling |
+| 2D and text | Shapes, labels, lines, arrows, paths, tables, code, MathML, semantic reveals, deterministic word clouds | Morph and match transforms, general font and asset handling |
 | 3D | Scene-owned orthographic and perspective camera, XYZ transforms, Three.js content, curves, surfaces, glTF props | A clearer shared-renderer/adapter boundary and broader performance testing |
 | Composition | Child scenes, independent child clocks, looping and playback modes | Remaining opening composite and visual parity proof |
 | Runtime | Preview, MP4, PNG, transparency, progress, npm installation, bundled Chromium | Source-relative config discovery, unified CLI behavior, diagnostics, optional GIF output |
-| Teaching components | Linear algebra, networks, transformers, tensors, probability, normalization, chat, stepwise stories | Timeline-native tensor morphs, composable chat objects, API curation |
-| Murali coverage | 49 of 51 examples have Venu scene files | `kavriq_opening`, `opening_scene_view`, and systematic rendered comparisons |
+| Teaching components | Linear algebra, networks, transformers, tensors, probability, normalization, chat, stepwise stories, reusable 3D openings | Timeline-native tensor morphs, composable chat objects, API curation |
+| Murali coverage | All 51 examples have Venu scene files | Systematic rendered comparisons and documented intentional differences |
 
-The current verification baseline is 57 deterministic tests plus a package smoke test that installs the packed npm artifact and imports both `venu` and `venu/render`.
+The current verification baseline is 59 deterministic tests plus a package smoke test that installs the packed npm artifact and imports both `venu` and `venu/render`.
 
 ## Work order
 
@@ -111,12 +111,12 @@ Exit criteria:
 - GIF export only if it remains a real product requirement.
 - Formalize Three.js resource ownership and evaluate sharing renderers for scenes with many 3D roots.
 
-### 6. Finish the Murali set
+### 6. Murali port coverage — complete
 
-- Build a reusable opening/title-card composite.
-- Port `kavriq_opening`.
-- Port `opening_scene_view` using the shared opening composite and existing child-scene support.
-- Complete the comparison record for all 51 examples.
+- The reusable opening composite is implemented with configurable texture, typography, particles, style, timing, and deterministic timeline choreography.
+- `kavriq_opening` and `opening_scene_view` are ported and render successfully.
+- All 51 Murali examples now have runnable Venu counterparts.
+- Visual comparison of the complete set remains part of phase 3.
 
 ## Definition of done
 

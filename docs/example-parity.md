@@ -2,7 +2,7 @@
 
 This is the implementation and visual-comparison ledger for the 51 Rust examples in `/Users/ravishankar/personal-work/animation/murali/examples`. It is not the product roadmap; current priorities are in [`roadmap.md`](./roadmap.md). Manim is the model the examples ultimately derive from.
 
-Current implementation coverage: **49 of 51 Murali examples have runnable Venu counterparts.** The two missing scenes are `kavriq_opening` and `opening_scene_view`. Most existing ports still need direct rendered comparison, so their parity cells remain blank even though their scene scripts exist.
+Current implementation coverage: **all 51 Murali examples have runnable Venu counterparts.** Most ports still need direct rendered comparison, so their parity cells remain blank even though their scene scripts exist.
 
 Capability status stays in [`feature-parity.md`](./feature-parity.md). An example is done only when it meets that ledger's completion rule: a documented API, deterministic tests, a runnable Venu scene, a comparison with the Murali example, and any intentional web difference written down. Checking a box here means all five are true. A blank box means “parity not yet proven,” not necessarily “unimplemented.”
 
@@ -106,7 +106,7 @@ Shared piece: a scene inside a scene, with its own clock, camera, and loop. The 
 | Parity | Example | Notes |
 | --- | --- | --- |
 | | `scene_view` | Scene script now follows Murali: the network is a child scene looping every 3.5 seconds while the parent moves that inset aside and explains it. The child picture is transparent, so the view's own plate shows behind it. Not checked until the rendered frames are compared. |
-| | `opening_scene_view` | The inset clock exists. This example still waits on the opening composite from step 8; that composite is not rebuilt here. |
+| | `opening_scene_view` | Ported with the shared `Opening` composite inside a once-playing `SceneView`, followed by the observe/reason/explain parent sequence and signal pulses. Rendered successfully; direct Murali comparison remains. |
 | | `linear_algebra_transform_order_scene_view` | The outer pair is scripted in step 3's row. |
 
 ## 8. Teaching composites
@@ -127,7 +127,7 @@ These are domain-level components built on the core scene, timeline, layout, and
 | | `self_attention_lesson` | Scene script now follows Murali: the trace file drives embeddings, Q, K, and V, then scale, a causal mask of -20, softmax, the residual add, and one categorical draw. The last draw at 0.78 selects clearly. Products are 32-bit. Exponentials are 64-bit and still select that token. Label widths are character estimates. Not checked until the rendered frames are compared. |
 | | `stepwise_storytelling` | Scene script now follows Murali through the fluent `step`, `connect`, `route`, and `sequence` builder: four steps reveal in order, the feedback hop drops below the row, then a teal signal replays the journey including that hop. Reveal progress is eased, and each step smoothsteps inside its own share. Node widths are character estimates. The diagram is anchored on the first step, with empty space on the other sides, because Venu places an object by its center. Representative Venu frames have been checked; direct side-by-side comparison with Murali remains. |
 | | `chat_input_box` | Scene script now follows Murali: the user bubble and send button fade in, then the prompt types; the reply bubble follows. Tips hang below the box. The box stays on its placed point, with empty space above matching the tip. Text positions use a character-width estimate. Not checked until the rendered frames are compared. |
-| | `kavriq_opening` | Opening composite. Perspective camera already exists. |
+| | `kavriq_opening` | Ported through the reusable `Opening` builder: perspective landing, procedural marble faces, deterministic glyph particles, dissolve, and tagline reveal. Rendered successfully; direct Murali comparison remains. |
 
 ## Count
 
@@ -143,6 +143,6 @@ These are domain-level components built on the core scene, timeline, layout, and
 | 8. Teaching composites | 13 |
 | Total | 51 |
 
-Implementation coverage: 49 ported, 2 missing. Parity completion remains intentionally lower until rendered comparisons are recorded.
+Implementation coverage: 51 ported, 0 missing. Parity completion remains intentionally lower until rendered comparisons are recorded.
 
 `linear_algebra_transform_order_scene_view` is counted in step 3. Step 7 finishes its inset; it is not another example.
