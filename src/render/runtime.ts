@@ -61,6 +61,27 @@ function applyCSS(element: HTMLElement, styles: CSSStyles): void {
   }
 }
 
+function applyPinnedFrame(wrapper: HTMLElement, content: HTMLElement, state: TattvaState): void {
+  wrapper.style.left = "50%";
+  wrapper.style.top = "50%";
+  wrapper.style.visibility = "visible";
+  wrapper.style.transform = "translate(-50%, -50%)";
+  wrapper.style.opacity = String(state.opacity);
+  applyPaint(content, state);
+}
+
+function applyThreeTransform(root: ThreeScene, state: TattvaState): void {
+  root.position.set(state.x, state.y, state.z);
+  root.rotation.order = "XYZ";
+  root.rotation.set(
+    state.rotationX * Math.PI / 180,
+    state.rotationY * Math.PI / 180,
+    state.rotationZ * Math.PI / 180,
+  );
+  const pulse = indicateScale(state.indicate ?? 0);
+  root.scale.set(state.scaleX * pulse, state.scaleY * pulse, state.scaleZ * pulse);
+}
+
 function applyOverlayFrame(
   wrapper: HTMLElement,
   content: HTMLElement,
@@ -421,7 +442,9 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
       const projectAsWorldPlane = !item.tattva.parent
         && item.tattva.kind !== "three"
         && item.tattva.depthModeValue === "world";
-      if (projectAsWorldPlane) {
+      if (item.tattva.kind === "three") {
+        applyPinnedFrame(item.wrapper, item.content, state);
+      } else if (projectAsWorldPlane) {
         applyWorldFrame(item.wrapper, item.content, state, pixelsPerUnit, sceneCamera);
       } else {
         applyOverlayFrame(item.wrapper, item.content, state, pixelsPerUnit);
@@ -436,6 +459,7 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
         const threeTattva = item.tattva as ThreeTattva;
         item.three.camera = sceneCamera;
         threeTattva.hooks.update?.(item.three, state);
+        applyThreeTransform(item.three.scene, state);
         item.three.renderer.render(item.three.scene, item.three.camera);
       }
     }

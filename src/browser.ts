@@ -15,6 +15,12 @@ export * from "./mobjects/paths.ts";
 export * from "./mobjects/graph.ts";
 export * from "./mobjects/linear-algebra.ts";
 export * from "./mobjects/motion.ts";
+export * from "./mobjects/notation.ts";
+export * from "./mobjects/fourier.ts";
+export * from "./mobjects/space.ts";
+export * from "./mobjects/gltf.ts";
+export * from "./mobjects/prop.ts";
+export * from "./mobjects/map.ts";
 
 import type { SceneConstructor } from "./render/render.ts";
 import type { RenderOverrides } from "./render/config.ts";

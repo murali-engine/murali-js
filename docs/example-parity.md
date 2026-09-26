@@ -78,11 +78,11 @@ Shared piece: a value that is a function of scene time, and a path that grows fr
 
 | Done | Example | Notes |
 | --- | --- | --- |
-| | `tables` | A table that writes in and unwrites. |
-| | `code_blocks` | Syntax-colored browser text on the timeline. |
-| | `latex_and_typst` | Deterministic math rendering, plus one morph. Morph is still an engine gap. |
-| | `equation_and_matrix_animation` | Equation continuity and matrix highlight steps. |
-| | `fourier_formula_trace` | Also needs the traced path from step 4. |
+| | `tables` | Scene script now follows Murali: the grid draws, then the cells type on, then the table unwrites. Not checked until the rendered frames are compared. |
+| | `code_blocks` | Scene script now follows Murali: a dark Rust window, then a light TOML window. Coloring is browser text for those two languages, not a Typst highlighter. Not checked until the rendered frames are compared. |
+| | `latex_and_typst` | Scene script now follows Murali using MathML from the source string. The vector morph is a crossfade; glyph morphing is still an engine gap. Not checked until the rendered frames are compared. |
+| | `equation_and_matrix_animation` | Scene script now follows Murali: keyed terms slide from `x + 2 = 5` to `x = 5 - 2`, then the matrix focuses a row, a column, and the diagonal. Not checked until the rendered frames are compared. |
+| | `fourier_formula_trace` | Scene script follows the epicycle trace. The π outline is a geometric stand-in, not a Typst glyph. Not checked until the rendered frames are compared. |
 
 ## 6. 3D objects on the existing camera
 
@@ -90,14 +90,14 @@ The scene camera can already move, look at a target, zoom, and orbit. These exam
 
 | Done | Example | Notes |
 | --- | --- | --- |
-| | `curves_3d` | Parametric curve and 3D axes. |
-| | `surfaces_3d` | Parametric surface and a progressive reveal. |
-| | `wireframe_surfaces` | Same surface, drawn as a wireframe. |
-| | `textured_surface` | An image wrapped on a parametric surface. |
-| | `prop3d_glb` | A `.glb` prop placed and animated by the timeline. |
-| | `prop3d_gltf` | A `.gltf` plus its `.bin`. |
-| | `model_inspector` | Load a model, frame it, and rotate it from scene time. |
-| | `map_projection_morph` | A textured surface whose vertices are a function of `t`. |
+| | `curves_3d` | Scene script now follows Murali: perspective camera, 3D axes, and a parametric curve that draws on with a pulse. Lines are WebGL lines, so thickness is in pixels rather than world units. Not checked until the rendered frames are compared. |
+| | `surfaces_3d` | Scene script now follows Murali: the hill writes in by parameter row, colored by height. Not checked until the rendered frames are compared. |
+| | `wireframe_surfaces` | Scene script now follows Murali: the saddle grid draws across, then down. Not checked until the rendered frames are compared. |
+| | `textured_surface` | Scene script now follows Murali: a wire sphere writes in, then a textured sphere replaces it. The map is generated in the page, not Murali's Earth JPEG. Not checked until the rendered frames are compared. |
+| | `prop3d_glb` | Scene script now follows Murali: the pyramid is placed, lifted, dropped, and turned. The file is parsed before the first frame, and the model moves in the 3D world rather than by sliding the canvas. The source quaternions are the same orientation, so the yaw is interpolated through one full turn instead. Titles sit in the fixed overlay frame, so the perspective camera does not project them. Not checked until the rendered frames are compared. |
+| | `prop3d_gltf` | Scene script now follows Murali: the apple and its sibling `.bin` are inlined and use the same motion as the pyramid, at scale 1.65. Not checked until the rendered frames are compared. |
+| | `model_inspector` | Scene script follows the default preview: the apple is fitted to a span of 4.2 and turns at 24 degrees per second for one revolution. Pointer orbit, wheel zoom, and the keyboard modes are not in the recording, and the footer says so. Captions use those same fractions of the fixed frame. Not checked until the rendered frames are compared. |
+| | `map_projection_morph` | Scene script now follows Murali: five projection blends, each a function of scene time. The graticule and caption read that same time. Graticule lines are WebGL lines, so thickness is in pixels. The map image is generated, not Murali's Earth JPEG. Not checked until the rendered frames are compared. |
 
 ## 7. Child scenes
 

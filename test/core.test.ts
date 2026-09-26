@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   Circle,
   Arrow,
@@ -39,11 +42,39 @@ import {
   Timeline,
   ThreeTattva,
   VStack,
+  CodeBlock,
+  Equation,
+  MathText,
+  NumberLine,
+  ParametricSurface,
+  sampleCurve,
+  tickValues,
   ParticleBelt,
+  Table,
   StreamLines,
   TracedPath,
   VectorField,
   composeColumns,
+  continuityPlacement,
+  epicycleTip,
+  fourierTerms,
+  MAP_FOOTER_START,
+  Prop3D,
+  centeredPropPosition,
+  fittedScale,
+  framingDistance,
+  mapPoint,
+  mathml,
+  modelCenter,
+  modelDimensions,
+  parseGlb,
+  parseGltf,
+  projectLonLat,
+  projectionBlendAt,
+  solveMollweideTheta,
+  visibleProjectionCaption,
+  matrixMarkup,
+  piOutline,
   clip,
   interpolateCSSValue,
   interpolateHex,
@@ -594,6 +625,174 @@ test("samples an updater and a traced path from scene time alone", () => {
   const field = VectorField([-1, 1], [-1, 1], 3, 3, () => [0, 1]);
   assert.equal(field.arrowsAt(0).length, 9);
   assert.ok((field.arrowsAt(0)[0]?.vector[1] ?? 0) > 0);
+});
+
+test("writes a table, colors code, and lays out math from scene data", () => {
+  const table = Table([
+    ["Alice", "28", "NYC"],
+    ["Bob", "34", "LA"],
+  ]).columnLabels(["Name"]).rowLabels(["Person 1"]).title("Person Data").textHeight(0.25);
+  assert.deepEqual(table.textsAt(0), []);
+  const written = table.textsAt(1);
+  assert.ok(written.includes("Person Data"));
+  assert.ok(written.includes("Alice"));
+  assert.ok(written.includes("Name"));
+
+  const code = CodeBlock("fn highlight() {\n    1\n}", "rust").theme("dark").title("highlight.rs");
+  assert.match(code.contentHTML(), /fn/);
+  assert.match(code.contentHTML(), /#f0ac5f/);
+  assert.match(CodeBlock("fps = 60\n", "toml").theme("light").contentHTML(), /60/);
+
+  const formula = mathml("\\int_0^1 x^2 \\, dx = \\frac{1}{3}");
+  assert.match(formula, /<mfrac>/);
+  assert.match(formula, /∫/);
+  assert.match(MathText("(a + b)^2").contentHTML(), /msup/);
+
+  const source = Equation([
+    { text: "x", key: "x", color: "#5cd0b3" },
+    { text: "+", key: "plus", color: "#dcdcdc" },
+    { text: "2", key: "two", color: "#f0ac5f" },
+  ]);
+  const target = Equation([
+    { text: "x", key: "x", color: "#5cd0b3" },
+    { text: "-", key: "minus", color: "#dcdcdc" },
+  ]);
+  const start = continuityPlacement(source.terms, target.terms, 0);
+  const xTerm = start.find((term) => term.tattva === target.terms[0]?.tattva);
+  assert.equal(xTerm?.x, source.terms[0]?.center[0]);
+  const minus = start.find((term) => term.tattva === target.terms[1]?.tattva);
+  assert.equal(minus?.opacity, 0);
+  assert.equal(NumberLine([-3, 6]).step(1).build().children.length > 2, true);
+
+  const focus = matrixMarkup([["2", "-1"], ["-1", "2"]], 0.44, {
+    cells: [[0, 0]],
+    color: "#5cd0b3",
+    amount: 1,
+    dim: 0.28,
+  });
+  assert.match(focus, /#5cd0b3/);
+
+  const outline = piOutline(32, 2.65);
+  assert.equal(outline.length, 32);
+  const terms = fourierTerms(outline, 2);
+  assert.equal(terms[0]?.frequency, 0);
+  assert.notDeepEqual(epicycleTip(terms, 0), epicycleTip(terms, 0.5));
+});
+
+test("samples a space curve and writes a parametric surface by row", () => {
+  const curve = sampleCurve([0, 6.4], (t) => [
+    1.7 * Math.cos(0.9 * t),
+    0.85 * Math.sin(1.4 * t),
+    -1.5 + 0.48 * t + 0.22 * Math.cos(1.1 * t),
+  ], 240);
+  assert.equal(curve.length, 240);
+  assert.ok(Math.abs((curve[0]?.[0] ?? 0) - 1.7) < 1e-9);
+  assert.equal(curve[0]?.[1], 0);
+  assert.ok(Math.abs((curve[0]?.[2] ?? 0) + 1.28) < 1e-9);
+  assert.equal(tickValues([-2.8, 2.8], 1).includes(0), false);
+
+  const surface = ParametricSurface([-2, 2], [-1.8, 1.8], (u, v) => [u, 0, v]).samples(42, 42).writeProgress(0);
+  assert.equal(surface.rowsAt(0), 0);
+  assert.equal(surface.rowsAt(0.5), 21);
+  assert.equal(surface.rowsAt(1), 42);
+});
+
+test("loads demo props and morphs a map from scene time", () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const pyramid = parseGlb(readFileSync(resolve(root, "examples/assets/props/demo-pyramid.glb")));
+  assert.equal(pyramid.meshCount, 5);
+  assert.ok(Math.abs((pyramid.meshes[0]?.positions[0] ?? 0) + 1.0355) < 1e-3);
+  assert.ok(Math.abs(pyramid.meshes[0]?.positions[1] ?? 1) < 1e-6);
+
+  const apple = parseGltf(
+    readFileSync(resolve(root, "examples/assets/props/demo-apple/demo-apple.gltf"), "utf8"),
+    [readFileSync(resolve(root, "examples/assets/props/demo-apple/demo-apple.bin"))],
+  );
+  assert.equal(apple.meshCount, 3);
+  const dimensions = modelDimensions(apple);
+  assert.ok(Math.abs(dimensions[0] - 1.8) < 1e-3);
+  assert.ok(Math.abs(dimensions[1] - 2.61) < 1e-3);
+  assert.ok(Math.abs(dimensions[2] - 1.64) < 1e-3);
+  const fit = fittedScale(dimensions, [1, 1, 1], true);
+  assert.ok(Math.abs(fit[1] - 4.2 / dimensions[1]) < 1e-9);
+  assert.ok(Math.abs(fittedScale([2, 4, 1], [3, 1, 1], true)[0] - 3.15) < 1e-5);
+  const distance = framingDistance([2, 4, 2], 42, 16 / 9);
+  const tan = Math.tan(21 * Math.PI / 180);
+  const expectedDistance = (Math.max(2 / tan, 1 / (tan * 16 / 9)) + 1) * 1.35;
+  assert.ok(Math.abs(distance - expectedDistance) < 1e-9);
+  const centered = centeredPropPosition([1, 0, 0], [0, 90, 0], [1, 0, 0], [1, 1, 1]);
+  assert.ok(Math.abs(centered[0] - 1) < 1e-9);
+  assert.ok(Math.abs(centered[1]) < 1e-9);
+  assert.ok(Math.abs(centered[2] - 1) < 1e-9);
+  assert.ok(Math.abs(modelCenter(apple)[0]) < 1e-6);
+
+  const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+  const translated = parseGltf(JSON.stringify({
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0, translation: [1, 0, 0] }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 }, material: 0 }] }],
+    materials: [{ pbrMetallicRoughness: { baseColorFactor: [0.2, 0.4, 0.6, 1] } }],
+    buffers: [{ byteLength: 36 }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 36 }],
+    accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: "VEC3" }],
+  }), [new Uint8Array(positions.buffer)]);
+  assert.equal(translated.meshCount, 1);
+  assert.equal(translated.meshes[0]?.positions[0], 1);
+  assert.equal(translated.meshes[0]?.indices.length, 3);
+  assert.equal(translated.meshes[0]?.color[0], 0.2);
+
+  const yaw = -0.35 * 180 / Math.PI;
+  class YawScene extends Scene {
+    readonly prop = Prop3D(translated).scale(1.4).rotation3D([0, yaw, 0]);
+
+    override construct(): void {
+      this.add(this.prop, { at: [-0.85, -0.65, 0] });
+      const timeline = new Timeline();
+      timeline.animate(this.prop).at(2.05).duration(2.2).ease("inOutCubic").rotate3DTo([0, yaw + 360, 0]);
+      this.play(timeline);
+    }
+  }
+  const yawScene = new YawScene();
+  const start = yawScene.sampleAt(0).get(yawScene.prop);
+  const middle = yawScene.sampleAt(2.05 + 1.1).get(yawScene.prop);
+  const end = yawScene.sampleAt(4.25).get(yawScene.prop);
+  assert.equal(start?.y, -0.65);
+  assert.equal(start?.scaleX, 1.4);
+  assert.ok(Math.abs((start?.rotationY ?? 0) - yaw) < 1e-9);
+  assert.ok(Math.abs((middle?.rotationY ?? 0) - (yaw + 180)) < 1e-6);
+  assert.ok(Math.abs((end?.rotationY ?? 0) - (yaw + 360)) < 1e-6);
+
+  assert.equal(solveMollweideTheta(0), 0);
+  const pole = projectLonLat({ from: "Equirectangular", to: "Equirectangular", mix: 0 }, Math.PI, Math.PI / 2);
+  assert.ok(Math.abs(pole[0] - 5.9) < 1e-9);
+  assert.ok(Math.abs(pole[1] - 3.5) < 1e-9);
+  const blend = projectionBlendAt(2.8 + 2.4);
+  assert.equal(blend.from, "Equirectangular");
+  assert.equal(blend.to, "Sinusoidal");
+  assert.ok(Math.abs(blend.mix - 0.5) < 1e-9);
+  assert.equal(projectionBlendAt(7.6).from, "Sinusoidal");
+  assert.equal(visibleProjectionCaption(0), "");
+  assert.equal(visibleProjectionCaption(2.5), "Equirectangular");
+  assert.equal(visibleProjectionCaption(2.8), "Equirectangular to Sinusoidal");
+  assert.equal(MAP_FOOTER_START, 25.6);
+
+  class MorphScene extends Scene {
+    readonly sheet = ParametricSurface([0, Math.PI], [0, Math.PI * 2], mapPoint).samples(8, 8);
+
+    override construct(): void {
+      this.add(this.sheet);
+      this.wait(10);
+    }
+  }
+  const morph = new MorphScene();
+  morph.sampleAt(2.8);
+  const before = morph.sheet.point(Math.PI / 4, Math.PI * 1.5);
+  morph.sampleAt(2.8 + 2.4);
+  const during = morph.sheet.point(Math.PI / 4, Math.PI * 1.5);
+  assert.ok(Math.abs(before[0] - 2.95) < 1e-9);
+  assert.ok(during[0] < before[0] - 0.3);
 });
 
 test("projects one vector onto another and labels the angle", () => {

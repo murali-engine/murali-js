@@ -1,4 +1,5 @@
 import { build } from "esbuild";
+import { readFileSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,6 +22,25 @@ export async function bundleScene(scenePath: string): Promise<string> {
     format: "esm",
     target: "chrome120",
     jsx: "automatic",
+    plugins: [{
+      name: "inline-prop-files",
+      setup(build) {
+        build.onLoad({ filter: /[\\/]assets[\\/]props[\\/]files\.ts$/ }, (args) => {
+          const directory = dirname(args.path);
+          const pyramid = readFileSync(resolve(directory, "demo-pyramid.glb"));
+          const appleGltf = readFileSync(resolve(directory, "demo-apple/demo-apple.gltf"), "utf8");
+          const appleBin = readFileSync(resolve(directory, "demo-apple/demo-apple.bin"));
+          return {
+            loader: "js",
+            contents: [
+              `export const pyramidGlb = new Uint8Array([${pyramid.join(",")}]);`,
+              `export const appleGltf = ${JSON.stringify(appleGltf)};`,
+              `export const appleBin = new Uint8Array([${appleBin.join(",")}]);`,
+            ].join("\n"),
+          };
+        });
+      },
+    }],
   });
   return result.outputFiles[0]?.text ?? "";
 }
