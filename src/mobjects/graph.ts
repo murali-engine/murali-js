@@ -43,6 +43,10 @@ export function PlotLegend(entries: readonly { label: string; color: string }[])
 
 export class NumberPlaneBuilder {
   private stepSize = 1;
+  private gridColor = GRID;
+  private axisColor = AXIS;
+  private gridThickness = 0.01;
+  private axisThickness = 0.03;
 
   constructor(
     private readonly xRange: GraphRange,
@@ -54,6 +58,18 @@ export class NumberPlaneBuilder {
     return this;
   }
 
+  gridStyle(color: string, thickness: number): this {
+    this.gridColor = color;
+    this.gridThickness = thickness;
+    return this;
+  }
+
+  axisStyle(color: string, thickness: number): this {
+    this.axisColor = color;
+    this.axisThickness = thickness;
+    return this;
+  }
+
   build(): GroupTattva {
     const lines = [
       ...sampleRange(this.xRange, this.stepSize).map((x) => {
@@ -61,14 +77,20 @@ export class NumberPlaneBuilder {
         return Line()
           .from([x, this.yRange[0]])
           .to([x, this.yRange[1]])
-          .stroke({ width: axis ? 0.03 : 0.01, color: axis ? AXIS : GRID });
+          .stroke({
+            width: axis ? this.axisThickness : this.gridThickness,
+            color: axis ? this.axisColor : this.gridColor,
+          });
       }),
       ...sampleRange(this.yRange, this.stepSize).map((y) => {
         const axis = Math.abs(y) <= 1e-4;
         return Line()
           .from([this.xRange[0], y])
           .to([this.xRange[1], y])
-          .stroke({ width: axis ? 0.03 : 0.01, color: axis ? AXIS : GRID });
+          .stroke({
+            width: axis ? this.axisThickness : this.gridThickness,
+            color: axis ? this.axisColor : this.gridColor,
+          });
       }),
     ];
     return Group(lines);

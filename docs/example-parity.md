@@ -52,16 +52,16 @@ Shared piece: a number plane, 2D axes, and a vector arrow. Plots and linear-alge
 | Done | Example | Notes |
 | --- | --- | --- |
 | | `graphs_2d` | Scene script now follows Murali on `NumberPlane`, `Axes`, a sampled sine, scatter marks, and a legend. `VectorArrow` is available for the linear-algebra scenes, which are not ported yet. Not checked until the rendered frames are compared. |
-| | `linear_algebra_vectors` | |
-| | `linear_algebra_span` | |
-| | `linear_algebra_dot_product` | |
-| | `linear_algebra_basis_change` | |
-| | `linear_algebra_matrix_vector` | |
-| | `linear_algebra_matrix_transform` | |
-| | `linear_algebra_column_combination` | |
-| | `linear_algebra_determinant` | |
-| | `linear_algebra_composition` | |
-| | `linear_algebra_transform_order_scene_view` | Also needs a child scene from step 7. Port the picture after step 3; the inset waits for step 7. |
+| | `linear_algebra_vectors` | Scene script now follows Murali: number plane, labeled `v`, three coordinate readouts, a feature list, a small arrow, and a scalar multiple. The other linear-algebra scenes still need their own panels. Not checked until the rendered frames are compared. |
+| | `linear_algebra_span` | Scene script now follows Murali: span lines, basis `u` and `v`, a combination, a parallelogram sum, and the column readout. Not checked until the rendered frames are compared. |
+| | `linear_algebra_dot_product` | Scene script now follows Murali: labeled `a` and `b`, the angle, the projection and right-angle mark, and three dot-product meters. Not checked until the rendered frames are compared. |
+| | `linear_algebra_basis_change` | Scene script now follows Murali: the standard grid, the tilted basis grid, `v`, and both coordinate readouts. Not checked until the rendered frames are compared. |
+| | `linear_algebra_matrix_vector` | Scene script now follows Murali: source and transformed grids, labeled `x` and `Ax`, and both matrix-vector flows. Matrix cells are labels inside line brackets; spacing uses the character-width estimate, not Murali's font metrics. Not checked until the rendered frames are compared. |
+| | `linear_algebra_matrix_transform` | Scene script now follows Murali: the source and transformed grids with basis arrows, the highlighted matrix columns, `x` and `Ax`, and the output column. Column plates are flat rectangles behind the cells. Not checked until the rendered frames are compared. |
+| | `linear_algebra_column_combination` | Scene script now follows Murali: scaled columns `a1` and `a2`, the sum `Ax`, the target `b` and its residual, the highlighted matrix, and the rank and dimension badges. Badge plates stay square; Murali's are rounded. Not checked until the rendered frames are compared. |
+| | `linear_algebra_determinant` | Scene script now follows Murali: three cases, each with a grid, the unit-square image, and the matrix. A positive area is a filled parallelogram; a collapse is the red diagonal. Not checked until the rendered frames are compared. |
+| | `linear_algebra_composition` | Scene script now follows Murali: A, B, BA, and AB as highlighted matrices. Not checked until the rendered frames are compared. |
+| | `linear_algebra_transform_order_scene_view` | The inner path-1 picture is scripted: identity, A, then BA, with `x` and `BAx`. The outer pair of scene views, their move and scale, and the comparison titles wait for child scenes in step 7. Not checked until the rendered frames are compared. |
 
 ## 4. Updaters and traced paths
 
@@ -69,10 +69,10 @@ Shared piece: a value that is a function of scene time, and a path that grows fr
 
 | Done | Example | Notes |
 | --- | --- | --- |
-| | `traced_paths` | |
-| | `particles` | |
-| | `streamlines` | |
-| | `force_fields` | The field changes because the charges move, still sampled at `t`. |
+| | `traced_paths` | Scene script now follows Murali: the wheel, the dot, and the cycloid. The trace is rebuilt from the point at scene time, sampled every 1/60s, so a seek matches a forward play. Not checked until the rendered frames are compared. |
+| | `particles` | Scene script now follows Murali: one seeded belt whose phase is `1.05` times elapsed scene time. The hash uses JavaScript sine, so a dot is not bit-identical to Murali's 32-bit sine. Not checked until the rendered frames are compared. |
+| | `streamlines` | Scene script now follows Murali: fourteen seeds grow from 1 step to 170 with an in-out quad. The growth is a function of scene time. Not checked until the rendered frames are compared. |
+| | `force_fields` | Scene script now follows Murali: the arrows follow the two moving charges, and the gold path is the fixed plus-mark trail. Charge motion is a function of scene time. Not checked until the rendered frames are compared. |
 
 ## 5. Math text, tables, and code
 

@@ -226,7 +226,12 @@ export class WorldPathBuilder {
     return this;
   }
 
-  stroke(options: { color: string; width?: number }): PathTattva {
+  close(): this {
+    this.commands.push("Z");
+    return this;
+  }
+
+  stroke(options: { color: string; width?: number; fill?: string }): PathTattva {
     if (this.xs.length === 0) throw new Error("A world path needs at least one point.");
     const pad = options.width ?? 0.05;
     const minX = Math.min(...this.xs) - pad;
@@ -235,9 +240,11 @@ export class WorldPathBuilder {
     const maxY = Math.max(...this.ys) + pad;
     const width = Math.max(maxX - minX, 0.001);
     const height = Math.max(maxY - minY, 0.001);
-    return Path(this.commands.join(" "), {
+    const path = Path(this.commands.join(" "), {
       bounds: { x: minX, y: minY, width, height },
-    }).stroke(options).at([minX + width / 2, -(minY + height / 2), 0]);
+    }).stroke(options);
+    if (options.fill) path.fill(resolveColor(options.fill));
+    return path.at([minX + width / 2, -(minY + height / 2), 0]);
   }
 
   private point(x: number, y: number): void {

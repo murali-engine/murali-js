@@ -66,6 +66,8 @@ export class Tattva<State extends TattvaState = TattvaState> {
   paintsOwnStroke = false;
   renderLayer = 0;
   depthModeValue: DepthMode = "world";
+  /** Geometry markup is rebuilt from scene time on every sample. */
+  dynamicGeometry = false;
 
   constructor(options: TattvaOptions<State> = {}) {
     this.id = options.id ?? `tattva-${++tattvaSequence}`;
@@ -193,9 +195,12 @@ export class Tattva<State extends TattvaState = TattvaState> {
     };
   }
 
-  contentHTML(): string | undefined {
+  contentHTML(_time?: number): string | undefined {
     return this.html;
   }
+
+  /** Adjust the sampled state for this exact scene time. Must not depend on earlier samples. */
+  influenceState(_time: number, _state: State): void {}
 }
 
 function rotateXYZ([x, y, z]: Vec3, [rotationX, rotationY, rotationZ]: Vec3): Vec3 {

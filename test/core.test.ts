@@ -7,10 +7,30 @@ import {
   resolveColor,
   HStack,
   Axes,
+  AngleArc,
+  BasisGrid,
+  BasisVectors,
+  basisCoordinates,
+  ColumnCombination,
+  CoordinateReadout,
+  DeterminantArea,
+  DimensionBadge,
+  LinearCombination,
+  MatrixDisplay,
+  MatrixTransformPanel,
+  MatrixVectorFlow,
+  SpanRegion,
+  TransformableGrid,
+  formatMatrixEntry,
   Label,
+  LabeledVector,
   Line,
   NumberPlane,
+  QuantityBadge,
   VectorArrow,
+  cosineSimilarity,
+  formatValue,
+  projectOnto,
   sampleRange,
   Rectangle,
   Scene,
@@ -19,6 +39,11 @@ import {
   Timeline,
   ThreeTattva,
   VStack,
+  ParticleBelt,
+  StreamLines,
+  TracedPath,
+  VectorField,
+  composeColumns,
   clip,
   interpolateCSSValue,
   interpolateHex,
@@ -334,6 +359,252 @@ test("builds a number plane, axis ticks, and a vector arrow", () => {
   const arrow = VectorArrow([2, 0]);
   assert.equal(arrow.initialState.x, 1);
   assert.equal(arrow.initialState.rotationZ, 0);
+});
+
+test("formats vector readouts and places a labeled vector at its tip", () => {
+  assert.equal(formatValue(2.6), "2.60");
+  assert.equal(formatValue(2), "2");
+  const column = CoordinateReadout([2.6, 1.4]).mode("column").build();
+  assert.deepEqual(column.children.map((child) => child.text), ["[ 2.60 ]", "[ 1.40 ]"]);
+  const features = CoordinateReadout([0.42, 0.81]).names(["topic", "style"]).mode("features").highlight([1]).build();
+  assert.equal(features.children[1]?.text, "style: 0.81");
+  const vector = LabeledVector("v", [2.6, 1.4]).coordinates(true).build();
+  const label = vector.children.find((child) => child.text?.startsWith("v "));
+  assert.equal(label?.text, "v (2.60, 1.40)");
+  assert.equal(label?.initialState.x, 2.6 + 0.16);
+});
+
+test("fills a span and names a linear combination", () => {
+  const u: readonly [number, number] = [1.3, 0.35];
+  const v: readonly [number, number] = [0.35, 1.1];
+  assert.equal(SpanRegion(u, v).extent(4.5).step(0.75).build().children.length, 26);
+  const combination = LinearCombination(u, v, 1.7, 1.2).labels("1.7u", "1.2v", "x").build();
+  const result = combination.children.find((child) => child.text?.startsWith("x "));
+  assert.equal(result?.text, "x (2.63, 1.92)");
+  const basis = BasisVectors(u, v).labels("u", "v").coordinates(true).build();
+  assert.equal(basis.children.filter((child) => child.text?.startsWith("u ")).length, 1);
+});
+
+test("changes a vector into basis coordinates", () => {
+  const u: readonly [number, number] = [1.35, 0.45];
+  const v: readonly [number, number] = [-0.45, 1.25];
+  const [first, second] = basisCoordinates(u, v, [2.25, 1.7]);
+  assert.ok(Math.abs(first - 1.892857) < 1e-4);
+  assert.ok(Math.abs(second - 0.678571) < 1e-4);
+  assert.equal(BasisGrid(u, v).range([-2, 3], [-2, 3]).step(1).build().children.length, 12);
+});
+
+test("multiplies a matrix by a vector and draws the transformed grid", () => {
+  const grid = TransformableGrid([2, 1], [-1, 1.5]);
+  const image = grid.transformVector([3, 2]);
+  assert.ok(Math.abs(image[0] - 4) < 1e-5);
+  assert.ok(Math.abs(image[1] - 6) < 1e-5);
+  assert.ok(Math.abs(grid.determinant() - 4) < 1e-5);
+
+  const shown = TransformableGrid([1.4, 0.35], [-0.45, 1.15])
+    .range([-3.3, 3.3], [-2.2, 2.2])
+    .step(0.55)
+    .basisVectors(false)
+    .build();
+  const vertical = sampleRange([-3.3, 3.3], 0.55).length;
+  const horizontal = sampleRange([-2.2, 2.2], 0.55).length;
+  assert.equal(shown.children.length, (vertical + horizontal) * 2);
+  assert.equal(collectText(shown).includes("Ae1"), false);
+
+  const clamped = TransformableGrid([1, 0], [0, 1])
+    .range([0, 1], [0, 1])
+    .step(0.01)
+    .sourceGrid(false)
+    .basisVectors(false)
+    .build();
+  assert.equal(clamped.children.length, sampleRange([0, 1], 0.1).length * 2);
+
+  const flow = MatrixVectorFlow([[1.4, -0.45], [0.35, 1.15]], [1.6, 1.1]).labels("A", "x", "b = Ax");
+  const result = flow.resultValues();
+  assert.ok(Math.abs((result[0] ?? 0) - 1.745) < 1e-5);
+  assert.ok(Math.abs((result[1] ?? 0) - 1.825) < 1e-5);
+  const output: readonly [number, number] = [result[0] ?? 0, result[1] ?? 0];
+  const arrow = LabeledVector("Ax", output).coordinates(true).build();
+  assert.equal(arrow.children.find((child) => child.text?.startsWith("Ax"))?.text, "Ax (1.75, 1.83)");
+
+  const texts = collectText(flow.build());
+  assert.ok(texts.includes("1.40"));
+  assert.ok(texts.includes("-0.45"));
+  assert.ok(texts.includes("b = Ax"));
+  assert.ok(texts.includes("1.40*1.60 + -0.45*1.10 = 1.75"));
+  assert.ok(texts.includes("0.35*1.60 + 1.15*1.10 = 1.83"));
+  assert.equal(MatrixDisplay([["1.40", "-0.45"], ["0.35", "1.15"]]).cellHeight(0.26).build().children.length, 10);
+
+  const wide = MatrixVectorFlow([[1, 2, 0.5], [0, -1, 3]], [2, -1, 4]);
+  assert.deepEqual(wide.resultValues(), [2, 13]);
+  const rectangular = MatrixVectorFlow([[1, -0.5, 2], [0, 1.5, 0.75]], [2, 1, -0.5]).rowExpansion(false).build();
+  const rectangularText = collectText(rectangular);
+  assert.deepEqual(
+    MatrixVectorFlow([[1, -0.5, 2], [0, 1.5, 0.75]], [2, 1, -0.5]).resultValues().map(formatMatrixEntry),
+    ["0.50", "1.13"],
+  );
+  assert.ok(rectangularText.includes("0"));
+  assert.equal(rectangularText.some((text) => text.includes("*")), false);
+  assert.throws(() => MatrixVectorFlow([[1, 2]], [1]), /input length 1/);
+  assert.equal(formatMatrixEntry(0), "0");
+  assert.equal(formatMatrixEntry(1.4), "1.40");
+});
+
+test("highlights the columns of a matrix transform", () => {
+  const panel = MatrixTransformPanel([2, 1], [-1, 1.5]);
+  assert.deepEqual(panel.entries(), [["2", "-1"], ["1", "1.50"]]);
+  const built = panel.build();
+  const labels = built.children.filter((child) => child.text);
+  assert.deepEqual(labels.map((child) => child.text), ["2", "-1", "1", "1.50"]);
+  assert.equal(labels[0]?.initialState.color, "rgb(87, 199, 242)");
+  assert.equal(labels[1]?.initialState.color, "rgb(250, 189, 71)");
+  const plates = built.children.filter((child) => child.initialState.background?.startsWith("rgba"));
+  assert.equal(plates.length, 4);
+  assert.equal(plates[0]?.initialState.background, "rgba(87, 199, 242, 0.18)");
+  assert.equal(plates[1]?.initialState.background, "rgba(250, 189, 71, 0.18)");
+  assert.equal(panel.columnHighlights(false).build().children.filter((child) => child.text).length, 4);
+
+  const grid = TransformableGrid([1.4, 0.35], [-0.45, 1.15]).range([-3.5, 3.5], [-2.5, 2.5]).step(0.5);
+  const output = grid.transformVector([1.6, 1.1]);
+  const drawn = grid.build();
+  const lines = sampleRange([-3.5, 3.5], 0.5).length + sampleRange([-2.5, 2.5], 0.5).length;
+  assert.equal(drawn.children.length, lines * 2 + 2);
+  assert.ok(collectText(drawn).includes("Ae1"));
+  assert.deepEqual(
+    CoordinateReadout(output).mode("column").build().children.map((child) => child.text),
+    ["[ 1.75 ]", "[ 1.83 ]"],
+  );
+});
+
+test("combines matrix columns and marks the residual", () => {
+  const close = (actual: readonly number[], expected: readonly number[]) => {
+    assert.ok(Math.abs((actual[0] ?? 0) - (expected[0] ?? 0)) < 1e-5);
+    assert.ok(Math.abs((actual[1] ?? 0) - (expected[1] ?? 0)) < 1e-5);
+  };
+  const view = ColumnCombination([2, 1], [-1, 3], [1.5, -0.5]);
+  close(view.firstComponent(), [3, 1.5]);
+  close(view.secondComponent(), [0.5, -1.5]);
+  close(view.result(), [3.5, 0]);
+
+  const aimed = ColumnCombination([2, 0], [0, 3], [1, 1]).target([3, 2], "b");
+  close(aimed.result(), [2, 3]);
+  close(aimed.residual() ?? [0, 0], [1, -1]);
+
+  const drawn = ColumnCombination([1.45, 0.55], [-0.55, 1.25], [1.45, 1.1])
+    .labels("a1", "a2", "Ax")
+    .target([1.25, 2.55], "b")
+    .build();
+  const texts = collectText(drawn);
+  assert.equal(drawn.children.length, 9);
+  assert.ok(texts.includes("a1"));
+  assert.ok(texts.includes("1.45a1"));
+  assert.ok(texts.includes("1.10a2"));
+  assert.ok(texts.includes("Ax (1.50, 2.17)"));
+  assert.ok(texts.includes("b (1.25, 2.55)"));
+
+  const rank = QuantityBadge("rank", "2").build();
+  assert.ok(collectText(rank).includes("rank: 2"));
+  assert.ok(rank.getLayoutSize().width >= 0.82);
+  assert.ok(rank.getLayoutSize().height >= 0.34);
+  assert.ok(collectText(DimensionBadge("x", 2, 1).build()).includes("x: 2x1"));
+});
+
+test("reports the signed area of a transformed unit square", () => {
+  const positive = DeterminantArea([2, 0], [0, 3]);
+  assert.equal(positive.determinant(), 6);
+  assert.equal(positive.areaScale(), 6);
+  assert.equal(positive.orientation(), 1);
+  assert.equal(positive.labelText(), "det(A) = 6, area scales by 6");
+  const drawn = positive.build();
+  assert.ok(drawn.children.some((child) => child.contentHTML()?.includes("rgba(112, 219, 133, 0.28)")));
+  assert.ok(collectText(drawn).includes("Ae1"));
+
+  const negative = DeterminantArea([0, 1], [1, 0]);
+  assert.equal(negative.determinant(), -1);
+  assert.equal(negative.orientation(), -1);
+  assert.equal(negative.labelText(), "det(A) = -1, area flips");
+
+  const flat = DeterminantArea([1, 1], [2, 2]);
+  assert.equal(flat.collapsed(), true);
+  assert.equal(flat.labelText(), "det(A) = 0, area collapses");
+  assert.equal(flat.build().children.some((child) => child.contentHTML()?.includes("rgba(112, 219, 133, 0.28)")), false);
+
+  const stretch = DeterminantArea([1.6, 0.25], [-0.35, 1.2]);
+  assert.equal(stretch.labelText(), "det(A) = 2.01, area scales by 2.01");
+  const flip = DeterminantArea([0.2, 1.1], [1.2, 0.15]);
+  assert.equal(flip.labelText(), "det(A) = -1.29, area flips");
+
+  const scale: readonly [[number, number], [number, number]] = [[1.45, 0], [0, 1]];
+  const shear: readonly [[number, number], [number, number]] = [[1, 0], [0.65, 1]];
+  const ba = composeColumns(shear, scale);
+  const ab = composeColumns(scale, shear);
+  assert.deepEqual(MatrixTransformPanel(ba[0], ba[1]).entries(), [["1.45", "0.65"], ["0", "1"]]);
+  assert.deepEqual(MatrixTransformPanel(ab[0], ab[1]).entries(), [["1.45", "0.94"], ["0", "1"]]);
+  const image = TransformableGrid(ba[0], ba[1]).transformVector([1, 1]);
+  const arrow = LabeledVector("BAx", image).coordinates(true).build();
+  assert.equal(arrow.children.find((child) => child.text?.startsWith("BAx"))?.text, "BAx (2.10, 1)");
+});
+
+function collectText(tattva: Tattva): string[] {
+  const own = tattva.text ? [tattva.text] : [];
+  return [...own, ...tattva.children.flatMap((child) => collectText(child))];
+}
+
+test("samples an updater and a traced path from scene time alone", () => {
+  const scene = new class extends Scene {
+    readonly dot = Circle().radius(0.1);
+    constructor() {
+      super();
+      this.add(this.dot);
+    }
+    construct(): void {
+      this.updater((time, states) => {
+        const state = states.get(this.dot);
+        if (state) state.x = time;
+      });
+    }
+  }();
+  assert.equal(scene.sampleAt(3).get(scene.dot)?.x, 3);
+  assert.equal(scene.sampleAt(1).get(scene.dot)?.x, 1);
+
+  const radius = 0.55;
+  const startX = -3.45;
+  const groundY = -1.15;
+  const trace = TracedPath((time) => {
+    const elapsed = Math.min(5.4, Math.max(0, time - 2.2));
+    const theta = (elapsed / 5.4) * Math.PI * 4;
+    const centerX = startX + radius * theta;
+    return [centerX - radius * Math.sin(theta), groundY + radius - radius * Math.cos(theta)];
+  }).minDistance(0.02);
+  assert.equal(trace.pointsAt(2.2).length, 1);
+  const rolled = trace.pointsAt(7.6);
+  const last = rolled[rolled.length - 1];
+  assert.ok(rolled.length > 2);
+  assert.ok(Math.abs((last?.[0] ?? 0) - (startX + radius * Math.PI * 4)) < 1e-6);
+  assert.ok(Math.abs((last?.[1] ?? 0) - groundY) < 1e-6);
+
+  const belt = ParticleBelt(2.25).particleCount(220).seed(7).orbitSpeed(1);
+  assert.equal(belt.particlesAt(0).length, 220);
+  assert.notDeepEqual(belt.particlesAt(0)[0]?.center, belt.particlesAt(5.88)[0]?.center);
+
+  const streams = StreamLines([[0, 0]], () => [1, 0]).stepSize(0.07).bounds([-1, -1], [2, 1]);
+  assert.equal(streams.tracesAt(1)[0]?.length, 2);
+  assert.ok((streams.tracesAt(10)[0]?.length ?? 0) > 2);
+
+  const field = VectorField([-1, 1], [-1, 1], 3, 3, () => [0, 1]);
+  assert.equal(field.arrowsAt(0).length, 9);
+  assert.ok((field.arrowsAt(0)[0]?.vector[1] ?? 0) > 0);
+});
+
+test("projects one vector onto another and labels the angle", () => {
+  const a: readonly [number, number] = [2.5, 1.2];
+  const b: readonly [number, number] = [2.1, -0.25];
+  const projected = projectOnto(a, b);
+  assert.ok(Math.abs(projected[0] - 2.324) < 0.01);
+  assert.ok(cosineSimilarity(a, [-b[0], -b[1]]) < 0);
+  const arc = AngleArc(b, a).radius(0.72).autoLabel("degrees").build();
+  const label = arc.children.find((child) => child.text?.endsWith(" deg"));
+  assert.equal(label?.text, "32 deg");
 });
 
 test("sizes a multiline label from its longest line", () => {

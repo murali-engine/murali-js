@@ -46,6 +46,7 @@ export abstract class Scene {
   readonly camera: SceneCamera;
   readonly tattvas: Tattva<any>[] = [];
   private readonly schedule: ScheduledAnimation<any>[] = [];
+  private readonly updaters: Array<(time: number, states: Map<Tattva<any>, TattvaState>) => void> = [];
   private cursor = 0;
   private prepared = false;
 
@@ -196,12 +197,24 @@ export abstract class Scene {
     return this;
   }
 
+  /**
+   * Run after the timeline when sampling `time`.
+   * The function must derive state from `time` alone, never from a previous sample or the wall clock.
+   */
+  updater(update: (time: number, states: Map<Tattva<any>, TattvaState>) => void): this {
+    this.updaters.push(update);
+    return this;
+  }
+
   sampleAt(time: number): Map<Tattva<any>, TattvaState> {
     this.prepare();
-    return new Map([
+    const states = new Map<Tattva<any>, TattvaState>([
       [this.camera, this.sampleTattvaAt(this.camera, time)],
       ...this.allTattvas.map((tattva) => [tattva, this.sampleTattvaAt(tattva, time)] as const),
     ]);
+    for (const [tattva, state] of states) tattva.influenceState(time, state);
+    for (const update of this.updaters) update(time, states);
+    return states;
   }
 
   sampleStylesAt(time: number): Map<Tattva<any>, CSSStyles> {

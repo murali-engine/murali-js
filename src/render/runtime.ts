@@ -408,6 +408,14 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
     for (const item of mounted) {
       const state = states.get(item.tattva);
       if (!state) continue;
+      if (item.tattva.dynamicGeometry) {
+        const html = item.tattva.contentHTML(time);
+        if (html !== undefined) item.content.innerHTML = html;
+        if (item.tattva.worldSize) {
+          item.content.style.width = `${item.tattva.worldSize.width * pixelsPerUnit}px`;
+          item.content.style.height = `${item.tattva.worldSize.height * pixelsPerUnit}px`;
+        }
+      }
       const style = styles.get(item.tattva);
       if (style) applyCSS(item.content, style);
       const projectAsWorldPlane = !item.tattva.parent

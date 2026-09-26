@@ -13,6 +13,8 @@ export * from "./core/ThreeTattva.ts";
 export * from "./mobjects/shapes.ts";
 export * from "./mobjects/paths.ts";
 export * from "./mobjects/graph.ts";
+export * from "./mobjects/linear-algebra.ts";
+export * from "./mobjects/motion.ts";
 
 import type { SceneConstructor } from "./render/render.ts";
 import type { RenderOverrides } from "./render/config.ts";
