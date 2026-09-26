@@ -1,0 +1,31 @@
+{
+  "name": "venu",
+  "version": "0.1.0",
+  "description": "Deterministic, code-first scene authoring and video rendering for the web.",
+  "type": "module",
+  "bin": { "venu": "./src/cli.ts" },
+  "scripts": {
+    "render": "tsx src/cli.ts render",
+    "example": "tsx src/cli.ts example",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "commander": "^14.0.1",
+    "esbuild": "^0.25.10",
+    "ffmpeg-static": "^5.2.0",
+    "playwright": "^1.55.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@types/three": "^0.180.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "engines": { "node": ">=20" }
+}
