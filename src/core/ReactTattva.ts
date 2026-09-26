@@ -6,7 +6,7 @@ export type ReactRenderer<State extends TattvaState> = (state: Readonly<State>) 
 export class ReactTattva<State extends TattvaState = TattvaState> extends Tattva<State> {
   override readonly kind = "react" as const;
 
-  constructor(readonly render: ReactRenderer<State>, options: TattvaOptions = {}) {
+  constructor(readonly render: ReactRenderer<State>, options: TattvaOptions<State> = {}) {
     super(options);
   }
 }

@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { Circle, Scene, Timeline, interpolateCSSValue, interpolateHex } from "../src/index.ts";
+import {
+  Circle,
+  HStack,
+  Label,
+  Scene,
+  Square,
+  Tattva,
+  Timeline,
+  VStack,
+  interpolateCSSValue,
+  interpolateHex,
+} from "../src/index.ts";
+import type { TattvaState } from "../src/index.ts";
 
 class TestScene extends Scene {
   readonly dot = Circle().radius(0.5).fill("#000000");
@@ -36,7 +48,57 @@ test("uses logical frame coordinates independently of output resolution", () => 
   assert.equal(scene.viewWidth, 16);
   assert.equal(scene.viewHeight, 9);
   scene.toEdge(scene.dot, "up", { margin: 1 });
-  assert.equal(scene.dot.initialState.y, 3.5);
+  assert.equal(scene.dot.initialState.y, 3);
+});
+
+test("lays out stacks in world coordinates and preserves their hierarchy", () => {
+  const square = Square().size(1);
+  const circle = Circle().radius(1);
+  const row = HStack([square, circle], { gap: 0.5 });
+
+  assert.equal(square.parent, row);
+  assert.equal(circle.parent, row);
+  assert.equal(square.initialState.x, -1.25);
+  assert.equal(circle.initialState.x, 0.75);
+  assert.deepEqual(row.getLayoutSize(), { width: 3.5, height: 2 });
+  class GroupScene extends Scene {
+    override construct(): void {}
+  }
+  const scene = new GroupScene();
+  scene.add(row);
+  assert.deepEqual(scene.allTattvas, [row, square, circle]);
+
+  const column = VStack([Square().size(1), Square().size(2)], { gap: 1 });
+  assert.deepEqual(column.getLayoutSize(), { width: 2, height: 4 });
+});
+
+test("positions objects relative to bounds and aligns their edges", () => {
+  class LayoutScene extends Scene {
+    override construct(): void {}
+  }
+
+  const scene = new LayoutScene();
+  const anchor = scene.add(Square().size(2), { at: [1, 0] });
+  const label = scene.add(Label("Label").height(0.5));
+  scene.nextTo(label, anchor, "right", { gap: 0.5 });
+  assert.equal(label.initialState.x, 1 + 1 + 0.5 + label.getLayoutSize().width / 2);
+  scene.alignTo(label, anchor, "up");
+  assert.equal(label.initialState.y, 0.75);
+});
+
+test("keeps custom animation state strongly typed", () => {
+  interface MeterState extends TattvaState {
+    progress: number;
+  }
+  const meter = new Tattva<MeterState>({ state: { progress: 0 } });
+  const timeline = new Timeline();
+  timeline.animate(meter).to({ progress: 100 });
+
+  if (false) {
+    // @ts-expect-error misspelled custom state must be rejected by TypeScript
+    timeline.animate(meter).to({ progres: 100 });
+  }
+  assert.equal(timeline.animations.length, 1);
 });
 
 test("freezes overlapping animation starts and samples correctly in any order", () => {

@@ -59,11 +59,11 @@ Status values:
 | Capability | Venu status | Target milestone |
 | --- | --- | --- |
 | `toEdge` | partial | 4 |
-| `nextTo` | planned | 4 |
-| `alignTo` | planned | 4 |
-| Group transforms | planned | 4 |
-| HStack/VStack | planned | 4 |
-| Authored geometric bounds | planned | 4 |
+| `nextTo` | partial | 4 |
+| `alignTo` | partial | 4 |
+| Group transforms | partial | 4 |
+| HStack/VStack | partial | 4 |
+| Authored geometric bounds | partial | 4 |
 | Browser-measured DOM/React bounds | planned | 4 |
 | Child scenes / SceneView | planned | 10 |
 

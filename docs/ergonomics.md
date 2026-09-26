@@ -191,6 +191,8 @@ const group = Group([row, column]);
 
 Geometric primitives provide authored bounds. DOM and React visuals may require a browser measurement pass before relational layout resolves.
 
+`Group`, `HStack`, and `VStack` are real parent nodes. Parent movement, rotation, scale, opacity, and CSS affect their complete child subtree while child positions remain local to the group. Core shapes and labels currently use authored bounds; browser-measured bounds for arbitrary DOM and React content remain future work.
+
 ## Output and configuration
 
 A scene stays in one executable file:

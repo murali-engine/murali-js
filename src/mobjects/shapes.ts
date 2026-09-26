@@ -87,11 +87,16 @@ export class LabelTattva extends Tattva {
         whiteSpace: "nowrap",
       },
     });
+    this.worldSize = { width: 0, height: 0.7 };
     this.height(0.7);
   }
 
   height(value: number): this {
     this.worldFontSize = value;
+    this.worldSize = {
+      width: Math.max(value * 0.6, (this.text?.length ?? 0) * value * 0.58),
+      height: value,
+    };
     return this;
   }
 

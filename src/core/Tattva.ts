@@ -12,17 +12,23 @@ export interface TattvaState {
   scale: number;
   rotation: number;
   opacity: number;
-  [key: string]: StateValue;
+  color?: string;
+  background?: string;
 }
 
-export interface TattvaOptions {
+export interface TattvaOptions<State extends TattvaState = TattvaState> {
   id?: string;
   tag?: keyof HTMLElementTagNameMap;
   className?: string;
   html?: string;
   text?: string;
   css?: CSSStyles;
-  state?: Partial<TattvaState>;
+  state?: Partial<State>;
+}
+
+export interface Size {
+  width: number;
+  height: number;
 }
 
 let tattvaSequence = 0;
@@ -33,6 +39,8 @@ export class Tattva<State extends TattvaState = TattvaState> {
   readonly tag: keyof HTMLElementTagNameMap;
   readonly html?: string;
   readonly text?: string;
+  readonly children: readonly Tattva[] = [];
+  parent?: Tattva;
   elementClassName?: string;
   readonly initialStyle: CSSStyles;
   readonly initialState: State;
@@ -42,7 +50,7 @@ export class Tattva<State extends TattvaState = TattvaState> {
   worldFontSize?: number;
   colorProperty: "color" | "background" = "color";
 
-  constructor(options: TattvaOptions = {}) {
+  constructor(options: TattvaOptions<State> = {}) {
     this.id = options.id ?? `tattva-${++tattvaSequence}`;
     this.tag = options.tag ?? "div";
     this.elementClassName = options.className;
@@ -110,5 +118,18 @@ export class Tattva<State extends TattvaState = TattvaState> {
     Object.assign(this.initialState, next);
     Object.assign(this.state, next);
     return this;
+  }
+
+  getLayoutSize(): Size {
+    const width = (this.worldSize?.width ?? 0) + (this.worldStrokeWidth ?? 0) * 2;
+    const height = (this.worldSize?.height ?? 0) + (this.worldStrokeWidth ?? 0) * 2;
+    const scale = Math.abs(this.initialState.scale);
+    const radians = this.initialState.rotation * Math.PI / 180;
+    const cosine = Math.abs(Math.cos(radians));
+    const sine = Math.abs(Math.sin(radians));
+    return {
+      width: (width * cosine + height * sine) * scale,
+      height: (width * sine + height * cosine) * scale,
+    };
   }
 }

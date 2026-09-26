@@ -1,7 +1,3 @@
-/**
- * Golden API contract. See examples/layout-and-groups.ts for the runnable implementation.
- * Original reference: Murali examples/layout_and_groups.rs.
- */
 import {
   Circle,
   Group,
@@ -15,11 +11,11 @@ import {
 } from "venu";
 
 class LayoutAndGroups extends Scene {
-  construct() {
+  override construct(): void {
     const title = this.add(Label("Layout and Groups").height(0.38).color("white"));
     this.toEdge(title, "up", { margin: 0.8 });
 
-    const anchor = this.add(Square().size(1.05).fill("redB"), { at: [-5, 0.1, 0] });
+    const anchor = this.add(Square().size(1.05).fill("#ef4444"), { at: [-5, 0.1, 0] });
     const label = this.add(Label("aligned by helper").height(0.2).color("white"));
     this.nextTo(label, anchor, "up", { gap: 0.28 });
     this.alignTo(label, anchor, "left");
@@ -27,9 +23,9 @@ class LayoutAndGroups extends Scene {
     const stages = this.add(
       HStack(
         [
-          Label("Input").color("blueB"),
-          Label("Hidden").color("tealC"),
-          Label("Output").color("goldC"),
+          Label("Input").height(0.3).color("#60a5fa"),
+          Label("Hidden").height(0.3).color("#2dd4bf"),
+          Label("Output").height(0.3).color("#fbbf24"),
         ],
         { gap: 0.42 },
       ),
@@ -38,7 +34,11 @@ class LayoutAndGroups extends Scene {
 
     const loop = this.add(
       VStack(
-        [Label("Observe"), Label("Reason"), Label("Act")],
+        [
+          Label("Observe").height(0.28),
+          Label("Reason").height(0.28),
+          Label("Act").height(0.28),
+        ],
         { gap: 0.22 },
       ),
       { at: [3.45, 0.15, 0] },
@@ -46,9 +46,9 @@ class LayoutAndGroups extends Scene {
 
     const cluster = this.add(
       Group([
-        Square().size(0.72).fill("orangeB"),
-        Circle().radius(0.34).fill("greenD"),
-        Square().size(0.52).fill("purpleB"),
+        Square().size(0.72).fill("#f97316"),
+        Circle().radius(0.34).fill("#16a34a"),
+        Square().size(0.52).fill("#a855f7"),
       ]).layout(HStack, { gap: 0.35 }),
       { at: [-3.4, -3.05, 0] },
     );
@@ -60,7 +60,7 @@ class LayoutAndGroups extends Scene {
     timeline.animate(stages).at(2).duration(1.4).ease("inOutCubic").appear();
     timeline.animate(loop).at(2.4).duration(1.4).ease("inOutCubic").appear();
     timeline.animate(cluster).at(4).duration(2).ease("inOutCubic").moveTo([3.15, -3.05, 0]);
-
+    timeline.animate(cluster).at(4).duration(2).ease("inOutCubic").rotateTo(360);
     this.play(timeline);
   }
 }

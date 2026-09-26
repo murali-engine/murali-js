@@ -15,7 +15,7 @@ export interface ThreeHooks<State extends TattvaState> {
 export class ThreeTattva<State extends TattvaState = TattvaState> extends Tattva<State> {
   override readonly kind = "three" as const;
 
-  constructor(readonly hooks: ThreeHooks<State>, options: TattvaOptions = {}) {
+  constructor(readonly hooks: ThreeHooks<State>, options: TattvaOptions<State> = {}) {
     super(options);
   }
 }

@@ -88,6 +88,7 @@ render(import.meta.url, HelloScene, {
 
 ```bash
 npm run example -- hello-shapes
+npm run example -- layout-and-groups
 npm run example -- react-card
 npm run example -- three-camera
 npm run build

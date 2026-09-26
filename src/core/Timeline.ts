@@ -30,13 +30,13 @@ const easings: Record<EaseName, Easing> = {
   inOutCubic: easeInOutCubic,
 };
 
-export interface ScheduledAnimation {
-  tattva: Tattva;
+export interface ScheduledAnimation<State extends TattvaState = TattvaState> {
+  tattva: Tattva<State>;
   start: number;
   duration: number;
   easing: Easing;
-  to: Partial<TattvaState>;
-  from?: Partial<TattvaState>;
+  to: Partial<State>;
+  from?: Partial<State>;
   relative?: boolean;
   hideBeforeStart?: boolean;
   styleTo?: CSSStyles;
@@ -44,9 +44,9 @@ export interface ScheduledAnimation {
 }
 
 export class Timeline {
-  readonly animations: ScheduledAnimation[] = [];
+  readonly animations: ScheduledAnimation<any>[] = [];
 
-  animate(tattva: Tattva): AnimationBuilder {
+  animate<State extends TattvaState>(tattva: Tattva<State>): AnimationBuilder<State> {
     return new AnimationBuilder(this, tattva);
   }
 
@@ -54,19 +54,19 @@ export class Timeline {
     return this.animations.reduce((end, animation) => Math.max(end, animation.start + animation.duration), 0);
   }
 
-  schedule(animation: ScheduledAnimation): void {
+  schedule<State extends TattvaState>(animation: ScheduledAnimation<State>): void {
     this.animations.push(animation);
   }
 }
 
-export class AnimationBuilder {
+export class AnimationBuilder<State extends TattvaState> {
   private startTime = 0;
   private animationDuration = 1;
   private easing: Easing = easeInOutCubic;
 
   constructor(
     private readonly timeline: Timeline,
-    private readonly tattva: Tattva,
+    private readonly tattva: Tattva<State>,
   ) {}
 
   at(seconds: number): this {
@@ -86,31 +86,31 @@ export class AnimationBuilder {
 
   moveTo(point: Point): Timeline {
     const [x, y, z = 0] = point;
-    return this.commit({ x, y, z });
+    return this.commit({ x, y, z } as Partial<State>);
   }
 
   moveBy(delta: Point): Timeline {
     const [x, y, z = 0] = delta;
-    return this.commit({ x, y, z }, undefined, false, true);
+    return this.commit({ x, y, z } as Partial<State>, undefined, false, true);
   }
 
   scaleTo(scale: number): Timeline {
-    return this.commit({ scale });
+    return this.commit({ scale } as Partial<State>);
   }
 
   rotateTo(rotation: number): Timeline {
-    return this.commit({ rotation });
+    return this.commit({ rotation } as Partial<State>);
   }
 
   fadeTo(opacity: number): Timeline {
-    return this.commit({ opacity });
+    return this.commit({ opacity } as Partial<State>);
   }
 
   setColor(color: string): Timeline {
-    return this.commit({ [this.tattva.colorProperty]: color });
+    return this.commit({ [this.tattva.colorProperty]: color } as Partial<State>);
   }
 
-  to(state: Partial<TattvaState>): Timeline {
+  to(state: Partial<State>): Timeline {
     return this.commit(state);
   }
 
@@ -127,11 +127,11 @@ export class AnimationBuilder {
   }
 
   appear(): Timeline {
-    return this.commit({ opacity: 1 }, { opacity: 0 }, true);
+    return this.commit({ opacity: 1 } as Partial<State>, { opacity: 0 } as Partial<State>, true);
   }
 
   disappear(): Timeline {
-    return this.commit({ opacity: 0 });
+    return this.commit({ opacity: 0 } as Partial<State>);
   }
 
   draw(): Timeline {
@@ -143,8 +143,8 @@ export class AnimationBuilder {
   }
 
   private commit(
-    to: Partial<TattvaState>,
-    from?: Partial<TattvaState>,
+    to: Partial<State>,
+    from?: Partial<State>,
     hideBeforeStart = false,
     relative = false,
   ): Timeline {

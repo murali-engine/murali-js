@@ -1,6 +1,7 @@
 export * from "./core/color.ts";
 export * from "./core/css.ts";
 export * from "./core/easing.ts";
+export * from "./core/Group.ts";
 export * from "./core/ReactTattva.ts";
 export * from "./core/Scene.ts";
 export * from "./core/Tattva.ts";

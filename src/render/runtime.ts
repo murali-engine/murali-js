@@ -12,7 +12,7 @@ import type { ThreeContext, ThreeTattva } from "../core/ThreeTattva.ts";
 import type { CSSStyles } from "../core/css.ts";
 
 interface MountedObject {
-  tattva: Tattva;
+  tattva: Tattva<any>;
   wrapper: HTMLElement;
   content: HTMLElement;
   reactRoot?: Root;
@@ -58,7 +58,7 @@ function applyFrame(
   if (typeof state.background === "string") content.style.background = state.background;
 }
 
-function mountDom(tattva: Tattva, stage: HTMLElement, pixelsPerUnit: number): MountedObject {
+function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: number): MountedObject {
   const wrapper = document.createElement("div");
   const content = document.createElement(tattva.tag);
   wrapper.dataset.tattvaId = tattva.id;
@@ -73,6 +73,7 @@ function mountDom(tattva: Tattva, stage: HTMLElement, pixelsPerUnit: number): Mo
     transformOrigin: "center",
   });
   applyCSS(content, tattva.initialStyle);
+  if (tattva.children.length > 0) content.style.position = "relative";
   if (tattva.worldSize) {
     content.style.width = `${tattva.worldSize.width * pixelsPerUnit}px`;
     content.style.height = `${tattva.worldSize.height * pixelsPerUnit}px`;
@@ -85,7 +86,7 @@ function mountDom(tattva: Tattva, stage: HTMLElement, pixelsPerUnit: number): Mo
     content.style.lineHeight = "1";
   }
   wrapper.appendChild(content);
-  stage.appendChild(wrapper);
+  container.appendChild(wrapper);
   return { tattva, wrapper, content };
 }
 
@@ -100,8 +101,10 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
   });
 
   const pixelsPerUnit = scene.width / scene.viewWidth;
-  const mounted = scene.tattvas.map((tattva): MountedObject => {
-    const item = mountDom(tattva, stage, pixelsPerUnit);
+  const mounted: MountedObject[] = [];
+  const mountTree = (tattva: Tattva<any>, container: HTMLElement): void => {
+    const item = mountDom(tattva, container, pixelsPerUnit);
+    mounted.push(item);
     if (tattva.kind === "react") {
       item.reactRoot = createRoot(item.content);
     } else if (tattva.kind === "three") {
@@ -115,8 +118,9 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
       item.three = { scene: threeScene, camera, renderer };
       (tattva as ThreeTattva).hooks.setup(item.three);
     }
-    return item;
-  });
+    tattva.children.forEach((child) => mountTree(child, item.content));
+  };
+  scene.tattvas.forEach((tattva) => mountTree(tattva, stage));
 
   const renderFrame = (time: number) => {
     const states = scene.sampleAt(time);
