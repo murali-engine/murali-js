@@ -14,7 +14,10 @@ export interface TattvaState {
   opacity: number;
   color?: string;
   background?: string;
+  revealProgress?: number;
 }
+
+export type RevealKind = "none" | "text" | "path";
 
 export interface TattvaOptions<State extends TattvaState = TattvaState> {
   id?: string;
@@ -49,6 +52,7 @@ export class Tattva<State extends TattvaState = TattvaState> {
   worldStrokeWidth?: number;
   worldFontSize?: number;
   colorProperty: "color" | "background" = "color";
+  revealKind: RevealKind = "none";
 
   constructor(options: TattvaOptions<State> = {}) {
     this.id = options.id ?? `tattva-${++tattvaSequence}`;
@@ -131,5 +135,9 @@ export class Tattva<State extends TattvaState = TattvaState> {
       width: (width * cosine + height * sine) * scale,
       height: (width * sine + height * cosine) * scale,
     };
+  }
+
+  contentHTML(): string | undefined {
+    return this.html;
   }
 }

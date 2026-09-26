@@ -1,10 +1,9 @@
 import * as THREE from "three";
-import { Scene, ThreeTattva, Timeline, render } from "venu";
-import type { TattvaState } from "venu";
+import { Camera3D, Scene, ThreeTattva, Timeline, render } from "venu";
+import type { Camera3DState } from "venu";
 
-interface OrbitState extends TattvaState {
+interface OrbitState extends Camera3DState {
   angle: number;
-  radius: number;
 }
 
 class ThreeCameraScene extends Scene {
@@ -30,11 +29,7 @@ class ThreeCameraScene extends Scene {
           cubes.push(cube);
         });
       },
-      update({ camera }, state) {
-        camera.position.x = Math.sin(state.angle) * state.radius;
-        camera.position.z = Math.cos(state.angle) * state.radius;
-        camera.position.y = 3;
-        camera.lookAt(0, 0, 0);
+      update(_context, state) {
         cubes.forEach((cube, index) => {
           cube.rotation.x = state.angle * (0.55 + index * 0.1);
           cube.rotation.y = state.angle + index * 0.35;
@@ -42,12 +37,25 @@ class ThreeCameraScene extends Scene {
       },
     }, {
       css: { width: "1280px", height: "720px" },
-      state: { angle: -0.7, radius: 9 },
-    }));
+      state: { angle: -0.7 },
+    }).camera(
+      Camera3D.perspective({ fov: 42, near: 0.1, far: 100 })
+        .position([-5.5, 3.2, 9])
+        .lookAt([0, 0, 0]),
+    ));
 
-    const orbit = new Timeline();
-    orbit.animate(world).duration(4).to({ angle: 1.2, radius: 7 });
-    this.play(orbit);
+    const timeline = new Timeline();
+    timeline.animate(world).duration(4).ease("linear").to({ angle: 1.2 });
+    timeline.animateCamera(world)
+      .duration(2)
+      .ease("inOutCubic")
+      .frameTo([4.5, 2.4, 7.5], [0, 0, 0]);
+    timeline.animateCamera(world)
+      .at(2)
+      .duration(2)
+      .ease("inOutCubic")
+      .orbitTo({ azimuth: -32, elevation: 18, radius: 7.4 });
+    this.play(timeline);
   }
 }
 

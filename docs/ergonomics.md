@@ -128,6 +128,8 @@ Common terminal verbs:
 - `setColor`, `setStyle`
 - semantic operations such as `morphFrom`, `writeTable`, or `focusStage`
 
+Reveal verbs are capability-aware. `typewrite`, `untypewrite`, and `revealText` operate on text Tattvas using grapheme clusters. `draw` and `undraw` operate on SVG-backed path Tattvas. Applying a reveal verb to an incompatible object produces an authoring error instead of silently falling back to opacity.
+
 ### Scene sequencing
 
 `Scene.play(timeline)` appends a completed timeline after the current scene cursor. `Scene.wait` advances that cursor. A scene can therefore combine precise absolute choreography inside each timeline with readable sequential sections.
@@ -212,6 +214,33 @@ render call overrides → environment → nearest murali.json → engine default
 ```
 
 Environment variables are intended for environment-specific overrides. Stable project settings belong in `murali.json`.
+
+## Built-in 3D camera
+
+Each `ThreeTattva` owns deterministic camera state. Camera setup uses a fluent projection builder, and camera movement uses the same timeline grammar as every other animation:
+
+```ts
+const world = this.add(
+  new ThreeTattva({ setup({ scene }) { /* add Three.js objects */ } })
+    .camera(
+      Camera3D.perspective({ fov: 42, near: 0.1, far: 100 })
+        .position([-5, 3, 9])
+        .lookAt([0, 0, 0]),
+    ),
+);
+
+timeline.animateCamera(world)
+  .duration(2)
+  .ease("inOutCubic")
+  .frameTo([4, 2.5, 7], [0, 0, 0]);
+
+timeline.animateCamera(world)
+  .at(2)
+  .duration(2)
+  .orbitTo({ azimuth: -30, elevation: 18, radius: 7 });
+```
+
+Perspective and orthographic projections are built in. Camera terminal verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. Camera values are ordinary deterministic scene state, so preview scrubbing and exported frames resolve the same viewpoint.
 
 ## Compatibility stance
 

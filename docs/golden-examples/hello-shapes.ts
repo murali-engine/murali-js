@@ -52,7 +52,7 @@ class HelloShapes extends Scene {
         .at(1.5 + index * 1.2)
         .duration(0.95)
         .ease("outCubic")
-        .draw();
+        .appear();
     });
 
     this.play(timeline);

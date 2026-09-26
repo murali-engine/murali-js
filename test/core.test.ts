@@ -2,17 +2,21 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   Circle,
+  Arrow,
+  Camera3D,
   HStack,
   Label,
   Scene,
   Square,
   Tattva,
   Timeline,
+  ThreeTattva,
   VStack,
   interpolateCSSValue,
   interpolateHex,
+  splitGraphemes,
 } from "../src/index.ts";
-import type { TattvaState } from "../src/index.ts";
+import type { Camera3DState, TattvaState } from "../src/index.ts";
 
 class TestScene extends Scene {
   readonly dot = Circle().radius(0.5).fill("#000000");
@@ -162,4 +166,94 @@ test("interpolates numeric CSS functions while switching incompatible values at 
   assert.equal(interpolateCSSValue("translateX(0px) rotate(10deg)", "translateX(20px) rotate(30deg)", 0.5), "translateX(10px) rotate(20deg)");
   assert.equal(interpolateCSSValue("block", "grid", 0.5), "block");
   assert.equal(interpolateCSSValue("block", "grid", 1), "grid");
+});
+
+test("samples semantic text and path reveals deterministically", () => {
+  class RevealScene extends Scene {
+    readonly label = Label("Hello 👨‍👩‍👧‍👦");
+    readonly arrow = Arrow().from([-2, 0]).to([2, 0]);
+
+    override construct(): void {
+      this.add(this.label, this.arrow);
+      const timeline = new Timeline();
+      timeline.animate(this.label).duration(2).ease("linear").typewrite();
+      timeline.animate(this.arrow).duration(2).ease("linear").draw();
+      this.play(timeline);
+    }
+  }
+
+  const scene = new RevealScene().prepare();
+  assert.equal(scene.sampleAt(0).get(scene.label)?.revealProgress, 0);
+  assert.equal(scene.sampleAt(1).get(scene.label)?.revealProgress, 0.5);
+  assert.equal(scene.sampleAt(1).get(scene.arrow)?.revealProgress, 0.5);
+  assert.equal(scene.sampleAt(2).get(scene.arrow)?.revealProgress, 1);
+});
+
+test("segments typewritten text by grapheme and rejects incompatible reveal verbs", () => {
+  assert.deepEqual(splitGraphemes("A👨‍👩‍👧‍👦é"), ["A", "👨‍👩‍👧‍👦", "é"]);
+  const timeline = new Timeline();
+  assert.throws(
+    () => timeline.animate(Circle()).draw(),
+    /draw\(\) requires a path-reveal Tattva/,
+  );
+});
+
+test("configures and deterministically animates a built-in perspective camera", () => {
+  interface WorldState extends Camera3DState {
+    spin: number;
+  }
+
+  class CameraScene extends Scene {
+    readonly world = new ThreeTattva<WorldState>({ setup() {} }, { state: { spin: 0 } })
+      .camera(
+        Camera3D.perspective({ fov: 50, near: 0.2, far: 200 })
+          .position([-4, 2, 8])
+          .lookAt([0, 1, 0]),
+      );
+
+    override construct(): void {
+      this.add(this.world);
+      const timeline = new Timeline();
+      timeline.animateCamera(this.world)
+        .duration(2)
+        .ease("linear")
+        .frameTo([4, 4, 6], [2, 0, 0]);
+      this.play(timeline);
+    }
+  }
+
+  const scene = new CameraScene().prepare();
+  const halfway = scene.sampleAt(1).get(scene.world) as Camera3DState;
+  assert.equal(halfway.cameraX, 0);
+  assert.equal(halfway.cameraY, 3);
+  assert.equal(halfway.cameraZ, 7);
+  assert.equal(halfway.cameraTargetX, 1);
+  assert.equal(halfway.cameraTargetY, 0.5);
+  assert.equal(halfway.cameraFov, 50);
+});
+
+test("supports orthographic cameras, orbit framing, and camera validation", () => {
+  const world = new ThreeTattva({ setup() {} }).camera(
+    Camera3D.orthographic({ viewHeight: 12 }).position([0, 0, 10]),
+  );
+  const timeline = new Timeline();
+  timeline.animateCamera(world)
+    .duration(1)
+    .ease("linear")
+    .orbitTo({ azimuth: 90, elevation: 0, radius: 5 });
+
+  class OrbitScene extends Scene {
+    override construct(): void {
+      this.add(world);
+      this.play(timeline);
+    }
+  }
+
+  const state = new OrbitScene().prepare().sampleAt(1).get(world) as Camera3DState;
+  assert.equal(state.cameraProjection, "orthographic");
+  assert.equal(state.cameraViewHeight, 12);
+  assert.ok(Math.abs(state.cameraX - 5) < 1e-10);
+  assert.ok(Math.abs(state.cameraZ) < 1e-10);
+  assert.throws(() => Camera3D.perspective({ near: 0 }), /near < far/);
+  assert.throws(() => timeline.animateCamera(world).zoomTo(0), /positive finite number/);
 });

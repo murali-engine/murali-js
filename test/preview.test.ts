@@ -45,3 +45,26 @@ test("preview seeks the scene without writing a video", { timeout: 60_000 }, asy
   });
   assert.ok(result.duration > 0);
 });
+
+test("preview scrubs semantic text and path reveals", { timeout: 60_000 }, async () => {
+  await previewScene(resolve("examples/text-and-paths.ts"), {
+    headless: true,
+    async ready(page) {
+      const seek = (time: number) => page.locator("#venu-scrub").evaluate((input, value) => {
+        const scrub = input as HTMLInputElement;
+        scrub.value = String(value);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      }, time);
+
+      await seek(0.5);
+      const partialTitle = await page.locator(".venu-content").first().innerText();
+      assert.ok(partialTitle.length > 0);
+      assert.ok(partialTitle.length < "Text and Paths ✨".length);
+
+      await seek(4.2);
+      const arrow = page.locator("[data-venu-path]").nth(1);
+      assert.equal(await arrow.getAttribute("stroke-dashoffset"), "0");
+      assert.equal(await arrow.evaluate((path) => getComputedStyle(path).stroke), "rgb(56, 189, 248)");
+    },
+  });
+});

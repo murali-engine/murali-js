@@ -93,12 +93,17 @@ render(import.meta.url, HelloScene, {
 
 `construct()` records the full timeline synchronously. No wall-clock animation occurs while authoring. During rendering, `sampleAt(t)` computes the exact state for every object at virtual time `t`, making repeated renders reproducible.
 
+### Built-in 3D camera
+
+`ThreeTattva` includes perspective and orthographic camera state. Configure it with `Camera3D.perspective()` or `Camera3D.orthographic()`, then animate it with `timeline.animateCamera(world)`. Supported camera verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. See [`examples/three-camera.ts`](./examples/three-camera.ts).
+
 ## Commands
 
 ```bash
 npm run example -- hello-shapes
 npm run example -- hello-shapes --preview
 npm run example -- layout-and-groups
+npm run example -- text-and-paths
 npm run example -- react-card
 npm run example -- three-camera
 npm run build

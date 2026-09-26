@@ -55,7 +55,7 @@ class LayoutAndGroups extends Scene {
 
     const timeline = new Timeline();
     timeline.animate(title).at(0).duration(1).typewrite();
-    timeline.animate(anchor).at(0.8).duration(0.8).draw();
+    timeline.animate(anchor).at(0.8).duration(0.8).appear();
     timeline.animate(label).at(1.2).duration(0.8).typewrite();
     timeline.animate(stages).at(2).duration(1.4).ease("inOutCubic").appear();
     timeline.animate(loop).at(2.4).duration(1.4).ease("inOutCubic").appear();

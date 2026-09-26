@@ -84,11 +84,11 @@ export abstract class Scene {
     return result;
   }
 
-  add<T extends Tattva>(tattva: T, options?: AddOptions): T;
-  add<T extends Tattva>(...tattvas: T[]): T[];
-  add<T extends Tattva>(...args: [T, AddOptions?] | T[]): T | T[] {
+  add<T extends Tattva<any>>(tattva: T, options?: AddOptions): T;
+  add<const Items extends readonly Tattva<any>[]>(...tattvas: Items): Items;
+  add(...args: [Tattva<any>, AddOptions?] | Tattva<any>[]): Tattva<any> | readonly Tattva<any>[] {
     const hasOptions = args.length === 2 && !(args[1] instanceof Tattva);
-    const items = (hasOptions ? [args[0]] : args) as T[];
+    const items = (hasOptions ? [args[0]] : args) as Tattva<any>[];
     const options = hasOptions ? (args[1] as AddOptions) : undefined;
     if (options?.at) items[0].at(options.at);
     for (const tattva of items) {
@@ -196,7 +196,11 @@ export abstract class Scene {
     for (const entry of this.schedule) {
       if (entry.tattva !== tattva) continue;
       if (time < entry.start) {
-        if (entry.hideBeforeStart) state.opacity = 0;
+        if (entry.hideBeforeStart && entry.from) {
+          for (const key of Object.keys(entry.from)) {
+            (state as unknown as Record<string, StateValue>)[key] = entry.from[key] as StateValue;
+          }
+        }
         continue;
       }
       const from = entry.from ?? {};

@@ -87,6 +87,7 @@ export class LabelTattva extends Tattva {
         whiteSpace: "nowrap",
       },
     });
+    this.revealKind = "text";
     this.worldSize = { width: 0, height: 0.7 };
     this.height(0.7);
   }

@@ -47,7 +47,7 @@ class HelloShapes extends Scene {
     timeline.animate(title).at(0).duration(1).ease("linear").typewrite();
     timeline.animate(subtitle).at(0.35).duration(1.3).ease("linear").typewrite();
     [square, circle, rectangle, polygon].forEach((shape, index) => {
-      timeline.animate(shape).at(1.5 + index * 1.2).duration(0.95).ease("outCubic").draw();
+      timeline.animate(shape).at(1.5 + index * 1.2).duration(0.95).ease("outCubic").appear();
     });
     timeline.animate(square).at(1.5).duration(0.95).ease("outCubic").setStyle({
       filter: "drop-shadow(0px 16px 24px rgb(239 68 68 / 45%))",

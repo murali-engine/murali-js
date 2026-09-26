@@ -33,13 +33,13 @@ Status values:
 | Overlapping animations | baseline | 2 |
 | Move, scale, rotate, fade, color | baseline | 2 |
 | Appear/disappear | partial | 2 |
-| Draw/undraw paths | planned | 5 |
-| Typewrite/reveal text | planned | 5 |
+| Draw/undraw paths | partial | 5 |
+| Typewrite/reveal text | partial | 5 |
 | Morph and match transforms | planned | 8 |
 | Clips: append/overlay/placeAt | planned | 6 |
 | `callAt` and `callDuring` | planned | 7 |
 | Seeking and reverse sampling | partial | 2 |
-| Camera animation | planned | 9 |
+| Camera animation | partial | 9 |
 
 ## Styling and browser capabilities
 
@@ -72,7 +72,7 @@ Status values:
 | Capability | Venu status | Target milestone |
 | --- | --- | --- |
 | Circle, rectangle, square, ellipse, polygon | partial | 5 |
-| Line, arrow, path | planned | 5 |
+| Line, arrow, path | partial | 5 |
 | Label/text | baseline | 5 |
 | Code block | planned | 8 |
 | LaTeX/Typst or browser equivalent | planned | 8 |
@@ -80,7 +80,7 @@ Status values:
 | Axes and number plane | planned | 11 |
 | Tables | planned | 11 |
 | Graphs and fields | planned for kit | 11 |
-| 3D props and surfaces | partial through Three.js | 9 |
+| 3D props and surfaces | partial through Three.js with built-in camera | 9 |
 | Particles and traced paths | planned | 9 |
 
 ## Runtime and output

@@ -1,6 +1,7 @@
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import {
+  OrthographicCamera,
   PerspectiveCamera,
   Scene as ThreeScene,
   WebGLRenderer,
@@ -10,6 +11,8 @@ import type { Scene } from "../core/Scene.ts";
 import type { Tattva, TattvaState } from "../core/Tattva.ts";
 import type { ThreeContext, ThreeTattva } from "../core/ThreeTattva.ts";
 import type { CSSStyles } from "../core/css.ts";
+import { splitGraphemes } from "../core/text.ts";
+import type { Camera3DState } from "../core/Camera3D.ts";
 
 interface MountedObject {
   tattva: Tattva<any>;
@@ -17,6 +20,9 @@ interface MountedObject {
   content: HTMLElement;
   reactRoot?: Root;
   three?: ThreeContext;
+  graphemes?: string[];
+  paths?: Array<{ element: SVGPathElement; length: number }>;
+  arrowheads?: SVGPathElement[];
 }
 
 declare global {
@@ -58,13 +64,84 @@ function applyFrame(
   if (typeof state.background === "string") content.style.background = state.background;
 }
 
+function applyReveal(item: MountedObject, state: TattvaState): void {
+  const progress = Math.min(1, Math.max(0, state.revealProgress ?? 1));
+  if (item.tattva.revealKind === "text" && item.graphemes) {
+    const visible = Math.floor(item.graphemes.length * progress);
+    item.content.textContent = item.graphemes.slice(0, visible).join("");
+  }
+  if (item.tattva.revealKind === "path") {
+    for (const { element, length } of item.paths ?? []) {
+      element.setAttribute("stroke-dasharray", `${length} ${length}`);
+      element.setAttribute("stroke-dashoffset", String(length * (1 - progress)));
+      element.style.fillOpacity = String(progress);
+    }
+    const arrowProgress = Math.min(1, Math.max(0, (progress - 0.85) / 0.15));
+    for (const arrowhead of item.arrowheads ?? []) {
+      arrowhead.style.opacity = String(arrowProgress);
+    }
+  }
+}
+
+function createThreeCamera(state: Camera3DState, aspect: number) {
+  if (state.cameraProjection === "orthographic") {
+    const halfHeight = state.cameraViewHeight / 2;
+    const halfWidth = halfHeight * aspect;
+    return new OrthographicCamera(
+      -halfWidth,
+      halfWidth,
+      halfHeight,
+      -halfHeight,
+      state.cameraNear,
+      state.cameraFar,
+    );
+  }
+  return new PerspectiveCamera(state.cameraFov, aspect, state.cameraNear, state.cameraFar);
+}
+
+function applyThreeCamera(context: ThreeContext, state: Camera3DState, aspect: number): void {
+  const needsOrthographic = state.cameraProjection === "orthographic";
+  if (
+    (needsOrthographic && !(context.camera instanceof OrthographicCamera))
+    || (!needsOrthographic && !(context.camera instanceof PerspectiveCamera))
+  ) {
+    context.camera = createThreeCamera(state, aspect);
+  }
+
+  const camera = context.camera;
+  camera.position.set(state.cameraX, state.cameraY, state.cameraZ);
+  camera.up.set(state.cameraUpX, state.cameraUpY, state.cameraUpZ);
+
+  if (camera instanceof PerspectiveCamera) {
+    camera.aspect = aspect;
+    camera.fov = state.cameraFov;
+    camera.zoom = state.cameraZoom;
+    camera.near = state.cameraNear;
+    camera.far = state.cameraFar;
+    camera.updateProjectionMatrix();
+  } else if (camera instanceof OrthographicCamera) {
+    const halfHeight = state.cameraViewHeight / 2;
+    const halfWidth = halfHeight * aspect;
+    camera.left = -halfWidth;
+    camera.right = halfWidth;
+    camera.top = halfHeight;
+    camera.bottom = -halfHeight;
+    camera.zoom = state.cameraZoom;
+    camera.near = state.cameraNear;
+    camera.far = state.cameraFar;
+    camera.updateProjectionMatrix();
+  }
+  camera.lookAt(state.cameraTargetX, state.cameraTargetY, state.cameraTargetZ);
+}
+
 function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: number): MountedObject {
   const wrapper = document.createElement("div");
   const content = document.createElement(tattva.tag);
   wrapper.dataset.tattvaId = tattva.id;
   wrapper.className = "venu-transform";
   content.className = ["venu-content", tattva.elementClassName].filter(Boolean).join(" ");
-  if (tattva.html !== undefined) content.innerHTML = tattva.html;
+  const html = tattva.contentHTML();
+  if (html !== undefined) content.innerHTML = html;
   else if (tattva.text !== undefined) content.textContent = tattva.text;
   Object.assign(wrapper.style, {
     position: "absolute",
@@ -87,7 +164,21 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
   }
   wrapper.appendChild(content);
   container.appendChild(wrapper);
-  return { tattva, wrapper, content };
+  return {
+    tattva,
+    wrapper,
+    content,
+    graphemes: tattva.revealKind === "text" ? splitGraphemes(tattva.text ?? "") : undefined,
+    paths: tattva.revealKind === "path"
+      ? [...content.querySelectorAll<SVGPathElement>("[data-venu-path]")].map((element) => ({
+          element,
+          length: Math.max(element.getTotalLength(), 0.001),
+        }))
+      : undefined,
+    arrowheads: tattva.revealKind === "path"
+      ? [...content.querySelectorAll<SVGPathElement>("[data-venu-arrowhead]")]
+      : undefined,
+  };
 }
 
 export function mountAndExpose(SceneClass: new () => Scene): void {
@@ -113,9 +204,12 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
       renderer.setSize(scene.width, scene.height, false);
       item.content.replaceChildren(renderer.domElement);
       const threeScene = new ThreeScene();
-      const camera = new PerspectiveCamera(45, scene.width / scene.height, 0.1, 1000);
-      camera.position.z = 8;
+      const camera = createThreeCamera(
+        tattva.initialState as Camera3DState,
+        scene.width / scene.height,
+      );
       item.three = { scene: threeScene, camera, renderer };
+      applyThreeCamera(item.three, tattva.initialState as Camera3DState, scene.width / scene.height);
       (tattva as ThreeTattva).hooks.setup(item.three);
     }
     tattva.children.forEach((child) => mountTree(child, item.content));
@@ -131,13 +225,15 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
       const style = styles.get(item.tattva);
       if (style) applyCSS(item.content, style);
       applyFrame(item.wrapper, item.content, state, pixelsPerUnit);
+      applyReveal(item, state);
       if (item.reactRoot) {
         const component = item.tattva as ReactTattva;
         flushSync(() => item.reactRoot?.render(component.render(state)));
       }
       if (item.three) {
         const threeTattva = item.tattva as ThreeTattva;
-        threeTattva.hooks.update?.(item.three, state);
+        applyThreeCamera(item.three, state as Camera3DState, scene.width / scene.height);
+        threeTattva.hooks.update?.(item.three, state as Camera3DState);
         item.three.renderer.render(item.three.scene, item.three.camera);
       }
     }
