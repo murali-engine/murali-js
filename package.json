@@ -20,7 +20,7 @@
   "files": ["dist", "README.md"],
   "workspaces": ["examples"],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "render": "npm run build --silent && node dist/cli.js render",
     "example": "npm run build --silent && node scripts/run-example.mjs",
     "typecheck": "tsc --noEmit",

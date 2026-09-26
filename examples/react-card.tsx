@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
-import { Animate, FadeIn, Move, ReactMobject, Scene, render } from "venu";
-import type { MobjectState } from "venu";
+import { ReactTattva, Scene, Timeline, render } from "venu";
+import type { TattvaState } from "venu";
 
-interface CardState extends MobjectState {
+interface CardState extends TattvaState {
   progress: number;
 }
 
@@ -23,7 +23,7 @@ class ReactCardScene extends Scene {
   }
 
   override construct(): void {
-    const card = this.add(new ReactMobject<CardState>((state) => (
+    const card = this.add(new ReactTattva<CardState>((state) => (
       <section style={cardStyle}>
         <div style={{ color: "#94a3b8", fontSize: 18 }}>Render progress</div>
         <strong style={{ display: "block", fontSize: 72, letterSpacing: "-.05em", margin: "10px 0 24px" }}>
@@ -33,10 +33,16 @@ class ReactCardScene extends Scene {
           <div style={{ width: `${state.progress}%`, height: "100%", background: "#38bdf8" }} />
         </div>
       </section>
-    ), { state: { x: 0, y: 35, opacity: 0, progress: 0 } }));
+    ), { state: { y: -0.45, opacity: 0, progress: 0 } }));
 
-    this.play(FadeIn(card), Move(card, { y: 0 }));
-    this.play(Animate(card, { progress: 100 }, { duration: 2 }));
+    const entrance = new Timeline();
+    entrance.animate(card).duration(1).appear();
+    entrance.animate(card).duration(1).moveTo([0, 0]);
+    this.play(entrance);
+
+    const progress = new Timeline();
+    progress.animate(card).duration(2).ease("linear").to({ progress: 100 });
+    this.play(progress);
     this.wait(0.5);
   }
 }

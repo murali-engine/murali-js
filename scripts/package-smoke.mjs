@@ -21,9 +21,9 @@ writeFileSync(join(temporaryDirectory, "package.json"), JSON.stringify({
 }));
 execFileSync(npmCommand, ["install", "--ignore-scripts"], { cwd: temporaryDirectory, stdio: "inherit" });
 writeFileSync(join(temporaryDirectory, "smoke.mjs"), `
-  import { Scene, Text, render } from "venu";
+  import { Circle, Label, Scene, Timeline, render } from "venu";
   import { renderScene } from "venu/render";
-  if (typeof Scene !== "function" || typeof Text !== "function" || typeof render !== "function" || typeof renderScene !== "function") {
+  if ([Circle, Label, Scene, Timeline, render, renderScene].some((value) => typeof value !== "function")) {
     throw new Error("Published exports are incomplete");
   }
 `);

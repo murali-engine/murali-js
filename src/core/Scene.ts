@@ -1,37 +1,50 @@
-import type { AnimationSpec } from "./Animation.ts";
 import { interpolateValue } from "./color.ts";
 import { clamp01 } from "./easing.ts";
-import type { Mobject, MobjectState, StateValue } from "./Mobject.ts";
+import type { ScheduledAnimation, Timeline } from "./Timeline.ts";
+import type { Point, StateValue, Tattva, TattvaState } from "./Tattva.ts";
+import { interpolateCSSValue, type CSSStyles } from "./css.ts";
 
-interface TimelineEntry {
-  mobject: Mobject;
-  start: number;
-  duration: number;
-  from: Partial<MobjectState>;
-  to: Partial<MobjectState>;
-  easing: (t: number) => number;
-}
+export type FrameName = "landscape" | "portrait" | "square";
+
+const frames: Record<FrameName, { width: number; height: number; viewWidth: number }> = {
+  landscape: { width: 1920, height: 1080, viewWidth: 16 },
+  portrait: { width: 1080, height: 1920, viewWidth: 9 },
+  square: { width: 1080, height: 1080, viewWidth: 16 },
+};
 
 export interface SceneOptions {
+  frame?: FrameName;
   width?: number;
   height?: number;
+  viewWidth?: number;
   fps?: number;
   background?: string;
+}
+
+export interface AddOptions {
+  at?: Point;
+}
+
+export interface EdgeOptions {
+  margin?: number;
 }
 
 export abstract class Scene {
   readonly width: number;
   readonly height: number;
+  readonly viewWidth: number;
   readonly fps: number;
   readonly background: string;
-  readonly mobjects: Mobject[] = [];
-  private readonly timeline: TimelineEntry[] = [];
+  readonly tattvas: Tattva[] = [];
+  private readonly schedule: ScheduledAnimation[] = [];
   private cursor = 0;
   private prepared = false;
 
   constructor(options: SceneOptions = {}) {
-    this.width = options.width ?? 1920;
-    this.height = options.height ?? 1080;
+    const frame = frames[options.frame ?? "landscape"];
+    this.width = options.width ?? frame.width;
+    this.height = options.height ?? frame.height;
+    this.viewWidth = options.viewWidth ?? frame.viewWidth;
     this.fps = options.fps ?? 30;
     this.background = options.background ?? "#080b12";
   }
@@ -50,28 +63,62 @@ export abstract class Scene {
     return this.cursor;
   }
 
-  add<T extends Mobject>(mobject: T): T {
-    if (!this.mobjects.includes(mobject)) this.mobjects.push(mobject);
-    return mobject;
+  get viewHeight(): number {
+    return this.viewWidth * (this.height / this.width);
   }
 
-  play(...animations: AnimationSpec[]): this {
-    if (animations.length === 0) return this;
-    const start = this.cursor;
-    for (const animation of animations) {
-      this.add(animation.mobject);
-      const current = this.sampleMobjectAt(animation.mobject, start);
-      const from = Object.fromEntries(Object.keys(animation.to).map((key) => [key, current[key]])) as Partial<MobjectState>;
-      this.timeline.push({
-        mobject: animation.mobject,
-        start,
-        duration: Math.max(0, animation.duration),
-        from,
-        to: animation.to,
-        easing: animation.easing,
-      });
+  add<T extends Tattva>(tattva: T, options?: AddOptions): T;
+  add<T extends Tattva>(...tattvas: T[]): T[];
+  add<T extends Tattva>(...args: [T, AddOptions?] | T[]): T | T[] {
+    const hasOptions = args.length === 2 && !(args[1] instanceof Object && "initialState" in args[1]);
+    const items = (hasOptions ? [args[0]] : args) as T[];
+    const options = hasOptions ? (args[1] as AddOptions) : undefined;
+    if (options?.at) items[0].at(options.at);
+    for (const tattva of items) {
+      if (!this.tattvas.includes(tattva)) this.tattvas.push(tattva);
     }
-    this.cursor += Math.max(...animations.map((animation) => Math.max(0, animation.duration)));
+    return hasOptions || items.length === 1 ? items[0] : items;
+  }
+
+  toEdge<T extends Tattva>(
+    tattva: T,
+    edge: "left" | "right" | "up" | "down",
+    options: EdgeOptions = {},
+  ): T {
+    const margin = options.margin ?? 0.5;
+    const x = this.viewWidth / 2 - margin;
+    const y = this.viewHeight / 2 - margin;
+    if (edge === "left") tattva.at([-x, tattva.initialState.y]);
+    if (edge === "right") tattva.at([x, tattva.initialState.y]);
+    if (edge === "up") tattva.at([tattva.initialState.x, y]);
+    if (edge === "down") tattva.at([tattva.initialState.x, -y]);
+    return tattva;
+  }
+
+  play(timeline: Timeline): this {
+    const animations = [...timeline.animations].sort((left, right) => left.start - right.start);
+    for (const animation of animations) {
+      this.add(animation.tattva);
+      const start = this.cursor + animation.start;
+      const stateAtStart = this.sampleTattvaAt(animation.tattva, start);
+      const from = animation.from ?? Object.fromEntries(
+        Object.keys(animation.to).map((key) => [key, stateAtStart[key]]),
+      ) as Partial<TattvaState>;
+      const to = animation.relative
+        ? Object.fromEntries(Object.entries(animation.to).map(([key, delta]) => [
+            key,
+            typeof delta === "number" && typeof from[key] === "number"
+              ? from[key] + delta
+              : delta,
+          ])) as Partial<TattvaState>
+        : animation.to;
+      const styleAtStart = this.sampleTattvaStyleAt(animation.tattva, start);
+      const styleFrom = animation.styleFrom ?? Object.fromEntries(
+        Object.keys(animation.styleTo ?? {}).map((key) => [key, styleAtStart[key as keyof CSSStyleDeclaration] ?? null]),
+      ) as CSSStyles;
+      this.schedule.push({ ...animation, start, from, to, styleFrom, relative: false });
+    }
+    this.cursor += timeline.duration;
     return this;
   }
 
@@ -80,21 +127,49 @@ export abstract class Scene {
     return this;
   }
 
-  sampleAt(time: number): Map<Mobject, MobjectState> {
+  sampleAt(time: number): Map<Tattva, TattvaState> {
     this.prepare();
-    return new Map(this.mobjects.map((mobject) => [mobject, this.sampleMobjectAt(mobject, time)]));
+    return new Map(this.tattvas.map((tattva) => [tattva, this.sampleTattvaAt(tattva, time)]));
   }
 
-  private sampleMobjectAt(mobject: Mobject, time: number): MobjectState {
-    const state: MobjectState = { ...mobject.initialState };
-    for (const entry of this.timeline) {
-      if (entry.mobject !== mobject || time < entry.start) continue;
+  sampleStylesAt(time: number): Map<Tattva, CSSStyles> {
+    this.prepare();
+    return new Map(this.tattvas.map((tattva) => [tattva, this.sampleTattvaStyleAt(tattva, time)]));
+  }
+
+  private sampleTattvaAt(tattva: Tattva, time: number): TattvaState {
+    const state: TattvaState = { ...tattva.initialState };
+    for (const entry of this.schedule) {
+      if (entry.tattva !== tattva) continue;
+      if (time < entry.start) {
+        if (entry.hideBeforeStart) state.opacity = 0;
+        continue;
+      }
+      const from = entry.from ?? {};
       const raw = entry.duration === 0 ? 1 : (time - entry.start) / entry.duration;
       const progress = entry.easing(clamp01(raw));
       for (const key of Object.keys(entry.to)) {
-        state[key] = interpolateValue(entry.from[key] as StateValue, entry.to[key] as StateValue, progress);
+        state[key] = interpolateValue(from[key] as StateValue, entry.to[key] as StateValue, progress);
       }
     }
     return state;
+  }
+
+  private sampleTattvaStyleAt(tattva: Tattva, time: number): CSSStyles {
+    const style: CSSStyles = { ...tattva.initialStyle };
+    for (const entry of this.schedule) {
+      if (entry.tattva !== tattva || time < entry.start || !entry.styleTo) continue;
+      const raw = entry.duration === 0 ? 1 : (time - entry.start) / entry.duration;
+      const progress = entry.easing(clamp01(raw));
+      for (const key of Object.keys(entry.styleTo)) {
+        const property = key as keyof CSSStyles;
+        style[property] = interpolateCSSValue(
+          entry.styleFrom?.[property] ?? null,
+          entry.styleTo[property] ?? null,
+          progress,
+        );
+      }
+    }
+    return style;
   }
 }

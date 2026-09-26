@@ -1,10 +1,11 @@
-export * from "./core/Animation.ts";
 export * from "./core/color.ts";
+export * from "./core/css.ts";
 export * from "./core/easing.ts";
-export * from "./core/Mobject.ts";
-export * from "./core/ReactMobject.ts";
+export * from "./core/ReactTattva.ts";
 export * from "./core/Scene.ts";
-export * from "./core/ThreeMobject.ts";
+export * from "./core/Tattva.ts";
+export * from "./core/Timeline.ts";
+export * from "./core/ThreeTattva.ts";
 export * from "./mobjects/shapes.ts";
 
 import type { SceneConstructor } from "./render/render.ts";

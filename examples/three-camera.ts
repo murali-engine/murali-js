@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { Animate, Scene, ThreeMobject, render } from "venu";
-import type { MobjectState } from "venu";
+import { Scene, ThreeTattva, Timeline, render } from "venu";
+import type { TattvaState } from "venu";
 
-interface OrbitState extends MobjectState {
+interface OrbitState extends TattvaState {
   angle: number;
   radius: number;
 }
@@ -14,7 +14,7 @@ class ThreeCameraScene extends Scene {
 
   override construct(): void {
     const cubes: THREE.Mesh[] = [];
-    const world = this.add(new ThreeMobject<OrbitState>({
+    const world = this.add(new ThreeTattva<OrbitState>({
       setup({ scene }) {
         scene.add(new THREE.AmbientLight(0x8ea7ff, 1.8));
         const light = new THREE.DirectionalLight(0xffffff, 5);
@@ -41,11 +41,13 @@ class ThreeCameraScene extends Scene {
         });
       },
     }, {
-      style: { width: "1280px", height: "720px" },
+      css: { width: "1280px", height: "720px" },
       state: { angle: -0.7, radius: 9 },
     }));
 
-    this.play(Animate(world, { angle: 1.2, radius: 7 }, { duration: 4 }));
+    const orbit = new Timeline();
+    orbit.animate(world).duration(4).to({ angle: 1.2, radius: 7 });
+    this.play(orbit);
   }
 }
 

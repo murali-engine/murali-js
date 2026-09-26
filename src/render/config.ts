@@ -7,6 +7,7 @@ interface FileRenderConfig {
   output?: string;
   outputDir?: string;
   fps?: number;
+  progress?: boolean;
 }
 
 interface MuraliConfig {
@@ -26,6 +27,13 @@ function parseEnv(contents: string): Record<string, string> {
     values[key] = rawValue.replace(/^(['"])(.*)\1$/, "$2");
   }
   return values;
+}
+
+function parseBoolean(value: string | undefined): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (["1", "true", "yes", "on"].includes(value.toLowerCase())) return true;
+  if (["0", "false", "no", "off"].includes(value.toLowerCase())) return false;
+  throw new Error(`Render progress must be a boolean; received ${value}.`);
 }
 
 async function readOptional(path: string): Promise<string | undefined> {
@@ -67,12 +75,17 @@ export async function resolveRenderOptions(
     ?? env.VENU_OUTPUT
     ?? renderConfig.output
     ?? join(outputDirectory, `${sourceName}.mp4`);
+  const progress = overrides.progress
+    ?? parseBoolean(env.MURALI_PROGRESS ?? env.VENU_PROGRESS)
+    ?? renderConfig.progress
+    ?? true;
 
   return {
     sourcePath,
     options: {
       output,
       fps,
+      progress,
       onProgress: overrides.onProgress,
     },
   };

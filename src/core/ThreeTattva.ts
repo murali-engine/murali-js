@@ -1,5 +1,5 @@
 import type { Camera, Scene as ThreeScene, WebGLRenderer } from "three";
-import { Mobject, type MobjectOptions, type MobjectState } from "./Mobject.ts";
+import { Tattva, type TattvaOptions, type TattvaState } from "./Tattva.ts";
 
 export interface ThreeContext {
   scene: ThreeScene;
@@ -7,15 +7,15 @@ export interface ThreeContext {
   renderer: WebGLRenderer;
 }
 
-export interface ThreeHooks<State extends MobjectState> {
+export interface ThreeHooks<State extends TattvaState> {
   setup: (context: ThreeContext) => void;
   update?: (context: ThreeContext, state: Readonly<State>) => void;
 }
 
-export class ThreeMobject<State extends MobjectState = MobjectState> extends Mobject<State> {
+export class ThreeTattva<State extends TattvaState = TattvaState> extends Tattva<State> {
   override readonly kind = "three" as const;
 
-  constructor(readonly hooks: ThreeHooks<State>, options: MobjectOptions = {}) {
+  constructor(readonly hooks: ThreeHooks<State>, options: TattvaOptions = {}) {
     super(options);
   }
 }
