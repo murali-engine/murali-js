@@ -12,5 +12,6 @@ export * from "./core/text.ts";
 export * from "./core/ThreeTattva.ts";
 export * from "./mobjects/shapes.ts";
 export * from "./mobjects/paths.ts";
+export * from "./mobjects/graph.ts";
 export * from "./render/render.ts";
 export type { RenderOverrides } from "./render/config.ts";

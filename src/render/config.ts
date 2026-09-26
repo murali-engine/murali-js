@@ -89,6 +89,10 @@ export async function resolveRenderOptions(
       fps,
       progress,
       onProgress: overrides.onProgress,
+      format: overrides.format,
+      transparent: overrides.transparent,
+      at: overrides.at,
+      args: overrides.args,
     },
   };
 }

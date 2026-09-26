@@ -5,6 +5,8 @@ import { frameCount } from "./frames.ts";
 
 export interface PreviewOptions {
   headless?: boolean;
+  /** Values exposed to the scene as `globalThis.__venuArgs` before it loads. */
+  args?: Record<string, string>;
   /** Runs after the window is showing the scene. The window closes when this returns. */
   ready?: (page: Page) => Promise<void>;
 }
@@ -30,6 +32,7 @@ export async function previewScene(
     page.on("pageerror", (error) => {
       process.stderr.write(`Preview failed: ${error.message}\n`);
     });
+    await page.addInitScript(`globalThis.__venuArgs = ${JSON.stringify(options.args ?? {})};`);
     await page.setContent(previewDocument(basename(scenePath)));
     await page.addScriptTag({ content: bundle, type: "module" });
     await page.waitForFunction(() => window.__venuReady === true);

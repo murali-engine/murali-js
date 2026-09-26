@@ -90,7 +90,7 @@ Status values:
 | --- | --- | --- |
 | Browser preview | partial | 7 |
 | MP4 export | baseline | 7 |
-| PNG capture | planned | 7 |
+| PNG capture | partial | 7 |
 | GIF export | planned | 7 |
 | Transparent output | planned | 7 |
 | Render progress | partial | 7 |

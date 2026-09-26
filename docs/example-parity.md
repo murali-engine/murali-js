@@ -43,7 +43,7 @@ Shared holes to close in this step, before calling the rows done:
 
 | Done | Example | Notes |
 | --- | --- | --- |
-| | `murali_logo_transparent` | Same mark as `murali_logo`, plus a transparent PNG. Venu only writes MP4s. |
+| | `murali_logo_transparent` | Scene script follows Murali and writes a transparent PNG. Not checked until the image is compared. |
 
 ## 3. Plane, axes, and vectors
 
@@ -51,7 +51,7 @@ Shared piece: a number plane, 2D axes, and a vector arrow. Plots and linear-alge
 
 | Done | Example | Notes |
 | --- | --- | --- |
-| | `graphs_2d` | Also needs a function plot, scatter points, and a legend. |
+| | `graphs_2d` | Scene script now follows Murali on `NumberPlane`, `Axes`, a sampled sine, scatter marks, and a legend. `VectorArrow` is available for the linear-algebra scenes, which are not ported yet. Not checked until the rendered frames are compared. |
 | | `linear_algebra_vectors` | |
 | | `linear_algebra_span` | |
 | | `linear_algebra_dot_product` | |

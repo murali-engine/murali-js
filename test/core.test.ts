@@ -6,8 +6,12 @@ import {
   RED_B,
   resolveColor,
   HStack,
+  Axes,
   Label,
   Line,
+  NumberPlane,
+  VectorArrow,
+  sampleRange,
   Rectangle,
   Scene,
   Square,
@@ -317,6 +321,19 @@ test("dashes a line and pulses indicate back to rest", () => {
   assert.equal(scene.sampleAt(0).get(scene.label)?.indicate, 0);
   assert.equal(scene.sampleAt(1).get(scene.label)?.indicate, 0.5);
   assert.equal(scene.sampleAt(2).get(scene.label)?.indicate, 1);
+});
+
+test("builds a number plane, axis ticks, and a vector arrow", () => {
+  const yTicks = sampleRange([-1.8, 1.8], 1);
+  assert.equal(yTicks.length, 4);
+  assert.ok(Math.abs(yTicks[2] - 0.2) < 1e-9);
+  const plane = NumberPlane([-7, 7], [-1.8, 1.8]).step(1).build();
+  assert.equal(plane.children.length, 15 + 4);
+  const axes = Axes([-2, 2], [-1, 1]).step(1).build();
+  assert.equal(axes.children.length, 2 + 4 + 2);
+  const arrow = VectorArrow([2, 0]);
+  assert.equal(arrow.initialState.x, 1);
+  assert.equal(arrow.initialState.rotationZ, 0);
 });
 
 test("sizes a multiline label from its longest line", () => {
