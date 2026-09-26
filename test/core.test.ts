@@ -1172,7 +1172,7 @@ test("builds linear stepwise stories and validates cyclic scripts", () => {
 
 test("authors a reusable opening on the ordinary scene timeline", () => {
   class OpeningTestScene extends Scene {
-    readonly composition = Opening("VENU", "DETERMINISTIC VISUALS")
+    readonly composition = Opening("MURALI", "DETERMINISTIC VISUALS")
       .style({ particleCount: 24 })
       .timing({ introDelay: 0.2, endHold: 0.4 })
       .addTo(this);
@@ -1195,7 +1195,7 @@ test("authors a reusable opening on the ordinary scene timeline", () => {
   assert.ok(openingDuration(4) > 5);
   assert.throws(() => Opening("Murali JS", "invalid").duration(), /ASCII capitals/);
   assert.throws(() => Opening("   ", "invalid").duration(), /at least one capital/);
-  assert.throws(() => Opening("VENU", "invalid").style({ particleCount: 0 }).duration(), /positive integer/);
+  assert.throws(() => Opening("MURALI", "invalid").style({ particleCount: 0 }).duration(), /positive integer/);
 });
 
 test("lays out word clouds deterministically without overlapping labels", () => {
