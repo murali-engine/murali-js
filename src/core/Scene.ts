@@ -3,6 +3,7 @@ import { clamp01 } from "./easing.ts";
 import type { ScheduledAnimation, Timeline } from "./Timeline.ts";
 import { Tattva, type Point, type StateValue, type TattvaState } from "./Tattva.ts";
 import { interpolateCSSValue, type CSSStyles } from "./css.ts";
+import { SceneCamera } from "./Camera3D.ts";
 
 export type FrameName = "landscape" | "portrait" | "square";
 
@@ -42,6 +43,7 @@ export abstract class Scene {
   readonly viewWidth: number;
   readonly fps: number;
   readonly background: string;
+  readonly camera: SceneCamera;
   readonly tattvas: Tattva<any>[] = [];
   private readonly schedule: ScheduledAnimation<any>[] = [];
   private cursor = 0;
@@ -54,6 +56,7 @@ export abstract class Scene {
     this.viewWidth = options.viewWidth ?? frame.viewWidth;
     this.fps = options.fps ?? 30;
     this.background = options.background ?? "#080b12";
+    this.camera = new SceneCamera(this.viewHeight);
   }
 
   abstract construct(): void;
@@ -149,7 +152,7 @@ export abstract class Scene {
   play(timeline: Timeline): this {
     const animations = [...timeline.animations].sort((left, right) => left.start - right.start);
     for (const animation of animations) {
-      this.add(animation.tattva);
+      if (animation.tattva !== this.camera) this.add(animation.tattva);
       const start = this.cursor + animation.start;
       const stateAtStart = this.sampleTattvaAt(animation.tattva, start);
       const from = animation.from ?? Object.fromEntries(
@@ -183,7 +186,10 @@ export abstract class Scene {
 
   sampleAt(time: number): Map<Tattva<any>, TattvaState> {
     this.prepare();
-    return new Map(this.allTattvas.map((tattva) => [tattva, this.sampleTattvaAt(tattva, time)]));
+    return new Map([
+      [this.camera, this.sampleTattvaAt(this.camera, time)],
+      ...this.allTattvas.map((tattva) => [tattva, this.sampleTattvaAt(tattva, time)] as const),
+    ]);
   }
 
   sampleStylesAt(time: number): Map<Tattva<any>, CSSStyles> {

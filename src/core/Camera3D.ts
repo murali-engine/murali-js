@@ -1,4 +1,4 @@
-import type { TattvaState, Vec3 } from "./Tattva.ts";
+import { Tattva, type TattvaState, type Vec3 } from "./Tattva.ts";
 
 export type CameraProjection = "perspective" | "orthographic";
 
@@ -50,6 +50,55 @@ export interface OrthographicCameraOptions {
   viewHeight?: number;
   near?: number;
   far?: number;
+}
+
+/** The scene-owned, deterministically sampled camera. */
+export class SceneCamera extends Tattva<Camera3DState> {
+  constructor(viewHeight: number) {
+    super({
+      id: "venu-scene-camera",
+      state: Camera3D.orthographic({ viewHeight })
+        .position([0, 0, 8])
+        .lookAt([0, 0, 0])
+        .toState(),
+    });
+  }
+
+  perspective(options: PerspectiveCameraOptions = {}): this {
+    const projection = Camera3D.perspective(options).toState();
+    return this.setInitial({
+      cameraProjection: projection.cameraProjection,
+      cameraFov: projection.cameraFov,
+      cameraNear: projection.cameraNear,
+      cameraFar: projection.cameraFar,
+    });
+  }
+
+  orthographic(options: OrthographicCameraOptions = {}): this {
+    const projection = Camera3D.orthographic(options).toState();
+    return this.setInitial({
+      cameraProjection: projection.cameraProjection,
+      cameraViewHeight: projection.cameraViewHeight,
+      cameraNear: projection.cameraNear,
+      cameraFar: projection.cameraFar,
+    });
+  }
+
+  position([cameraX, cameraY, cameraZ]: Vec3): this {
+    return this.setInitial({ cameraX, cameraY, cameraZ });
+  }
+
+  lookAt([cameraTargetX, cameraTargetY, cameraTargetZ]: Vec3): this {
+    return this.setInitial({ cameraTargetX, cameraTargetY, cameraTargetZ });
+  }
+
+  up([cameraUpX, cameraUpY, cameraUpZ]: Vec3): this {
+    return this.setInitial({ cameraUpX, cameraUpY, cameraUpZ });
+  }
+
+  zoom(cameraZoom: number): this {
+    return this.setInitial({ cameraZoom: positive(cameraZoom, "Camera zoom") });
+  }
 }
 
 export class Camera3DBuilder {

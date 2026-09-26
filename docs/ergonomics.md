@@ -118,6 +118,20 @@ Common terminal verbs:
 - `setColor`, `setStyle`
 - semantic operations such as `morphFrom`, `writeTable`, or `focusStage`
 
+Pass an ordered array to animate several objects with one specification. `stagger()` offsets each target's start time while preserving input order:
+
+```ts
+local
+  .animate([square, circle, rectangle, polygon])
+  .at(0.5)
+  .stagger(0.15)
+  .duration(0.8)
+  .ease("outCubic")
+  .appear();
+```
+
+Here the objects start at `0.5`, `0.65`, `0.8`, and `0.95` seconds. The last animation's end contributes to the containing clip's duration. Multi-target animation supports shared movement, scale, rotation, opacity, color, CSS style, and reveal verbs. Semantic reveal verbs validate every target before adding any schedule entries.
+
 Reveal verbs are capability-aware. `typewrite`, `untypewrite`, and `revealText` operate on text Tattvas using grapheme clusters. `draw` and `undraw` operate on SVG-backed path Tattvas. Applying a reveal verb to an incompatible object produces an authoring error instead of silently falling back to opacity.
 
 ### Clips and scene sequencing
@@ -226,30 +240,30 @@ Environment variables are intended for environment-specific overrides. Stable pr
 
 ## Built-in 3D camera
 
-Each `ThreeTattva` owns deterministic camera state. Camera setup uses a fluent projection builder, and camera movement uses the same timeline grammar as every other animation:
+Every `Scene` owns deterministic camera state and defaults to an orthographic view matching its logical frame. Existing 2D content therefore lives on the `z = 0` plane without requiring camera setup. Perspective scenes configure the same scene camera used by DOM, SVG, React, and Three.js roots:
 
 ```ts
+this.camera
+  .perspective({ fov: 42, near: 0.1, far: 100 })
+  .position([-5, 3, 9])
+  .lookAt([0, 0, 0]);
+
 const world = this.add(
-  new ThreeTattva({ setup({ scene }) { /* add Three.js objects */ } })
-    .camera(
-      Camera3D.perspective({ fov: 42, near: 0.1, far: 100 })
-        .position([-5, 3, 9])
-        .lookAt([0, 0, 0]),
-    ),
+  new ThreeTattva({ setup({ scene }) { /* add Three.js objects */ } }),
 );
 
-timeline.animateCamera(world)
+timeline.animateCamera(this.camera)
   .duration(2)
   .ease("inOutCubic")
   .frameTo([4, 2.5, 7], [0, 0, 0]);
 
-timeline.animateCamera(world)
+timeline.animateCamera(this.camera)
   .at(2)
   .duration(2)
   .orbitTo({ azimuth: -30, elevation: 18, radius: 7 });
 ```
 
-Perspective and orthographic projections are built in. Camera terminal verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. Camera values are ordinary deterministic scene state, so preview scrubbing and exported frames resolve the same viewpoint.
+Perspective and orthographic projections are built in. Root DOM-family objects are projected as world-space planes; nested children retain local transforms. Three.js surfaces remain viewports and render their geometry through the scene camera. Camera terminal verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. Camera values are ordinary deterministic scene state, so preview scrubbing and exported frames resolve the same viewpoint.
 
 ## Compatibility stance
 

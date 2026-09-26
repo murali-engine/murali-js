@@ -49,9 +49,12 @@ class HelloShapes extends Scene {
     });
 
     const shapeEntrance = clip((local) => {
-      [square, circle, rectangle, polygon].forEach((shape, index) => {
-        local.animate(shape).at(index * 1.2).duration(0.95).ease("outCubic").appear();
-      });
+      local
+        .animate([square, circle, rectangle, polygon])
+        .stagger(1.2)
+        .duration(0.95)
+        .ease("outCubic")
+        .appear();
     });
 
     this.play(

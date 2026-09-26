@@ -31,6 +31,7 @@ Status values:
 | Absolute-time scheduling | partial | 2 |
 | Sequential `play`/`wait` | partial | 2 |
 | Overlapping animations | baseline | 2 |
+| Multi-object animation and stagger | baseline | 6 |
 | Move, scale, rotate, fade, color | baseline | 2 |
 | Appear/disappear | partial | 2 |
 | Draw/undraw paths | partial | 5 |
@@ -39,7 +40,7 @@ Status values:
 | Clips: sequential/overlap/explicit placement | partial | 6 |
 | `callAt` and `callDuring` | planned | 7 |
 | Seeking and reverse sampling | partial | 2 |
-| Camera animation | partial | 9 |
+| Scene-owned camera and camera animation | partial | 9 |
 
 ## Styling and browser capabilities
 

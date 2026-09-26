@@ -11,7 +11,6 @@ import {
 import type { Point, Tattva, TattvaState, Vec3 } from "./Tattva.ts";
 import type { CSSStyles } from "./css.ts";
 import type { Camera3DState } from "./Camera3D.ts";
-import type { ThreeTattva } from "./ThreeTattva.ts";
 
 export type EaseName =
   | "linear"
@@ -61,12 +60,18 @@ export class Timeline {
   private compositionCursor = 0;
   private compositionGroupStart = 0;
 
-  animate<State extends TattvaState>(tattva: Tattva<State>): AnimationBuilder<State> {
-    return new AnimationBuilder(this, tattva);
+  animate<State extends TattvaState>(tattva: Tattva<State>): AnimationBuilder<State>;
+  animate(tattvas: readonly Tattva<any>[]): MultiAnimationBuilder;
+  animate<State extends TattvaState>(
+    target: Tattva<State> | readonly Tattva<any>[],
+  ): AnimationBuilder<State> | MultiAnimationBuilder {
+    return Array.isArray(target)
+      ? new MultiAnimationBuilder(this, target)
+      : new AnimationBuilder(this, target as Tattva<State>);
   }
 
-  animateCamera<State extends Camera3DState>(tattva: ThreeTattva<State>): CameraAnimationBuilder<State> {
-    return new CameraAnimationBuilder(this, tattva);
+  animateCamera<State extends Camera3DState>(camera: Tattva<State>): CameraAnimationBuilder<State> {
+    return new CameraAnimationBuilder(this, camera);
   }
 
   get duration(): number {
@@ -151,7 +156,7 @@ export class CameraAnimationBuilder<State extends Camera3DState> {
 
   constructor(
     private readonly timeline: Timeline,
-    private readonly tattva: ThreeTattva<State>,
+    private readonly tattva: Tattva<State>,
   ) {}
 
   at(seconds: number): this {
@@ -361,6 +366,128 @@ export class AnimationBuilder<State extends TattvaState> {
     if (this.tattva.revealKind !== expected) {
       throw new Error(
         `${operation}() requires a ${expected}-reveal Tattva; received ${this.tattva.constructor.name}.`,
+      );
+    }
+  }
+}
+
+/** Applies one animation specification to an ordered collection of Tattvas. */
+export class MultiAnimationBuilder {
+  private startTime = 0;
+  private animationDuration = 1;
+  private easing: EaseName | Easing = easeInOutCubic;
+  private staggerDelay = 0;
+
+  constructor(
+    private readonly timeline: Timeline,
+    private readonly tattvas: readonly Tattva<any>[],
+  ) {
+    if (tattvas.length === 0) {
+      throw new Error("animate([...]) requires at least one Tattva.");
+    }
+    if (new Set(tattvas).size !== tattvas.length) {
+      throw new Error("animate([...]) cannot contain the same Tattva more than once.");
+    }
+  }
+
+  at(seconds: number): this {
+    this.startTime = finiteTime(seconds, "Animation start time");
+    return this;
+  }
+
+  stagger(seconds: number): this {
+    this.staggerDelay = finiteTime(seconds, "Animation stagger");
+    return this;
+  }
+
+  duration(seconds: number): this {
+    this.animationDuration = finiteTime(seconds, "Animation duration");
+    return this;
+  }
+
+  ease(ease: EaseName | Easing): this {
+    this.easing = ease;
+    return this;
+  }
+
+  moveTo(point: Point): Timeline {
+    return this.apply((animation) => animation.moveTo(point));
+  }
+
+  moveBy(delta: Point): Timeline {
+    return this.apply((animation) => animation.moveBy(delta));
+  }
+
+  scaleTo(scale: number): Timeline {
+    return this.apply((animation) => animation.scaleTo(scale));
+  }
+
+  rotateTo(rotation: number): Timeline {
+    return this.apply((animation) => animation.rotateTo(rotation));
+  }
+
+  fadeTo(opacity: number): Timeline {
+    return this.apply((animation) => animation.fadeTo(opacity));
+  }
+
+  setColor(color: string): Timeline {
+    return this.apply((animation) => animation.setColor(color));
+  }
+
+  setStyle(styles: CSSStyles): Timeline {
+    return this.apply((animation) => animation.setStyle(styles));
+  }
+
+  appear(): Timeline {
+    return this.apply((animation) => animation.appear());
+  }
+
+  disappear(): Timeline {
+    return this.apply((animation) => animation.disappear());
+  }
+
+  draw(): Timeline {
+    this.requireRevealKind("path", "draw");
+    return this.apply((animation) => animation.draw());
+  }
+
+  undraw(): Timeline {
+    this.requireRevealKind("path", "undraw");
+    return this.apply((animation) => animation.undraw());
+  }
+
+  typewrite(): Timeline {
+    this.requireRevealKind("text", "typewrite");
+    return this.apply((animation) => animation.typewrite());
+  }
+
+  untypewrite(): Timeline {
+    this.requireRevealKind("text", "untypewrite");
+    return this.apply((animation) => animation.untypewrite());
+  }
+
+  revealText(from = 0, to = 1): Timeline {
+    this.requireRevealKind("text", "revealText");
+    return this.apply((animation) => animation.revealText(from, to));
+  }
+
+  private apply(terminal: (animation: AnimationBuilder<any>) => Timeline): Timeline {
+    this.tattvas.forEach((tattva, index) => {
+      terminal(
+        new AnimationBuilder(this.timeline, tattva)
+          .at(this.startTime + index * this.staggerDelay)
+          .duration(this.animationDuration)
+          .ease(this.easing),
+      );
+    });
+    return this.timeline;
+  }
+
+  private requireRevealKind(expected: "text" | "path", operation: string): void {
+    const incompatible = this.tattvas.find((tattva) => tattva.revealKind !== expected);
+    if (incompatible) {
+      throw new Error(
+        `${operation}() requires ${expected}-reveal Tattvas; received ${incompatible.constructor.name}.`,
       );
     }
   }

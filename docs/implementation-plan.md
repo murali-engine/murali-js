@@ -111,7 +111,7 @@ Build:
 - duration queries, waits, and nested clips (implemented)
 - reusable clip factories (implemented)
 - clear flattening into the scene timeline (implemented)
-- multi-target animation and stagger ergonomics
+- multi-target animation and ordered stagger ergonomics (implemented)
 
 Exit criteria:
 
@@ -153,8 +153,8 @@ Exit criteria:
 
 Build:
 
-- orthographic and perspective camera abstractions
-- camera animation
+- scene-owned orthographic and perspective camera abstractions (implemented)
+- shared deterministic camera animation across DOM and Three.js roots (implemented)
 - formal Three.js adapter
 - updaters, traced paths, particles, surfaces, and 3D props
 

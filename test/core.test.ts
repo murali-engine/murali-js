@@ -3,7 +3,6 @@ import { test } from "node:test";
 import {
   Circle,
   Arrow,
-  Camera3D,
   HStack,
   Label,
   Scene,
@@ -187,6 +186,37 @@ test("keeps explicit clip placement independent from the sequential cursor", () 
   assert.throws(() => timeline().add(placed, { at: Number.NaN }), /non-negative finite/);
 });
 
+test("animates ordered targets with deterministic staggered start times", () => {
+  const shapes = [Circle(), Square(), Circle()] as const;
+  const entrance = clip((local) => {
+    local
+      .animate(shapes)
+      .at(0.5)
+      .stagger(0.25)
+      .duration(1)
+      .ease("linear")
+      .appear();
+  });
+
+  assert.deepEqual(entrance.animations.map(({ tattva }) => tattva), shapes);
+  assert.deepEqual(entrance.animations.map(({ start }) => start), [0.5, 0.75, 1]);
+  assert.equal(entrance.duration, 2);
+});
+
+test("validates multi-target animation before scheduling any entries", () => {
+  const dot = Circle();
+  assert.throws(() => timeline().animate([]), /at least one Tattva/);
+  assert.throws(() => timeline().animate([dot, dot]), /same Tattva more than once/);
+
+  const mixed = timeline();
+  assert.throws(
+    () => mixed.animate([Label("Hello"), dot]).stagger(0.1).typewrite(),
+    /requires text-reveal Tattvas/,
+  );
+  assert.equal(mixed.animations.length, 0);
+  assert.throws(() => timeline().animate([dot]).stagger(-1), /non-negative finite/);
+});
+
 test("interpolates short and long hex colors", () => {
   assert.equal(interpolateHex("#000", "#fff", 0.5), "#808080");
   assert.equal(interpolateHex("#ff0000", "#00ff00", 0.25), "#bf4000");
@@ -259,23 +289,22 @@ test("segments typewritten text by grapheme and rejects incompatible reveal verb
   );
 });
 
-test("configures and deterministically animates a built-in perspective camera", () => {
-  interface WorldState extends Camera3DState {
+test("configures and deterministically animates the scene-owned perspective camera", () => {
+  interface WorldState extends TattvaState {
     spin: number;
   }
 
   class CameraScene extends Scene {
-    readonly world = new ThreeTattva<WorldState>({ setup() {} }, { state: { spin: 0 } })
-      .camera(
-        Camera3D.perspective({ fov: 50, near: 0.2, far: 200 })
-          .position([-4, 2, 8])
-          .lookAt([0, 1, 0]),
-      );
+    readonly world = new ThreeTattva<WorldState>({ setup() {} }, { state: { spin: 0 } });
 
     override construct(): void {
+      this.camera
+        .perspective({ fov: 50, near: 0.2, far: 200 })
+        .position([-4, 2, 8])
+        .lookAt([0, 1, 0]);
       this.add(this.world);
       const timeline = new Timeline();
-      timeline.animateCamera(this.world)
+      timeline.animateCamera(this.camera)
         .duration(2)
         .ease("linear")
         .frameTo([4, 4, 6], [2, 0, 0]);
@@ -284,7 +313,7 @@ test("configures and deterministically animates a built-in perspective camera", 
   }
 
   const scene = new CameraScene().prepare();
-  const halfway = scene.sampleAt(1).get(scene.world) as Camera3DState;
+  const halfway = scene.sampleAt(1).get(scene.camera) as Camera3DState;
   assert.equal(halfway.cameraX, 0);
   assert.equal(halfway.cameraY, 3);
   assert.equal(halfway.cameraZ, 7);
@@ -294,27 +323,35 @@ test("configures and deterministically animates a built-in perspective camera", 
 });
 
 test("supports orthographic cameras, orbit framing, and camera validation", () => {
-  const world = new ThreeTattva({ setup() {} }).camera(
-    Camera3D.orthographic({ viewHeight: 12 }).position([0, 0, 10]),
-  );
-  const timeline = new Timeline();
-  timeline.animateCamera(world)
-    .duration(1)
-    .ease("linear")
-    .orbitTo({ azimuth: 90, elevation: 0, radius: 5 });
-
   class OrbitScene extends Scene {
     override construct(): void {
-      this.add(world);
-      this.play(timeline);
+      this.camera.orthographic({ viewHeight: 12 }).position([0, 0, 10]);
+      const animation = new Timeline();
+      animation.animateCamera(this.camera)
+        .duration(1)
+        .ease("linear")
+        .orbitTo({ azimuth: 90, elevation: 0, radius: 5 });
+      this.play(animation);
     }
   }
 
-  const state = new OrbitScene().prepare().sampleAt(1).get(world) as Camera3DState;
+  const scene = new OrbitScene().prepare();
+  const state = scene.sampleAt(1).get(scene.camera) as Camera3DState;
   assert.equal(state.cameraProjection, "orthographic");
   assert.equal(state.cameraViewHeight, 12);
   assert.ok(Math.abs(state.cameraX - 5) < 1e-10);
   assert.ok(Math.abs(state.cameraZ) < 1e-10);
-  assert.throws(() => Camera3D.perspective({ near: 0 }), /near < far/);
-  assert.throws(() => timeline.animateCamera(world).zoomTo(0), /positive finite number/);
+  assert.throws(() => new OrbitScene().camera.perspective({ near: 0 }), /near < far/);
+  assert.throws(() => new Timeline().animateCamera(scene.camera).zoomTo(0), /positive finite number/);
+});
+
+test("gives every scene an orthographic camera matching its logical frame", () => {
+  class EmptyScene extends Scene {
+    override construct(): void {}
+  }
+
+  const scene = new EmptyScene({ width: 1280, height: 720, viewWidth: 16 });
+  assert.equal(scene.camera.initialState.cameraProjection, "orthographic");
+  assert.equal(scene.camera.initialState.cameraViewHeight, 9);
+  assert.equal(scene.camera.initialState.cameraTargetZ, 0);
 });

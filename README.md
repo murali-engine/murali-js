@@ -95,9 +95,33 @@ render(import.meta.url, HelloScene, {
 
 `construct()` records the full timeline synchronously. No wall-clock animation occurs while authoring. During rendering, `sampleAt(t)` computes the exact state for every object at virtual time `t`, making repeated renders reproducible.
 
+Animate an ordered collection with the same builder grammar and stagger their starts without manual timestamp arithmetic:
+
+```ts
+local
+  .animate([square, circle, rectangle])
+  .stagger(0.15)
+  .duration(0.8)
+  .ease("outCubic")
+  .appear();
+```
+
 ### Built-in 3D camera
 
-`ThreeTattva` includes perspective and orthographic camera state. Configure it with `Camera3D.perspective()` or `Camera3D.orthographic()`, then animate it with `timeline.animateCamera(world)`. Supported camera verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. See [`examples/three-camera.ts`](./examples/three-camera.ts).
+Every scene owns a deterministic 3D camera. It defaults to an orthographic view matching the logical frame, so ordinary 2D scenes retain their expected composition on the `z = 0` plane. Switch the scene to perspective and animate the same camera when depth is needed:
+
+```ts
+this.camera
+  .perspective({ fov: 42, near: 0.1, far: 100 })
+  .position([-5, 3, 9])
+  .lookAt([0, 0, 0]);
+
+local.animateCamera(this.camera)
+  .duration(2)
+  .orbitTo({ azimuth: 30, elevation: 18, radius: 8 });
+```
+
+DOM, SVG, React, and Three.js roots consume this same sampled camera state. Supported camera animation verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. See [`examples/three-camera.ts`](./examples/three-camera.ts).
 
 ## Commands
 
