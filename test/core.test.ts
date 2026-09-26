@@ -51,8 +51,10 @@ import {
   tickValues,
   ParticleBelt,
   Table,
+  SceneView,
   StreamLines,
   TracedPath,
+  sceneViewLocalTime,
   VectorField,
   composeColumns,
   continuityPlacement,
@@ -63,8 +65,13 @@ import {
   centeredPropPosition,
   fittedScale,
   framingDistance,
+  contextUsedTokens,
+  contextWindow,
   mapPoint,
   mathml,
+  networkDiagram,
+  networkPaths,
+  signalPoint,
   modelCenter,
   modelDimensions,
   parseGlb,
@@ -793,6 +800,119 @@ test("loads demo props and morphs a map from scene time", () => {
   const during = morph.sheet.point(Math.PI / 4, Math.PI * 1.5);
   assert.ok(Math.abs(before[0] - 2.95) < 1e-9);
   assert.ok(during[0] < before[0] - 0.3);
+});
+
+test("maps a child scene clock from parent time", () => {
+  assert.equal(sceneViewLocalTime({
+    parentTime: 1,
+    startTime: 2,
+    offset: 0,
+    timeScale: 1,
+    playback: "continuous",
+    childEnd: 4,
+  }), 0);
+  assert.ok(Math.abs(sceneViewLocalTime({
+    parentTime: 3.25,
+    startTime: 2,
+    offset: 0,
+    timeScale: 1,
+    playback: "continuous",
+    childEnd: 4,
+  }) - 1.25) < 1e-9);
+  assert.ok(Math.abs(sceneViewLocalTime({
+    parentTime: 6,
+    startTime: 2,
+    offset: 0.5,
+    timeScale: 0.25,
+    playback: "continuous",
+    childEnd: 4,
+  }) - 1.5) < 1e-9);
+  assert.ok(Math.abs(sceneViewLocalTime({
+    parentTime: 2.5,
+    startTime: 0,
+    offset: 0,
+    timeScale: 1,
+    playback: { loop: 2 },
+    childEnd: 4,
+  }) - 0.5) < 1e-9);
+  assert.equal(sceneViewLocalTime({
+    parentTime: 9,
+    startTime: 0,
+    offset: 0,
+    timeScale: 1,
+    playback: "once",
+    childEnd: 2.75,
+  }), 2.75);
+  assert.equal(sceneViewLocalTime({
+    parentTime: 4,
+    startTime: 0,
+    offset: 0.25,
+    timeScale: 1,
+    playback: "paused",
+    childEnd: 2,
+  }), 0.25);
+
+  class ChildClock extends Scene {
+    readonly dot = Circle().radius(0.2);
+
+    override construct(): void {
+      this.add(this.dot);
+      const timeline = new Timeline();
+      timeline.animate(this.dot).duration(2).ease("linear").moveTo([2, 0]);
+      this.play(timeline);
+    }
+  }
+  class ParentClock extends Scene {
+    readonly nested = new ChildClock();
+    readonly view = SceneView(this.nested).size(4, 2).playback({ loop: 2 });
+
+    override construct(): void {
+      this.add(this.view);
+      const timeline = new Timeline();
+      timeline.animate(this.view).duration(1).ease("linear").moveTo([3, 1]);
+      this.play(timeline);
+    }
+  }
+  const parent = new ParentClock();
+  const moved = parent.sampleAt(1).get(parent.view);
+  assert.equal(moved?.x, 3);
+  assert.equal(moved?.y, 1);
+  assert.equal(parent.view.localTime(1), 1);
+  assert.equal(parent.view.child.sampleAt(parent.view.localTime(1)).get(parent.nested.dot)?.x, 1);
+  assert.equal(parent.view.localTime(2.5), 0.5);
+  assert.equal(parent.view.worldSize?.width, 4);
+  assert.equal(parent.view.worldSize?.height, 2);
+});
+
+test("routes a network around inactive nodes and counts a context budget", () => {
+  const diagram = networkDiagram([3, 5, 4, 2], {
+    layerSpacing: 1.7,
+    nodeSpacing: 0.58,
+    inactive: [[1, 4], [2, 0]],
+  });
+  const paths = networkPaths(diagram);
+  assert.equal(paths.length, 3 * 4 * 3 * 2);
+  assert.equal(paths.every((path) => path.length === 4), true);
+  const start = paths[0]?.[0];
+  const end = paths[0]?.[3];
+  assert.ok(start && end);
+  assert.deepEqual(signalPoint(paths[0] ?? [], 0), start);
+  assert.deepEqual(signalPoint(paths[0] ?? [], 1), end);
+  const midway = signalPoint(paths[0] ?? [], 0.5);
+  const second = paths[0]?.[1];
+  const third = paths[0]?.[2];
+  assert.ok(midway && second && third);
+  assert.ok(Math.abs(midway[0] - (second[0] + third[0]) / 2) < 1e-9);
+
+  const window = contextWindow([
+    { label: "Core instructions", role: "system", tokens: 620 },
+    { label: "Conversation history", role: "user", tokens: 4900, retained: 2700, cut: "start" },
+    { label: "Retrieved documents", role: "retrieved", tokens: 1850 },
+    { label: "Tool result", role: "tool", tokens: 760 },
+    { label: "Latest request", role: "user", tokens: 410 },
+  ], 8192);
+  assert.equal(contextUsedTokens(window), 6340);
+  assert.throws(() => contextWindow([{ label: "too big", role: "user", tokens: 10 }], 4));
 });
 
 test("projects one vector onto another and labels the angle", () => {

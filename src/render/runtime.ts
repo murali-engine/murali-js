@@ -18,6 +18,7 @@ import type { ThreeContext, ThreeTattva } from "../core/ThreeTattva.ts";
 import type { CSSStyles } from "../core/css.ts";
 import { splitGraphemes } from "../core/text.ts";
 import type { Camera3DState } from "../core/Camera3D.ts";
+import type { SceneViewTattva } from "../core/SceneView.ts";
 
 interface MountedObject {
   tattva: Tattva<any>;
@@ -28,6 +29,7 @@ interface MountedObject {
   graphemes?: string[];
   paths?: Array<{ element: SVGPathElement; length: number }>;
   arrowheads?: SVGPathElement[];
+  nested?: { host: HTMLElement; renderAt: (time: number) => void };
 }
 
 declare global {
@@ -349,18 +351,29 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
   };
 }
 
-export function mountAndExpose(SceneClass: new () => Scene): void {
-  const scene = new SceneClass().prepare();
-  const stage = document.querySelector<HTMLElement>("#stage");
-  if (!stage) throw new Error("Venu runtime requires a #stage element.");
+function isSceneView(tattva: Tattva<any>): tattva is SceneViewTattva {
+  return (tattva as SceneViewTattva).nestsScene === true;
+}
+
+interface MountedStage {
+  renderAt: (time: number) => void;
+}
+
+function mountScene(
+  scene: Scene,
+  stage: HTMLElement,
+  options: { background?: string; width?: number; height?: number } = {},
+): MountedStage {
+  const width = options.width ?? scene.width;
+  const height = options.height ?? scene.height;
   Object.assign(stage.style, {
-    width: `${scene.width}px`,
-    height: `${scene.height}px`,
-    background: scene.background,
+    width: `${width}px`,
+    height: `${height}px`,
+    background: options.background ?? scene.background,
   });
 
-  const pixelsPerUnit = scene.width / scene.viewWidth;
-  const aspect = scene.width / scene.height;
+  const pixelsPerUnit = width / scene.viewWidth;
+  const aspect = width / height;
   let sceneCamera: Camera = createThreeCamera(scene.camera.initialState, aspect);
   sceneCamera = applyThreeCamera(sceneCamera, scene.camera.initialState, aspect);
   let cssCamera: Camera = createThreeCamera(
@@ -378,8 +391,8 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
     position: "absolute",
     left: "0",
     top: "0",
-    width: `${scene.width}px`,
-    height: `${scene.height}px`,
+    width: `${width}px`,
+    height: `${height}px`,
     transformStyle: "preserve-3d",
     pointerEvents: "none",
   });
@@ -401,12 +414,13 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
     } else if (tattva.kind === "three") {
       const renderer = new WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
       renderer.setPixelRatio(1);
-      renderer.setSize(scene.width, scene.height, false);
+      renderer.setSize(width, height, false);
       item.content.replaceChildren(renderer.domElement);
       const threeScene = new ThreeScene();
       item.three = { scene: threeScene, camera: sceneCamera, renderer };
       (tattva as ThreeTattva).hooks.setup(item.three);
     }
+    if (isSceneView(tattva)) mountNestedScene(item, tattva, pixelsPerUnit);
     tattva.children.forEach((child) => mountTree(child, item.content));
   };
   scene.tattvas.forEach((tattva) => {
@@ -425,7 +439,7 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
     const cameraState = states.get(scene.camera) as Camera3DState;
     sceneCamera = applyThreeCamera(sceneCamera, cameraState, aspect);
     cssCamera = applyThreeCamera(cssCamera, scaledCameraState(cameraState, pixelsPerUnit), aspect);
-    applyWorldCamera(worldLayer, cssCamera, scene.width, scene.height);
+    applyWorldCamera(worldLayer, cssCamera, width, height);
     for (const item of mounted) {
       const state = states.get(item.tattva);
       if (!state) continue;
@@ -462,16 +476,71 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
         applyThreeTransform(item.three.scene, state);
         item.three.renderer.render(item.three.scene, item.three.camera);
       }
+      if (item.nested && isSceneView(item.tattva)) {
+        const view = item.tattva;
+        const frameWidth = (view.worldSize?.width ?? 1) * pixelsPerUnit;
+        const frameHeight = (view.worldSize?.height ?? 1) * pixelsPerUnit;
+        item.nested.host.style.transform = `scale(${frameWidth / view.pixelWidth}, ${frameHeight / view.pixelHeight})`;
+        item.nested.renderAt(view.localTime(time));
+      }
     }
   };
 
+  return { renderAt: renderFrame };
+}
+
+function mountNestedScene(item: MountedObject, view: SceneViewTattva, pixelsPerUnit: number): void {
+  const host = document.createElement("div");
+  host.dataset.venuLayer = "scene-view";
+  Object.assign(host.style, {
+    position: "absolute",
+    left: "0",
+    top: "0",
+    width: `${view.pixelWidth}px`,
+    height: `${view.pixelHeight}px`,
+    transformOrigin: "0 0",
+    background: "transparent",
+    pointerEvents: "none",
+  });
+  const border = document.createElement("div");
+  Object.assign(border.style, {
+    position: "absolute",
+    inset: "0",
+    borderRadius: "inherit",
+    boxSizing: "border-box",
+    border: view.borderWidth > 0 ? `${view.borderWidth * pixelsPerUnit}px solid ${view.borderColor}` : "0",
+    pointerEvents: "none",
+    zIndex: "2",
+  });
+  Object.assign(item.content.style, {
+    position: "relative",
+    overflow: "hidden",
+    background: view.plate,
+    borderRadius: `${view.corner * pixelsPerUnit}px`,
+  });
+  item.content.append(host, border);
+  item.nested = {
+    host,
+    renderAt: mountScene(view.child, host, {
+      width: view.pixelWidth,
+      height: view.pixelHeight,
+      background: "transparent",
+    }).renderAt,
+  };
+}
+
+export function mountAndExpose(SceneClass: new () => Scene): void {
+  const scene = new SceneClass().prepare();
+  const stage = document.querySelector<HTMLElement>("#stage");
+  if (!stage) throw new Error("Venu runtime requires a #stage element.");
+  const mounted = mountScene(scene, stage);
   window.__venu = {
     width: scene.width,
     height: scene.height,
     duration: scene.duration,
     fps: scene.fps,
-    renderFrame,
+    renderFrame: mounted.renderAt,
   };
-  renderFrame(0);
+  mounted.renderAt(0);
   window.__venuReady = true;
 }

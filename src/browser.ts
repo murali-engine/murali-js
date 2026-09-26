@@ -10,6 +10,7 @@ export * from "./core/Tattva.ts";
 export * from "./core/Timeline.ts";
 export * from "./core/text.ts";
 export * from "./core/ThreeTattva.ts";
+export * from "./core/SceneView.ts";
 export * from "./mobjects/shapes.ts";
 export * from "./mobjects/paths.ts";
 export * from "./mobjects/graph.ts";
@@ -21,6 +22,7 @@ export * from "./mobjects/space.ts";
 export * from "./mobjects/gltf.ts";
 export * from "./mobjects/prop.ts";
 export * from "./mobjects/map.ts";
+export * from "./mobjects/teaching.ts";
 
 import type { SceneConstructor } from "./render/render.ts";
 import type { RenderOverrides } from "./render/config.ts";

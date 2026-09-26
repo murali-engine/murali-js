@@ -61,7 +61,7 @@ Shared piece: a number plane, 2D axes, and a vector arrow. Plots and linear-alge
 | | `linear_algebra_column_combination` | Scene script now follows Murali: scaled columns `a1` and `a2`, the sum `Ax`, the target `b` and its residual, the highlighted matrix, and the rank and dimension badges. Badge plates stay square; Murali's are rounded. Not checked until the rendered frames are compared. |
 | | `linear_algebra_determinant` | Scene script now follows Murali: three cases, each with a grid, the unit-square image, and the matrix. A positive area is a filled parallelogram; a collapse is the red diagonal. Not checked until the rendered frames are compared. |
 | | `linear_algebra_composition` | Scene script now follows Murali: A, B, BA, and AB as highlighted matrices. Not checked until the rendered frames are compared. |
-| | `linear_algebra_transform_order_scene_view` | The inner path-1 picture is scripted: identity, A, then BA, with `x` and `BAx`. The outer pair of scene views, their move and scale, and the comparison titles wait for child scenes in step 7. Not checked until the rendered frames are compared. |
+| | `linear_algebra_transform_order_scene_view` | Scene script now follows Murali: two child scenes, path 1 and path 2. The second clock stays at zero until that inset moves up, then each plays once. Not checked until the rendered frames are compared. |
 
 ## 4. Updaters and traced paths
 
@@ -105,9 +105,9 @@ Shared piece: a scene inside a scene, with its own clock, camera, and loop. The 
 
 | Done | Example | Notes |
 | --- | --- | --- |
-| | `scene_view` | |
-| | `opening_scene_view` | Also uses the opening composite from step 8. |
-| | `linear_algebra_transform_order_scene_view` | Finish the inset left open in step 3. |
+| | `scene_view` | Scene script now follows Murali: the network is a child scene looping every 3.5 seconds while the parent moves that inset aside and explains it. The child picture is transparent, so the view's own plate shows behind it. Not checked until the rendered frames are compared. |
+| | `opening_scene_view` | The inset clock exists. This example still waits on the opening composite from step 8; that composite is not rebuilt here. |
+| | `linear_algebra_transform_order_scene_view` | The outer pair is scripted in step 3's row. |
 
 ## 8. Teaching composites
 
@@ -115,9 +115,9 @@ Build these on the pieces above. Do not add them to the core engine.
 
 | Done | Example | Needs |
 | --- | --- | --- |
-| | `neural_networks` | Network diagram and a signal playing along edges. |
+| | `neural_networks` | Scene script now follows Murali: a 3-5-4-2 network, two dim nodes, and four forward passes of the gold pulse. The trace is the same routes left at full progress. Not checked until the rendered frames are compared. |
 | | `transformer_attention` | Token row, attention matrix, transformer block. |
-| | `context_window` | Role-tagged context blocks and token budget. |
+| | `context_window` | Scene script now follows Murali: five role-tagged blocks inside one 8192-token budget. History keeps 2700 of 4900 tokens, trimmed from the start. Not checked until the rendered frames are compared. |
 | | `kv_cache` | Tensor grid with rows filling over time. |
 | | `normalization` | Layer-norm before/after view. |
 | | `next_token_distribution` | Logits, probabilities, and sampling readout. |

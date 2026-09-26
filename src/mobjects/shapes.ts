@@ -69,6 +69,8 @@ export class CircleTattva extends ShapeTattva {
 }
 
 export class RectangleTattva extends ShapeTattva {
+  private corner = 0;
+
   constructor() {
     super();
     this.fill("#6366f1");
@@ -80,8 +82,15 @@ export class RectangleTattva extends ShapeTattva {
     return this;
   }
 
+  cornerRadius(value: number): this {
+    this.corner = Math.max(0, value);
+    return this;
+  }
+
   protected override shapePath(width: number, height: number): string {
-    return `M 0 0 H ${width} V ${height} H 0 Z`;
+    const radius = Math.min(this.corner, width / 2, height / 2);
+    if (radius <= 0) return `M 0 0 H ${width} V ${height} H 0 Z`;
+    return `M ${radius} 0 H ${width - radius} A ${radius} ${radius} 0 0 1 ${width} ${radius} V ${height - radius} A ${radius} ${radius} 0 0 1 ${width - radius} ${height} H ${radius} A ${radius} ${radius} 0 0 1 0 ${height - radius} V ${radius} A ${radius} ${radius} 0 0 1 ${radius} 0 Z`;
   }
 }
 
