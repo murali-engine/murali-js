@@ -3,6 +3,8 @@ import { test } from "node:test";
 import {
   Circle,
   Arrow,
+  RED_B,
+  resolveColor,
   HStack,
   Label,
   Rectangle,
@@ -289,9 +291,33 @@ test("segments typewritten text by grapheme and rejects incompatible reveal verb
   assert.deepEqual(splitGraphemes("A👨‍👩‍👧‍👦é"), ["A", "👨‍👩‍👧‍👦", "é"]);
   const timeline = new Timeline();
   assert.throws(
-    () => timeline.animate(Circle()).draw(),
+    () => timeline.animate(new Tattva()).draw(),
     /draw\(\) requires a path-reveal Tattva/,
   );
+});
+
+test("resolves Murali palette names and draws solid shapes", () => {
+  assert.equal(resolveColor("redB"), RED_B);
+  assert.equal(resolveColor("RED_B"), RED_B);
+  assert.equal(resolveColor("grey"), "#888888");
+  assert.equal(resolveColor("#abc"), "#abc");
+
+  class DrawnShapes extends Scene {
+    readonly square = Square().size(1.25).fill("redB").stroke({ width: 0.04, color: "white" });
+
+    override construct(): void {
+      this.add(this.square);
+      const timeline = new Timeline();
+      timeline.animate(this.square).duration(2).ease("linear").draw();
+      this.play(timeline);
+    }
+  }
+
+  const scene = new DrawnShapes().prepare();
+  assert.equal(scene.square.initialState.background, RED_B);
+  assert.equal(scene.sampleAt(0).get(scene.square)?.revealProgress, 0);
+  assert.equal(scene.sampleAt(1).get(scene.square)?.revealProgress, 0.5);
+  assert.match(scene.square.contentHTML() ?? "", /data-venu-shape/);
 });
 
 test("configures and deterministically animates the scene-owned perspective camera", () => {

@@ -100,11 +100,11 @@ Status values:
 
 ## Collections and teaching components
 
-The original Murali collections become a later kit layer. Port only after the language features they depend on are stable.
+The original Murali collections become a later kit layer. Port only after the language features they depend on are stable. The order for the 51 Murali examples is [`example-parity.md`](./example-parity.md).
 
 | Collection | Venu status |
 | --- | --- |
-| Themes and named colors | planned |
+| Themes and named colors | partial |
 | Cards, title cards, openings | planned |
 | Neural-network diagrams | planned |
 | Transformer and attention views | planned |

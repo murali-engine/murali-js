@@ -45,7 +45,12 @@ declare global {
 }
 
 function applyCSS(element: HTMLElement, styles: CSSStyles): void {
+  const shape = element.querySelector("[data-venu-shape]");
   for (const [property, value] of Object.entries(styles)) {
+    if (property === "background" && shape) {
+      if (typeof value === "string") shape.setAttribute("fill", value);
+      continue;
+    }
     if (value === null) {
       element.style.removeProperty(property);
     } else if (property.startsWith("--") || property.includes("-")) {
@@ -67,8 +72,7 @@ function applyOverlayFrame(
   wrapper.style.visibility = "visible";
   wrapper.style.transform = `translate(-50%, -50%) translate3d(${state.x * pixelsPerUnit}px, ${-state.y * pixelsPerUnit}px, ${state.z * pixelsPerUnit}px) rotateX(${state.rotationX}deg) rotateY(${-state.rotationY}deg) rotateZ(${-state.rotationZ}deg) scale3d(${state.scaleX}, ${state.scaleY}, ${state.scaleZ})`;
   wrapper.style.opacity = String(state.opacity);
-  if (typeof state.color === "string") content.style.color = state.color;
-  if (typeof state.background === "string") content.style.background = state.background;
+  applyPaint(content, state);
 }
 
 function applyWorldFrame(
@@ -101,8 +105,7 @@ function applyWorldFrame(
   wrapper.style.visibility = visible ? "visible" : "hidden";
   wrapper.style.transform = objectCSSMatrix(objectMatrix);
   wrapper.style.opacity = String(state.opacity);
-  if (typeof state.color === "string") content.style.color = state.color;
-  if (typeof state.background === "string") content.style.background = state.background;
+  applyPaint(content, state);
 }
 
 function applyWorldCamera(
@@ -143,6 +146,14 @@ function objectCSSMatrix(matrix: Matrix4): string {
     elements[8], elements[9], elements[10], elements[11],
     elements[12], elements[13], elements[14], elements[15],
   ].map(clean).join(",")})`;
+}
+
+function applyPaint(content: HTMLElement, state: TattvaState): void {
+  if (typeof state.color === "string") content.style.color = state.color;
+  if (typeof state.background !== "string") return;
+  const shape = content.querySelector("[data-venu-shape]");
+  if (shape) shape.setAttribute("fill", state.background);
+  else content.style.background = state.background;
 }
 
 function clean(value: number): number {
@@ -258,7 +269,7 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
     content.style.width = `${tattva.worldSize.width * pixelsPerUnit}px`;
     content.style.height = `${tattva.worldSize.height * pixelsPerUnit}px`;
   }
-  if (tattva.worldStrokeWidth !== undefined) {
+  if (tattva.worldStrokeWidth !== undefined && !tattva.paintsOwnStroke) {
     content.style.borderWidth = `${tattva.worldStrokeWidth * pixelsPerUnit}px`;
   }
   if (tattva.worldFontSize !== undefined) {

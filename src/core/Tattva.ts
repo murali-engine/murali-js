@@ -58,6 +58,8 @@ export class Tattva<State extends TattvaState = TattvaState> {
   worldFontSize?: number;
   colorProperty: "color" | "background" = "color";
   revealKind: RevealKind = "none";
+  /** Stroke is drawn inside the object's own markup, not as a CSS border. */
+  paintsOwnStroke = false;
   renderLayer = 0;
   depthModeValue: DepthMode = "world";
 

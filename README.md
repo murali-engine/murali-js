@@ -157,6 +157,6 @@ The core has no dependency on Chromium, esbuild, or ffmpeg; those concerns stay 
 
 ## Design roadmap
 
-The authoring contract is in [`docs/ergonomics.md`](./docs/ergonomics.md). Implementation order is in [`docs/implementation-plan.md`](./docs/implementation-plan.md). [`docs/feature-parity.md`](./docs/feature-parity.md) records the Manim and Murali baseline, and where the browser intentionally differs. That ledger is not a limit on what a scene may contain. Target scenes are in [`docs/golden-examples`](./docs/golden-examples).
+The authoring contract is in [`docs/ergonomics.md`](./docs/ergonomics.md). Implementation order is in [`docs/implementation-plan.md`](./docs/implementation-plan.md). [`docs/feature-parity.md`](./docs/feature-parity.md) records the Manim and Murali baseline, and where the browser intentionally differs. That ledger is not a limit on what a scene may contain. The example-by-example port order is in [`docs/example-parity.md`](./docs/example-parity.md). Target scenes are in [`docs/golden-examples`](./docs/golden-examples).
 
 `examples/hello-shapes.ts` is the first runnable vertical slice of that contract. The remaining golden examples continue to define upcoming milestones.

@@ -1,35 +1,77 @@
+import { isCssPaint, resolveColor } from "../core/palette.ts";
 import { Tattva } from "../core/Tattva.ts";
 
 class ShapeTattva extends Tattva {
   override colorProperty = "background" as const;
+  protected shapeFill = "#22d3ee";
+  protected shapeStroke = "none";
+  protected shapeStrokeWidth = 0;
 
   fill(color: string): this {
-    this.setInitial({ background: color });
-    return this.css({ background: color });
+    const resolved = resolveColor(color);
+    this.shapeFill = resolved;
+    this.setInitial({ background: resolved });
+    if (isCssPaint(resolved)) {
+      this.revealKind = "none";
+      this.paintsOwnStroke = false;
+      return this.css({ background: resolved });
+    }
+    this.revealKind = "path";
+    this.paintsOwnStroke = true;
+    return this.css({ background: resolved, borderStyle: "none" });
   }
 
   stroke(options: { color: string; width?: number }): this {
-    const { color, width = 0.05 } = options;
-    this.worldStrokeWidth = width;
-    return this.css({ borderColor: color, borderStyle: "solid" });
+    this.shapeStroke = resolveColor(options.color);
+    this.shapeStrokeWidth = options.width ?? 0.05;
+    this.worldStrokeWidth = this.shapeStrokeWidth;
+    return this;
+  }
+
+  protected shapePath(_width: number, _height: number): string {
+    return "";
+  }
+
+  override contentHTML(): string | undefined {
+    const background = this.initialStyle.background;
+    if (typeof background === "string" && isCssPaint(background)) {
+      this.revealKind = "none";
+      this.paintsOwnStroke = false;
+      return undefined;
+    }
+    if (this.revealKind !== "path") return undefined;
+    const width = this.worldSize?.width ?? 0;
+    const height = this.worldSize?.height ?? 0;
+    if (width <= 0 || height <= 0) return undefined;
+    return `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" overflow="visible" xmlns="http://www.w3.org/2000/svg"><path data-venu-path data-venu-shape d="${this.shapePath(width, height)}" fill="${escapeAttribute(this.shapeFill)}" stroke="${escapeAttribute(this.shapeStroke)}" stroke-width="${this.shapeStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" /></svg>`;
   }
 }
 
 export class CircleTattva extends ShapeTattva {
+  private radiusValue = 1;
+
   constructor() {
-    super({ css: { borderRadius: "50%", background: "#22d3ee" } });
+    super({ css: { borderRadius: "50%" } });
+    this.fill("#22d3ee");
     this.radius(1);
   }
 
   radius(value: number): this {
+    this.radiusValue = value;
     this.worldSize = { width: value * 2, height: value * 2 };
     return this;
+  }
+
+  protected override shapePath(width: number, height: number): string {
+    const radius = Math.min(width, height) / 2;
+    return `M ${this.radiusValue} 0 A ${radius} ${radius} 0 1 1 ${this.radiusValue} ${height} A ${radius} ${radius} 0 1 1 ${this.radiusValue} 0 Z`;
   }
 }
 
 export class RectangleTattva extends ShapeTattva {
   constructor() {
-    super({ css: { background: "#6366f1" } });
+    super();
+    this.fill("#6366f1");
     this.size([2, 1]);
   }
 
@@ -37,11 +79,16 @@ export class RectangleTattva extends ShapeTattva {
     this.worldSize = { width, height };
     return this;
   }
+
+  protected override shapePath(width: number, height: number): string {
+    return `M 0 0 H ${width} V ${height} H 0 Z`;
+  }
 }
 
 export class SquareTattva extends ShapeTattva {
   constructor() {
-    super({ css: { background: "#6366f1" } });
+    super();
+    this.fill("#6366f1");
     this.size(1);
   }
 
@@ -49,29 +96,37 @@ export class SquareTattva extends ShapeTattva {
     this.worldSize = { width: value, height: value };
     return this;
   }
+
+  protected override shapePath(width: number, height: number): string {
+    return `M 0 0 H ${width} V ${height} H 0 Z`;
+  }
 }
 
 export class PolygonTattva extends ShapeTattva {
   private sides: number;
+  private radiusValue = 1;
 
   constructor(sides: number) {
-    super({ css: { background: "#f59e0b" } });
+    super();
     this.sides = Math.max(3, Math.floor(sides));
+    this.fill("#f59e0b");
     this.radius(1);
-    this.updateClipPath();
   }
 
   radius(value: number): this {
+    this.radiusValue = value;
     this.worldSize = { width: value * 2, height: value * 2 };
     return this;
   }
 
-  private updateClipPath(): void {
+  protected override shapePath(width: number, height: number): string {
     const points = Array.from({ length: this.sides }, (_, index) => {
       const angle = -Math.PI / 2 + (index * Math.PI * 2) / this.sides;
-      return `${50 + Math.cos(angle) * 50}% ${50 + Math.sin(angle) * 50}%`;
+      const x = width / 2 + Math.cos(angle) * this.radiusValue;
+      const y = height / 2 + Math.sin(angle) * this.radiusValue;
+      return `${x} ${y}`;
     });
-    this.css({ clipPath: `polygon(${points.join(", ")})` });
+    return `M ${points.join(" L ")} Z`;
   }
 }
 
@@ -102,8 +157,9 @@ export class LabelTattva extends Tattva {
   }
 
   color(value: string): this {
-    this.setInitial({ color: value });
-    return this.css({ color: value });
+    const resolved = resolveColor(value);
+    this.setInitial({ color: resolved });
+    return this.css({ color: resolved });
   }
 }
 
@@ -127,4 +183,12 @@ export const Polygon = {
 
 export function Label(content: string): LabelTattva {
   return new LabelTattva(content);
+}
+
+function escapeAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }

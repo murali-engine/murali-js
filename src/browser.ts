@@ -1,4 +1,5 @@
 export * from "./core/color.ts";
+export * from "./core/palette.ts";
 export * from "./core/Camera3D.ts";
 export * from "./core/css.ts";
 export * from "./core/easing.ts";
