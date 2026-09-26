@@ -196,7 +196,7 @@ npm run test:package
 
 - `src/core` contains Tattvas, timeline builders, easing, interpolation, frames, and deterministic scene sampling.
 - `src/render` bundles a scene for the browser, mounts DOM/React/Three.js objects, captures exact frames in Chromium, and streams them into ffmpeg.
-- `src/mobjects` contains convenient shape and text constructors.
+- `src/tattvas` contains concrete visual Tattvas, composite components, and domain-specific builders.
 - `examples` is one standalone consumer package containing executable scene files.
 - `python` is an optional offline data generator for animation-ready neural-network state.
 
