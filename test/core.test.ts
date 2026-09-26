@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import trace from "../examples/data/self_attention_trace.json" with { type: "json" };
 import {
   Circle,
   Arrow,
@@ -80,6 +81,18 @@ import {
   entropyBits,
   layerNormRows,
   nextTokenChoice,
+  ChatInput,
+  Stepwise,
+  type StepwiseStoryBuilder,
+  bubbleOutline,
+  selfAttentionLesson,
+  stepwisePicture,
+  stepwiseModel,
+  tensorAdd,
+  tensorCellsAt,
+  tensorMatmul,
+  tensorOperationStages,
+  tensorSlicingHeads,
   stageOpacity,
   modelCenter,
   modelDimensions,
@@ -1013,6 +1026,145 @@ test("layer-normalizes each token row and draws one next token", () => {
   assert.equal(scene.candidates.filter((candidate) => candidate.retained).length, 3);
   const sceneSum = scene.candidates.reduce((sum, candidate) => sum + candidate.sampling, 0);
   assert.ok(Math.abs(sceneSum - 1) < 1e-6);
+});
+
+test("aligns tensor math by element id and samples the attention trace", () => {
+  const { activations, biased, left, right, reshaped } = tensorOperationStages();
+  assert.equal(biased.values.map((value) => value.toFixed(2)).join(" "), "1.10 2.20 3.30 4.40 5.10 6.20 7.30 8.40");
+  assert.equal(left.axes[1]?.elementLabels.join(" "), "x0 x1");
+  assert.equal(right.axes[1]?.elementLabels.join(" "), "x2 x3");
+  assert.equal(reshaped.values.map((value) => value.toFixed(2)).join(" "), biased.values.map((value) => value.toFixed(2)).join(" "));
+  assert.equal(reshaped.axes[0]?.elementLabels[0], "h0 / AI");
+  const mid = tensorCellsAt(2.95, activations, [{ at: 2.4, duration: 1.1, to: biased }]);
+  assert.ok(Math.abs((mid[0]?.value ?? 0) - 1.05) < 1e-6);
+  assert.throws(() => tensorAdd(activations, { ...biased, axes: [{ ...biased.axes[1], id: "other", elementIds: ["missing"], elementLabels: ["no"] }] }, "bad"));
+
+  const swapped = tensorMatmul(
+    { id: "row", values: [1, 2], axes: [
+      { id: "token", label: "Token", elementIds: ["t"], elementLabels: ["t"] },
+      { id: "feature", label: "Feature", elementIds: ["f0", "f1"], elementLabels: ["f0", "f1"] },
+    ] },
+    { id: "column", values: [4, 10], axes: [
+      { id: "feature", label: "Feature", elementIds: ["f1", "f0"], elementLabels: ["f1", "f0"] },
+      { id: "out", label: "Out", elementIds: ["o"], elementLabels: ["o"] },
+    ] },
+    "product",
+  );
+  assert.equal(swapped.values[0], 18);
+
+  const { headZero, headOne } = tensorSlicingHeads();
+  assert.equal(headZero.values.slice(0, 4).map((value) => value.toFixed(2)).join(" "), "0.50 0.71 0.88 0.98");
+  assert.equal(headOne.values.slice(0, 4).map((value) => value.toFixed(2)).join(" "), "0.05 0.18 0.37 0.58");
+  assert.equal(headZero.axes[0]?.elementLabels.join(" "), "AI learns by");
+
+  const lesson = selfAttentionLesson(trace);
+  assert.equal(lesson.queries.values[0]?.toFixed(2), "0.79");
+  assert.equal(lesson.sample.token, "clearly");
+  assert.equal(lesson.sample.probability.toFixed(3), "0.320");
+  assert.equal(lesson.tokens.join(" "), "AI learns by");
+});
+
+test("reveals a stepwise story before the signal replays it", () => {
+  const script = (story: StepwiseStoryBuilder) => {
+    const observe = story.step("Observe");
+    const reason = story.step("Reason");
+    const revise = story.step("Revise");
+    const publish = story.step("Publish");
+    story.connect(observe, reason);
+    story.connect(reason, revise);
+    story.connect(revise, publish);
+    story.connect(revise, reason).route("down", "left");
+    story.sequence([observe, reason, revise, reason, revise, publish]);
+  };
+  const model = stepwiseModel(script);
+  const hidden = stepwisePicture(model, 0, 0);
+  assert.equal(hidden.buildSequence.join(","), "0,1,2,3");
+  assert.equal(hidden.nodes[0]?.phase, "active");
+  assert.equal(hidden.nodes[0]?.local, 0);
+  assert.equal(hidden.nodes.slice(1).every((node) => node.phase === "pending"), true);
+  assert.equal(hidden.edges[0]?.trim, 0);
+  assert.equal(hidden.signal, null);
+  const early = stepwisePicture(model, 0.4, 0);
+  assert.equal(early.nodes[0]?.phase, "completed");
+  assert.equal(early.nodes[1]?.phase, "active");
+  assert.equal(early.edges[3]?.phase, "hidden");
+  const loop = stepwisePicture(model, 0.6, 0);
+  assert.equal(loop.edges[3]?.phase, "completed");
+  assert.ok((loop.edges[3]?.points ?? []).some((point) => point[1] < -1));
+  const traveling = stepwisePicture(model, 1, 1.5 / 11);
+  assert.ok(traveling.signal);
+  assert.ok((traveling.signal?.[0] ?? 0) > (traveling.nodes[0]?.x ?? 0));
+  assert.ok((traveling.signal?.[0] ?? 0) < (traveling.nodes[1]?.x ?? 0));
+
+  class StoryScene extends Scene {
+    readonly flow = Stepwise(script);
+
+    override construct(): void {
+      this.add(this.flow);
+      const timeline = new Timeline();
+      timeline.animate(this.flow).at(1.9).duration(2.8).ease("inOutQuad").to({ reveal: 1 });
+      timeline.animate(this.flow).at(5).duration(3).ease("linear").to({ signal: 1 });
+      this.play(timeline);
+    }
+  }
+  const scene = new StoryScene();
+  const read = (time: number) => scene.sampleAt(time).get(scene.flow) as unknown as { reveal: number; signal: number };
+  assert.equal(read(0).reveal, 0);
+  assert.equal(read(0).signal, 0);
+  assert.equal(read(3.3).reveal, 0.5);
+  assert.equal(read(5).signal, 0);
+  assert.equal(read(6.5).signal, 0.5);
+  assert.equal(read(8).reveal, 1);
+  assert.equal(read(8).signal, 1);
+  assert.equal(scene.duration, 8);
+
+  const user = ChatInput("Why is the sky blue?", [0, 0.85], {
+    width: 5.8,
+    height: 0.82,
+    tipSide: "right",
+    fill: "rgba(20, 28, 38, 0.94)",
+    stroke: "rgba(143, 184, 230, 0.55)",
+    textHeight: 0.22,
+    textColor: "rgba(240, 247, 255, 0.96)",
+    sendButton: { size: 0.34, radius: 0.15, color: "#58c4dd" },
+  });
+  const reply = ChatInput("The sky appears blue because sunlight is scattered...", [0, -0.45], {
+    width: 8.1,
+    height: 0.82,
+    tipSide: "left",
+    fill: "rgba(28, 36, 33, 0.94)",
+    stroke: "rgba(128, 194, 158, 0.5)",
+    textHeight: 0.2,
+    textColor: "rgba(235, 250, 240, 0.95)",
+  });
+  assert.ok(user.sendButton);
+  assert.equal(reply.sendButton, undefined);
+  assert.equal(user.bubbleAt[1], 0.85);
+  const outline = bubbleOutline(5.8, 0.82, 0.18, 8, "right", 0.42, 0.28, 0.72);
+  const lowest = Math.min(...outline.map((point) => point[1]));
+  assert.ok(Math.abs(lowest - (-0.82 / 2 - 0.28)) < 1e-6);
+  assert.ok(user.textAt[0] < 0);
+});
+
+test("builds linear stepwise stories and validates cyclic scripts", () => {
+  const linear = stepwiseModel((story) => {
+    story.step("Draft");
+    story.step("Review");
+    story.step("Publish");
+  });
+  assert.deepEqual(linear.transitions, [{ from: 0, to: 1 }, { from: 1, to: 2 }]);
+  assert.deepEqual(linear.sequence, [0, 1, 2]);
+
+  assert.throws(() => stepwiseModel((story) => {
+    const first = story.step("First");
+    const second = story.step("Second");
+    story.connect(first, second);
+    story.connect(second, first);
+  }), /explicit sequence/);
+  assert.throws(() => stepwiseModel((story) => {
+    story.step("Known");
+    story.connect(0, 2);
+  }), /unknown step 2/);
 });
 
 test("projects one vector onto another and labels the angle", () => {

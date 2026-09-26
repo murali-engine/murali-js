@@ -128,6 +128,28 @@ Camera configuration also includes `fov()`, `viewHeight()`, `viewWidth()`, `clip
 
 Every visual also has complete XYZ transforms through `position()`, `rotation3D()`, and `scale3D()`, with matching `positionTo()`, `rotate3DTo()`, and `scale3DTo()` animation verbs. Existing `at()`, `rotate()`, and `scale()` remain concise 2D/uniform forms. See [`examples/css-3d-transforms.ts`](./examples/css-3d-transforms.ts).
 
+### Stepwise stories
+
+Define a narrative in the scene with stable step handles. Connections describe the diagram; the sequence describes the journey and may revisit a step:
+
+```ts
+const flow = Stepwise((story) => {
+  const observe = story.step("Observe");
+  const reason = story.step("Reason");
+  const revise = story.step("Revise");
+
+  story.connect(observe, reason);
+  story.connect(reason, revise);
+  story.connect(revise, reason).route("down", "left");
+  story.sequence([observe, reason, revise, reason, revise]);
+}).gap(1.45).signalColor(TEAL_C);
+
+timeline.animate(flow).duration(2.8).to({ reveal: 1 });
+timeline.animate(flow).at(3).duration(3).to({ signal: 1 });
+```
+
+If connections are omitted, Venu creates a linear chain. A cyclic graph must provide an explicit `sequence()`. See [`examples/stepwise-storytelling.ts`](./examples/stepwise-storytelling.ts).
+
 ## Commands
 
 ```bash

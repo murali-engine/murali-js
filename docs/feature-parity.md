@@ -110,7 +110,7 @@ The original Murali collections become a later kit layer. Port only after the la
 | Transformer and attention views | planned |
 | Tensor views and operations | planned |
 | Linear-algebra teaching views | planned |
-| Stepwise storytelling | planned |
+| Stepwise storytelling | partial |
 | Charts, probability, normalization | planned |
 
 ## Parity completion rule
@@ -128,6 +128,10 @@ A capability reaches `parity` only when it has:
 ### Transform parity
 
 Murali's `DrawableProps` represents position as `Vec3`, rotation as a quaternion, and scale as `Vec3`; parent model matrices compose through the scene graph. Venu provides the same visible capability through XYZ position, degree-based XYZ Euler rotation, XYZ scale, and hierarchical CSS `matrix3d()` composition. The runnable comparison is `examples/css-3d-transforms.ts`, with deterministic interpolation and browser hierarchy coverage in the core and preview tests. Euler degrees are an intentional JavaScript/CSS-facing authoring difference; Venu converts them to quaternions when constructing render matrices. The 2D `at`, `rotate`, and `scale` builders are shorthand for the corresponding 3D state.
+
+### Stepwise storytelling
+
+`Stepwise()` uses a JavaScript callback builder: `step()` returns stable numeric handles, `connect()` creates edges, `route()` adds deterministic orthogonal routing, and `sequence()` defines a replay that may revisit steps. Without explicit connections it creates a linear story; acyclic explicit connections receive a deterministic topological sequence. Cyclic stories require an explicit sequence. Timeline state keeps reveal and replay independent through `reveal` and `signal`. The runnable comparison is `examples/stepwise-storytelling.ts`, and deterministic tests cover reveal phases, routed feedback, replay position, defaults, and validation. Direct side-by-side frame comparison with Murali remains before this reaches `parity`.
 
 ### Camera parity
 

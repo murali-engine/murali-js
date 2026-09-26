@@ -23,6 +23,9 @@ export * from "./mobjects/gltf.ts";
 export * from "./mobjects/prop.ts";
 export * from "./mobjects/map.ts";
 export * from "./mobjects/teaching.ts";
+export * from "./mobjects/tensor.ts";
+export * from "./mobjects/stepwise.ts";
+export * from "./mobjects/chat.ts";
 
 import type { SceneConstructor } from "./render/render.ts";
 import type { RenderOverrides } from "./render/config.ts";
