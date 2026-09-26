@@ -1,14 +1,14 @@
 # Murali example parity
 
-Working checklist for porting the Rust examples in `/Users/ravishankar/personal-work/animation/murali/examples`. There are 51 of them. Manim is the model they come from. This file is the order we tackle them in.
+This is the implementation and visual-comparison ledger for the 51 Rust examples in `/Users/ravishankar/personal-work/animation/murali/examples`. It is not the product roadmap; current priorities are in [`roadmap.md`](./roadmap.md). Manim is the model the examples ultimately derive from.
 
-Capability status stays in [`feature-parity.md`](./feature-parity.md). An example is done only when it meets that ledger's completion rule: a documented API, deterministic tests, a runnable Venu scene, a comparison with the Murali example, and any intentional web difference written down. Checking a box here means all five are true.
+Current implementation coverage: **49 of 51 Murali examples have runnable Venu counterparts.** The two missing scenes are `kavriq_opening` and `opening_scene_view`. Most existing ports still need direct rendered comparison, so their parity cells remain blank even though their scene scripts exist.
 
-Do not port a later example by rebuilding a missing shared piece inside that one scene. Build the shared piece, then port every example that was waiting on it.
+Capability status stays in [`feature-parity.md`](./feature-parity.md). An example is done only when it meets that ledger's completion rule: a documented API, deterministic tests, a runnable Venu scene, a comparison with the Murali example, and any intentional web difference written down. Checking a box here means all five are true. A blank box means “parity not yet proven,” not necessarily “unimplemented.”
 
-Hex colors may stand in for Murali's named palette until that palette exists. The picture still has to match.
+Shared capabilities belong in Venu's reusable layers rather than being rebuilt inside one example. Browser-native substitutions are allowed, but the visible or behavioral difference must be recorded.
 
-## Order
+## Capability groups
 
 1. Primitive scenes the engine can already express, plus the small holes those scenes still have: a named color palette, dashed strokes, and `indicate()`.
 2. Transparent PNG export, for the logo mark.
@@ -21,9 +21,9 @@ Hex colors may stand in for Murali's named palette until that palette exists. Th
 
 ## 1. Primitive scenes
 
-Engine today: timeline, layout, shapes, labels, lines, arrows, paths, typewrite, stroke draw, groups, stacks, portrait frames, preview, and MP4.
+Capabilities exercised: timeline, layout, shapes, labels, lines, arrows, paths, typewrite, stroke draw, groups, stacks, portrait frames, preview, and MP4.
 
-| Done | Example | Notes |
+| Parity | Example | Notes |
 | --- | --- | --- |
 | | `hello_shapes` | Scene script now follows Murali: palette colors, labels, footer, and shape draw. Not checked until the rendered frames are compared. |
 | | `layout_and_groups` | Scene script now follows Murali: helpers place labels and the cluster, then each object moves from a messy start. Not checked until the rendered frames are compared. |
@@ -33,7 +33,7 @@ Engine today: timeline, layout, shapes, labels, lines, arrows, paths, typewrite,
 | | `text_animation` | Scene script now follows Murali, including typewriter, centered reveal, indicate, and undraw. Not checked until the rendered frames are compared. |
 | | `murali_logo` | Scene script now follows Murali, including the commented-out title and footer. Not checked until the rendered frames are compared. |
 
-Shared holes to close in this step, before calling the rows done:
+Shared capabilities exercised by this group:
 
 - Named colors (`RED_B`, `GOLD_C`, and the rest of the Murali palette). Present.
 - Dashed strokes. Present on lines and paths.
@@ -41,7 +41,7 @@ Shared holes to close in this step, before calling the rows done:
 
 ## 2. Still image export
 
-| Done | Example | Notes |
+| Parity | Example | Notes |
 | --- | --- | --- |
 | | `murali_logo_transparent` | Scene script follows Murali and writes a transparent PNG. Not checked until the image is compared. |
 
@@ -49,10 +49,10 @@ Shared holes to close in this step, before calling the rows done:
 
 Shared piece: a number plane, 2D axes, and a vector arrow. Plots and linear-algebra panels build on that, not the other way around.
 
-| Done | Example | Notes |
+| Parity | Example | Notes |
 | --- | --- | --- |
-| | `graphs_2d` | Scene script now follows Murali on `NumberPlane`, `Axes`, a sampled sine, scatter marks, and a legend. `VectorArrow` is available for the linear-algebra scenes, which are not ported yet. Not checked until the rendered frames are compared. |
-| | `linear_algebra_vectors` | Scene script now follows Murali: number plane, labeled `v`, three coordinate readouts, a feature list, a small arrow, and a scalar multiple. The other linear-algebra scenes still need their own panels. Not checked until the rendered frames are compared. |
+| | `graphs_2d` | Scene script follows Murali on `NumberPlane`, `Axes`, a sampled sine, scatter marks, and a legend. `VectorArrow` is shared with the ported linear-algebra scenes. Not checked until the rendered frames are compared. |
+| | `linear_algebra_vectors` | Scene script follows Murali: number plane, labeled `v`, three coordinate readouts, a feature list, a small arrow, and a scalar multiple. Not checked until the rendered frames are compared. |
 | | `linear_algebra_span` | Scene script now follows Murali: span lines, basis `u` and `v`, a combination, a parallelogram sum, and the column readout. Not checked until the rendered frames are compared. |
 | | `linear_algebra_dot_product` | Scene script now follows Murali: labeled `a` and `b`, the angle, the projection and right-angle mark, and three dot-product meters. Not checked until the rendered frames are compared. |
 | | `linear_algebra_basis_change` | Scene script now follows Murali: the standard grid, the tilted basis grid, `v`, and both coordinate readouts. Not checked until the rendered frames are compared. |
@@ -67,7 +67,7 @@ Shared piece: a number plane, 2D axes, and a vector arrow. Plots and linear-alge
 
 Shared piece: a value that is a function of scene time, and a path that grows from a moving point. No wall clock.
 
-| Done | Example | Notes |
+| Parity | Example | Notes |
 | --- | --- | --- |
 | | `traced_paths` | Scene script now follows Murali: the wheel, the dot, and the cycloid. The trace is rebuilt from the point at scene time, sampled every 1/60s, so a seek matches a forward play. Not checked until the rendered frames are compared. |
 | | `particles` | Scene script now follows Murali: one seeded belt whose phase is `1.05` times elapsed scene time. The hash uses JavaScript sine, so a dot is not bit-identical to Murali's 32-bit sine. Not checked until the rendered frames are compared. |
@@ -76,7 +76,7 @@ Shared piece: a value that is a function of scene time, and a path that grows fr
 
 ## 5. Math text, tables, and code
 
-| Done | Example | Notes |
+| Parity | Example | Notes |
 | --- | --- | --- |
 | | `tables` | Scene script now follows Murali: the grid draws, then the cells type on, then the table unwrites. Not checked until the rendered frames are compared. |
 | | `code_blocks` | Scene script now follows Murali: a dark Rust window, then a light TOML window. Coloring is browser text for those two languages, not a Typst highlighter. Not checked until the rendered frames are compared. |
@@ -86,9 +86,9 @@ Shared piece: a value that is a function of scene time, and a path that grows fr
 
 ## 6. 3D objects on the existing camera
 
-The scene camera can already move, look at a target, zoom, and orbit. These examples are missing the objects it would look at.
+These examples exercise the shared scene camera with Three.js geometry and assets.
 
-| Done | Example | Notes |
+| Parity | Example | Notes |
 | --- | --- | --- |
 | | `curves_3d` | Scene script now follows Murali: perspective camera, 3D axes, and a parametric curve that draws on with a pulse. Lines are WebGL lines, so thickness is in pixels rather than world units. Not checked until the rendered frames are compared. |
 | | `surfaces_3d` | Scene script now follows Murali: the hill writes in by parameter row, colored by height. Not checked until the rendered frames are compared. |
@@ -103,7 +103,7 @@ The scene camera can already move, look at a target, zoom, and orbit. These exam
 
 Shared piece: a scene inside a scene, with its own clock, camera, and loop. The parent samples both deterministically.
 
-| Done | Example | Notes |
+| Parity | Example | Notes |
 | --- | --- | --- |
 | | `scene_view` | Scene script now follows Murali: the network is a child scene looping every 3.5 seconds while the parent moves that inset aside and explains it. The child picture is transparent, so the view's own plate shows behind it. Not checked until the rendered frames are compared. |
 | | `opening_scene_view` | The inset clock exists. This example still waits on the opening composite from step 8; that composite is not rebuilt here. |
@@ -111,9 +111,9 @@ Shared piece: a scene inside a scene, with its own clock, camera, and loop. The 
 
 ## 8. Teaching composites
 
-Build these on the pieces above. Do not add them to the core engine.
+These are domain-level components built on the core scene, timeline, layout, and rendering layers.
 
-| Done | Example | Needs |
+| Parity | Example | Needs |
 | --- | --- | --- |
 | | `neural_networks` | Scene script now follows Murali: a 3-5-4-2 network, two dim nodes, and four forward passes of the gold pulse. The trace is the same routes left at full progress. Not checked until the rendered frames are compared. |
 | | `transformer_attention` | Scene script now follows Murali: a token row, an attention heatmap, and a pre-norm block. The gold and teal pulses each play once. Stage emphasis is a function of scene time, not a stored focus flag. Not checked until the rendered frames are compared. |
@@ -142,5 +142,7 @@ Build these on the pieces above. Do not add them to the core engine.
 | 7. Child scenes | 2 new, plus the inset left open in step 3 |
 | 8. Teaching composites | 13 |
 | Total | 51 |
+
+Implementation coverage: 49 ported, 2 missing. Parity completion remains intentionally lower until rendered comparisons are recorded.
 
 `linear_algebra_transform_order_scene_view` is counted in step 3. Step 7 finishes its inset; it is not another example.

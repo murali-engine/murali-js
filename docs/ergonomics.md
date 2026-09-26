@@ -1,6 +1,6 @@
 # Venu authoring ergonomics
 
-Status: active implementation contract. `examples/hello-shapes.ts` implements the first vertical slice, including local-time clip composition; later golden examples may not compile until their corresponding milestones are complete.
+Status: active authoring contract. Most of this contract is implemented across the runnable examples. Known deviations and their work order are tracked in [`roadmap.md`](./roadmap.md); this document describes the intended coherent API, not evidence of completeness.
 
 ## Product direction
 
@@ -249,10 +249,10 @@ A scene stays in one executable file:
 render(import.meta.url, MyScene, { fps: 60 });
 ```
 
-Configuration discovery walks upward from the scene file and uses the nearest `murali.json`. Precedence is:
+Configuration currently reads `.env` and `murali.json` from the process working directory. The intended behavior is to walk upward from the scene file and use the nearest project configuration; that correction is tracked in the roadmap. Precedence is:
 
 ```text
-render call overrides → environment → nearest murali.json → engine defaults
+render call overrides → environment → discovered murali.json → engine defaults
 ```
 
 Environment variables are intended for environment-specific overrides. Stable project settings belong in `murali.json`.

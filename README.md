@@ -177,8 +177,12 @@ npm run test:package
 
 The core has no dependency on Chromium, esbuild, or ffmpeg; those concerns stay inside `src/render`.
 
-## Design roadmap
+## Project documentation
 
-The authoring contract is in [`docs/ergonomics.md`](./docs/ergonomics.md). Implementation order is in [`docs/implementation-plan.md`](./docs/implementation-plan.md). [`docs/feature-parity.md`](./docs/feature-parity.md) records the Manim and Murali baseline, and where the browser intentionally differs. That ledger is not a limit on what a scene may contain. The example-by-example port order is in [`docs/example-parity.md`](./docs/example-parity.md). Target scenes are in [`docs/golden-examples`](./docs/golden-examples).
+- [`docs/ergonomics.md`](./docs/ergonomics.md) defines the intended authoring experience.
+- [`docs/roadmap.md`](./docs/roadmap.md) is the single current plan and code-health summary.
+- [`docs/feature-parity.md`](./docs/feature-parity.md) tracks capability evidence against Murali and Manim.
+- [`docs/example-parity.md`](./docs/example-parity.md) tracks all 51 Murali reference examples.
+- [`docs/golden-examples`](./docs/golden-examples) contains compact API-design examples.
 
-`examples/hello-shapes.ts` is the first runnable vertical slice of that contract. The remaining golden examples continue to define upcoming milestones.
+Venu currently has runnable counterparts for 49 of the 51 Murali examples. The immediate priority is API stabilization, followed by package/runtime consistency, visual parity verification, and browser-measured DOM/React layout.
