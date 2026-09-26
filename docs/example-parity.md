@@ -26,18 +26,18 @@ Engine today: timeline, layout, shapes, labels, lines, arrows, paths, typewrite,
 | Done | Example | Notes |
 | --- | --- | --- |
 | | `hello_shapes` | Scene script now follows Murali: palette colors, labels, footer, and shape draw. Not checked until the rendered frames are compared. |
-| | `layout_and_groups` | Partial port: `examples/layout-and-groups.ts`. |
-| | `motion_basics` | Move, scale, rotate, and fade already sample. No Venu scene yet. |
-| | `portrait_video` | The 9:16 frame exists. The scene does not. |
-| | `style_and_paths` | Line, arrow, path, fill, and stroke exist. Dashed strokes do not. `examples/text-and-paths.ts` covers only part of this. |
-| | `text_animation` | Typewrite, untypewrite, reveal, draw, and undraw exist. `indicate()` does not. |
-| | `murali_logo` | Circle, line, and path are enough for the mark. |
+| | `layout_and_groups` | Scene script now follows Murali: helpers place labels and the cluster, then each object moves from a messy start. Not checked until the rendered frames are compared. |
+| | `motion_basics` | Scene script now follows Murali. Not checked until the rendered frames are compared. |
+| | `portrait_video` | Scene script now follows Murali on the 9:16 frame. Not checked until the rendered frames are compared. |
+| | `style_and_paths` | Scene script now follows Murali, including dashes and a world-space path. `examples/text-and-paths.ts` remains the earlier smaller demo. Not checked until the rendered frames are compared. |
+| | `text_animation` | Scene script now follows Murali, including typewriter, centered reveal, indicate, and undraw. Not checked until the rendered frames are compared. |
+| | `murali_logo` | Scene script now follows Murali, including the commented-out title and footer. Not checked until the rendered frames are compared. |
 
 Shared holes to close in this step, before calling the rows done:
 
-- Named colors (`RED_B`, `GOLD_C`, and the rest of the Murali palette).
-- Dashed strokes.
-- `indicate()`.
+- Named colors (`RED_B`, `GOLD_C`, and the rest of the Murali palette). Present.
+- Dashed strokes. Present on lines and paths.
+- `indicate()`. Present: a scale and color pulse that rests at both ends.
 
 ## 2. Still image export
 

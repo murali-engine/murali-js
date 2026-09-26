@@ -25,7 +25,7 @@ class ShapeTattva extends Tattva {
     this.shapeStroke = resolveColor(options.color);
     this.shapeStrokeWidth = options.width ?? 0.05;
     this.worldStrokeWidth = this.shapeStrokeWidth;
-    return this;
+    return this.css({ borderColor: this.shapeStroke, borderStyle: "solid" });
   }
 
   protected shapePath(_width: number, _height: number): string {
@@ -139,7 +139,9 @@ export class LabelTattva extends Tattva {
         fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
         fontWeight: "700",
         letterSpacing: "-0.04em",
-        whiteSpace: "nowrap",
+        whiteSpace: "pre",
+        textAlign: "center",
+        lineHeight: "1",
       },
     });
     this.revealKind = "text";
@@ -148,10 +150,12 @@ export class LabelTattva extends Tattva {
   }
 
   height(value: number): this {
+    const lines = (this.text ?? "").split("\n");
+    const longest = Math.max(1, ...lines.map((line) => line.length));
     this.worldFontSize = value;
     this.worldSize = {
-      width: Math.max(value * 0.6, (this.text?.length ?? 0) * value * 0.58),
-      height: value,
+      width: Math.max(value * 0.6, longest * value * 0.58),
+      height: value * lines.length,
     };
     return this;
   }
@@ -160,6 +164,12 @@ export class LabelTattva extends Tattva {
     const resolved = resolveColor(value);
     this.setInitial({ color: resolved });
     return this.css({ color: resolved });
+  }
+
+  /** Grow from a stable left edge. Centered reveal is the default. */
+  typewriter(enabled = true): this {
+    this.textReveal = enabled ? "typewriter" : "centered";
+    return this;
   }
 }
 

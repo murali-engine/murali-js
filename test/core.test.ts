@@ -7,6 +7,7 @@ import {
   resolveColor,
   HStack,
   Label,
+  Line,
   Rectangle,
   Scene,
   Square,
@@ -294,6 +295,34 @@ test("segments typewritten text by grapheme and rejects incompatible reveal verb
     () => timeline.animate(new Tattva()).draw(),
     /draw\(\) requires a path-reveal Tattva/,
   );
+});
+
+test("dashes a line and pulses indicate back to rest", () => {
+  const guide = Line().from([-1, 0]).to([1, 0]).stroke({ color: "tealC", width: 0.06 }).dash(0.18, 0.1);
+  assert.match(guide.contentHTML(), /data-venu-dash="0.18 0.1"/);
+  assert.throws(() => Line().dash(-1, 0.1), /non-negative/);
+
+  class IndicateScene extends Scene {
+    readonly label = Label("Pulse").height(0.3).color("#58c4dd");
+
+    override construct(): void {
+      this.add(this.label);
+      const timeline = new Timeline();
+      timeline.animate(this.label).duration(2).ease("linear").indicate();
+      this.play(timeline);
+    }
+  }
+
+  const scene = new IndicateScene().prepare();
+  assert.equal(scene.sampleAt(0).get(scene.label)?.indicate, 0);
+  assert.equal(scene.sampleAt(1).get(scene.label)?.indicate, 0.5);
+  assert.equal(scene.sampleAt(2).get(scene.label)?.indicate, 1);
+});
+
+test("sizes a multiline label from its longest line", () => {
+  const label = Label("one\nthree!!").height(0.2);
+  assert.equal(label.getLayoutSize().height, 0.4);
+  assert.equal(label.getLayoutSize().width, Label("three!!").height(0.2).getLayoutSize().width);
 });
 
 test("resolves Murali palette names and draws solid shapes", () => {

@@ -355,6 +355,19 @@ export class AnimationBuilder<State extends TattvaState> {
     );
   }
 
+  hideText(): Timeline {
+    this.requireRevealKind("text", "hideText");
+    return this.commit(
+      { revealProgress: 0 } as Partial<State>,
+      { revealProgress: 1 } as Partial<State>,
+    );
+  }
+
+  indicate(): Timeline {
+    this.requireRevealKind("text", "indicate");
+    return this.commit({ indicate: 1 } as Partial<State>, { indicate: 0 } as Partial<State>);
+  }
+
   private commit(
     to: Partial<State>,
     from?: Partial<State>,
@@ -493,6 +506,16 @@ export class MultiAnimationBuilder {
   revealText(from = 0, to = 1): Timeline {
     this.requireRevealKind("text", "revealText");
     return this.apply((animation) => animation.revealText(from, to));
+  }
+
+  hideText(): Timeline {
+    this.requireRevealKind("text", "hideText");
+    return this.apply((animation) => animation.hideText());
+  }
+
+  indicate(): Timeline {
+    this.requireRevealKind("text", "indicate");
+    return this.apply((animation) => animation.indicate());
   }
 
   private apply(terminal: (animation: AnimationBuilder<any>) => Timeline): Timeline {

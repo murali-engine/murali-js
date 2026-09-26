@@ -19,6 +19,8 @@ export interface TattvaState {
   color?: string;
   background?: string;
   revealProgress?: number;
+  /** 0 at the start and end of an indicate pulse, 1 at the requested peak time. */
+  indicate?: number;
 }
 
 export type RevealKind = "none" | "text" | "path";
@@ -58,6 +60,8 @@ export class Tattva<State extends TattvaState = TattvaState> {
   worldFontSize?: number;
   colorProperty: "color" | "background" = "color";
   revealKind: RevealKind = "none";
+  /** Typewriter text keeps its left edge. Centered text grows in place. */
+  textReveal: "typewriter" | "centered" = "centered";
   /** Stroke is drawn inside the object's own markup, not as a CSS border. */
   paintsOwnStroke = false;
   renderLayer = 0;

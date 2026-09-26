@@ -70,7 +70,8 @@ function applyOverlayFrame(
   wrapper.style.left = "50%";
   wrapper.style.top = "50%";
   wrapper.style.visibility = "visible";
-  wrapper.style.transform = `translate(-50%, -50%) translate3d(${state.x * pixelsPerUnit}px, ${-state.y * pixelsPerUnit}px, ${state.z * pixelsPerUnit}px) rotateX(${state.rotationX}deg) rotateY(${-state.rotationY}deg) rotateZ(${-state.rotationZ}deg) scale3d(${state.scaleX}, ${state.scaleY}, ${state.scaleZ})`;
+  const pulse = indicateScale(state.indicate ?? 0);
+  wrapper.style.transform = `translate(-50%, -50%) translate3d(${state.x * pixelsPerUnit}px, ${-state.y * pixelsPerUnit}px, ${state.z * pixelsPerUnit}px) rotateX(${state.rotationX}deg) rotateY(${-state.rotationY}deg) rotateZ(${-state.rotationZ}deg) scale3d(${state.scaleX * pulse}, ${state.scaleY * pulse}, ${state.scaleZ * pulse})`;
   wrapper.style.opacity = String(state.opacity);
   applyPaint(content, state);
 }
@@ -96,7 +97,7 @@ function applyWorldFrame(
   const objectMatrix = new Matrix4().compose(
     position,
     rotation,
-    new Vector3(state.scaleX, state.scaleY, state.scaleZ),
+    new Vector3(state.scaleX, state.scaleY, state.scaleZ).multiplyScalar(indicateScale(state.indicate ?? 0)),
   );
   const projected = new Vector3(state.x, state.y, state.z).project(camera);
   const visible = Number.isFinite(projected.z) && projected.z >= -1 && projected.z <= 1;
@@ -149,11 +150,33 @@ function objectCSSMatrix(matrix: Matrix4): string {
 }
 
 function applyPaint(content: HTMLElement, state: TattvaState): void {
-  if (typeof state.color === "string") content.style.color = state.color;
+  if (typeof state.color === "string") {
+    content.style.color = state.indicate ? indicateColor(state.color, state.indicate) : state.color;
+  }
   if (typeof state.background !== "string") return;
   const shape = content.querySelector("[data-venu-shape]");
   if (shape) shape.setAttribute("fill", state.background);
   else content.style.background = state.background;
+}
+
+function indicateScale(progress: number): number {
+  return 1 + 0.12 * indicateIntensity(progress);
+}
+
+function indicateIntensity(progress: number): number {
+  const pulse = 1 - Math.abs(2 * Math.min(1, Math.max(0, progress)) - 1);
+  return pulse * pulse * (3 - 2 * pulse);
+}
+
+function indicateColor(color: string, progress: number): string {
+  const intensity = indicateIntensity(progress) * 0.28;
+  const match = /^#([\da-f]{6})$/i.exec(color.trim());
+  if (!match || intensity === 0) return color;
+  const channels = [0, 2, 4].map((offset) => {
+    const value = Number.parseInt(match[1].slice(offset, offset + 2), 16);
+    return Math.round(value + (255 - value) * intensity).toString(16).padStart(2, "0");
+  });
+  return `#${channels.join("")}`;
 }
 
 function clean(value: number): number {
@@ -165,11 +188,21 @@ function applyReveal(item: MountedObject, state: TattvaState): void {
   if (item.tattva.revealKind === "text" && item.graphemes) {
     const visible = Math.floor(item.graphemes.length * progress);
     item.content.textContent = item.graphemes.slice(0, visible).join("");
+    item.content.style.textAlign = item.tattva.textReveal === "typewriter" ? "left" : "center";
   }
   if (item.tattva.revealKind === "path") {
     for (const { element, length } of item.paths ?? []) {
-      element.setAttribute("stroke-dasharray", `${length} ${length}`);
-      element.setAttribute("stroke-dashoffset", String(length * (1 - progress)));
+      const authoredDash = element.getAttribute("data-venu-dash");
+      const clip = element.ownerSVGElement?.querySelector("[data-venu-reveal-clip]");
+      if (authoredDash && clip) {
+        element.setAttribute("stroke-dasharray", authoredDash);
+        element.setAttribute("stroke-dashoffset", "0");
+        const viewWidth = element.ownerSVGElement?.viewBox.baseVal.width ?? length;
+        clip.setAttribute("width", String(viewWidth * progress));
+      } else {
+        element.setAttribute("stroke-dasharray", `${length} ${length}`);
+        element.setAttribute("stroke-dashoffset", String(length * (1 - progress)));
+      }
       element.style.fillOpacity = String(progress);
     }
     const arrowProgress = Math.min(1, Math.max(0, (progress - 0.85) / 0.15));
