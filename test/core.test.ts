@@ -65,6 +65,9 @@ import {
   centeredPropPosition,
   fittedScale,
   framingDistance,
+  ATTENTION_BLOCK_FOCUS,
+  KvCache,
+  attentionMatrices,
   contextUsedTokens,
   contextWindow,
   mapPoint,
@@ -72,6 +75,12 @@ import {
   networkDiagram,
   networkPaths,
   signalPoint,
+  stageFocusAt,
+  tensorSemanticsFrame,
+  entropyBits,
+  layerNormRows,
+  nextTokenChoice,
+  stageOpacity,
   modelCenter,
   modelDimensions,
   parseGlb,
@@ -913,6 +922,97 @@ test("routes a network around inactive nodes and counts a context budget", () =>
   ], 8192);
   assert.equal(contextUsedTokens(window), 6340);
   assert.throws(() => contextWindow([{ label: "too big", role: "user", tokens: 10 }], 4));
+});
+
+test("focuses one transformer stage at a time and then clears it", () => {
+  const resting = stageFocusAt(0, ATTENTION_BLOCK_FOCUS);
+  assert.equal(stageOpacity("self_attention", resting), 1);
+  assert.equal(stageOpacity("mlp", resting), 1);
+  const held = stageFocusAt(7, ATTENTION_BLOCK_FOCUS);
+  assert.equal(stageOpacity("self_attention", held), 1);
+  assert.ok(Math.abs(stageOpacity("mlp", held) - 0.35) < 1e-9);
+  const cleared = stageFocusAt(12, ATTENTION_BLOCK_FOCUS);
+  assert.equal(stageOpacity("self_attention", cleared), 1);
+  assert.equal(stageOpacity("mlp_residual", cleared), 1);
+  const mid = stageFocusAt(6.4 + 0.225, ATTENTION_BLOCK_FOCUS);
+  const dimming = stageOpacity("mlp", mid);
+  assert.ok(dimming < 1 && dimming > 0.35);
+});
+
+test("multiplies query and key vectors, then masks and normalizes attention", () => {
+  const { dots, scaled, masked, weights } = attentionMatrices();
+  assert.equal(dots.values[0], Math.fround(1 + Math.fround(0.2 * 0.3)));
+  assert.equal(masked.values[1], -4);
+  assert.equal(masked.values[0], scaled.values[0]);
+  const firstRow = weights.values.slice(0, 4).reduce((sum, value) => sum + value, 0);
+  assert.ok(Math.abs(firstRow - 1) < 1e-6);
+  assert.ok((weights.values[1] ?? 1) < 0.01);
+  const early = tensorSemanticsFrame(2);
+  const selected = tensorSemanticsFrame(3);
+  const afterScale = tensorSemanticsFrame(4.5);
+  assert.equal(early.highlight, 0);
+  assert.equal(selected.highlight, 1);
+  assert.equal(selected.values[0], dots.values[0]);
+  assert.notEqual(afterScale.values[0], dots.values[0]);
+
+  class FillScene extends Scene {
+    readonly cache = KvCache({ tokens: ["The", "model"], values: [1, 0, 0, 1] }, { tokens: ["The", "model"], values: [0, 1, 1, 0] });
+
+    override construct(): void {
+      this.add(this.cache);
+      const timeline = new Timeline();
+      timeline.animate(this.cache).duration(1).ease("linear").to({ occupancy: 1 });
+      this.play(timeline);
+    }
+  }
+  const scene = new FillScene();
+  const occupancyAt = (time: number) => (scene.sampleAt(time).get(scene.cache) as unknown as { occupancy: number }).occupancy;
+  assert.equal(occupancyAt(0), 0);
+  assert.equal(occupancyAt(0.5), 0.5);
+  assert.equal(occupancyAt(1), 1);
+});
+
+test("layer-normalizes each token row and draws one next token", () => {
+  const rows = layerNormRows([
+    [1, 2, 4, 5, 8],
+    [-3, -1, 0, 2, 7],
+    [0.5, 0.8, 1.4, 2.2, 4.8],
+    [-5, -2, 1, 4, 10],
+  ]);
+  const first = rows[0];
+  assert.ok(first);
+  assert.equal(first.mean, 4);
+  assert.equal(first.divisor.toFixed(2), "2.45");
+  assert.ok(Math.abs(first.divisor - Math.sqrt(6 + 1e-5)) < 1e-5);
+  assert.equal(first.output.map((value) => value.toFixed(1)).join(" "), "-1.2 -0.8 0.0 0.4 1.6");
+  assert.equal(rows[2]?.mean.toFixed(2), "1.94");
+
+  const even = entropyBits([0.5, 0.5]);
+  assert.ok(Math.abs(even.bits - 1) < 1e-5);
+  assert.ok(Math.abs(even.ratio - 1) < 1e-5);
+
+  const probe = nextTokenChoice(
+    ["blue", "clear", "bright", "dark", "warm"],
+    [2.4, 1.8, 0.9, 0.2, -0.4],
+    { temperature: 0.8, topK: 4, topP: 0.88, unit: 0.72 },
+  );
+  assert.equal(probe.candidates.filter((candidate) => candidate.retained).length, 3);
+  assert.equal(probe.selected, "clear");
+  assert.equal(probe.candidates.filter((candidate) => candidate.selected).length, 1);
+  assert.equal(probe.candidates[4]?.sampling, 0);
+  assert.ok((probe.candidates[4]?.model ?? 0) > 0);
+  const probeSum = probe.candidates.reduce((sum, candidate) => sum + candidate.sampling, 0);
+  assert.ok(Math.abs(probeSum - 1) < 1e-6);
+
+  const scene = nextTokenChoice(
+    ["scattered", "blue", "across", "through", "softly", "above", "dark"],
+    [2.8, 2.25, 1.7, 1.05, 0.4, -0.1, -0.8],
+    { temperature: 0.85, topK: 5, topP: 0.9, unit: 0.61 },
+  );
+  assert.equal(scene.selected, "blue");
+  assert.equal(scene.candidates.filter((candidate) => candidate.retained).length, 3);
+  const sceneSum = scene.candidates.reduce((sum, candidate) => sum + candidate.sampling, 0);
+  assert.ok(Math.abs(sceneSum - 1) < 1e-6);
 });
 
 test("projects one vector onto another and labels the angle", () => {

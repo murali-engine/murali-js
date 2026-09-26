@@ -116,12 +116,12 @@ Build these on the pieces above. Do not add them to the core engine.
 | Done | Example | Needs |
 | --- | --- | --- |
 | | `neural_networks` | Scene script now follows Murali: a 3-5-4-2 network, two dim nodes, and four forward passes of the gold pulse. The trace is the same routes left at full progress. Not checked until the rendered frames are compared. |
-| | `transformer_attention` | Token row, attention matrix, transformer block. |
+| | `transformer_attention` | Scene script now follows Murali: a token row, an attention heatmap, and a pre-norm block. The gold and teal pulses each play once. Stage emphasis is a function of scene time, not a stored focus flag. Not checked until the rendered frames are compared. |
 | | `context_window` | Scene script now follows Murali: five role-tagged blocks inside one 8192-token budget. History keeps 2700 of 4900 tokens, trimmed from the start. Not checked until the rendered frames are compared. |
-| | `kv_cache` | Tensor grid with rows filling over time. |
-| | `normalization` | Layer-norm before/after view. |
-| | `next_token_distribution` | Logits, probabilities, and sampling readout. |
-| | `tensor_semantics` | Named-axis tensor grid. |
+| | `kv_cache` | Scene script now follows Murali: key and value rows fill one token at a time, and the newest row is outlined. Not checked until the rendered frames are compared. |
+| | `normalization` | Scene script now follows Murali: each token row shows its residual values beside that row's layer-norm, with the row's mean and divisor. Sums are rounded to 32 bits. The divisor is the square root of variance plus 1e-5, not of the variance alone. Not checked until the rendered frames are compared. |
+| | `next_token_distribution` | Scene script now follows Murali: temperature 0.85, then the top 5, then top-p 0.90, then one draw at 0.61. Three tokens remain and the draw selects blue. Exponentials are 64-bit and still pick that same token. The entropy bar is centered on its placed point, with empty space below the label so the bar stays there. Not checked until the rendered frames are compared. |
+| | `tensor_semantics` | Scene script now follows Murali: QK^T, scale by sqrt(2), a causal mask of -4, then softmax. The "reads" row stays highlighted. Products are rounded to 32 bits. Not checked until the rendered frames are compared. |
 | | `tensor_operations` | Broadcast, split, merge, reshape. |
 | | `tensor_slicing` | Rank-4 activations shown as token-by-feature. |
 | | `self_attention_lesson` | The tensor grid fed by `examples/data/self_attention_trace.json`. |

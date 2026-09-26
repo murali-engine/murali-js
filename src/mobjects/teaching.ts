@@ -1,3 +1,4 @@
+import { easeInOutQuad } from "../core/easing.ts";
 import { Tattva, type TattvaState, type Vec2 } from "../core/Tattva.ts";
 
 export interface NetworkDiagram {
@@ -220,6 +221,141 @@ class ContextWindowTattva extends Tattva {
   }
 }
 
+export interface FocusStep {
+  at: number;
+  duration: number;
+  stage: string | null;
+}
+
+export interface StageFocus {
+  from: string | null;
+  to: string | null;
+  mix: number;
+}
+
+/** The focus crossfade used by the transformer-attention scene. */
+export const ATTENTION_BLOCK_FOCUS: readonly FocusStep[] = [
+  { at: 6.4, duration: 0.45, stage: "self_attention" },
+  { at: 7.6, duration: 0.45, stage: "attention_residual" },
+  { at: 8.8, duration: 0.45, stage: "mlp" },
+  { at: 10, duration: 0.45, stage: "mlp_residual" },
+  { at: 11.1, duration: 0.45, stage: null },
+];
+
+/** Which stage is emphasized at `time`. The mix is in-out quad, and a seek does not depend on the previous stage. */
+export function stageFocusAt(time: number, steps: readonly FocusStep[]): StageFocus {
+  let active: string | null = null;
+  for (const step of steps) {
+    if (time < step.at) break;
+    const local = step.duration <= 0 ? 1 : Math.min(1, (time - step.at) / step.duration);
+    if (local < 1) {
+      return { from: active, to: step.stage, mix: easeInOutQuad(Math.max(0, local)) };
+    }
+    active = step.stage;
+  }
+  return { from: active, to: active, mix: 1 };
+}
+
+export function stageOpacity(stageId: string, focus: StageFocus, inactive = 0.35): number {
+  const opacityFor = (active: string | null) => (active !== null && active !== stageId ? inactive : 1);
+  const source = opacityFor(focus.from);
+  const target = opacityFor(focus.to);
+  return source + (target - source) * Math.max(0, Math.min(1, focus.mix));
+}
+
+/** A horizontal row of token boxes. Widths are character estimates. */
+export function TokenRow(tokens: readonly string[], tokenHeight = 0.24): Tattva {
+  return new TokenRowTattva(tokens, tokenHeight);
+}
+
+class TokenRowTattva extends Tattva {
+  constructor(
+    private readonly tokens: readonly string[],
+    private readonly tokenHeight: number,
+  ) {
+    super();
+    const size = tokenRowSize(tokens, tokenHeight);
+    this.worldSize = size;
+  }
+
+  override contentHTML(): string {
+    return tokenRowMarkup(this.tokens, this.tokenHeight, this.worldSize ?? { width: 1, height: 1 });
+  }
+}
+
+/** A square heatmap. Column names are turned upright beside the grid. */
+export function AttentionMatrix(values: readonly (readonly number[])[], tokens?: readonly string[]): Tattva {
+  return new AttentionMatrixTattva(values, tokens ?? []);
+}
+
+class AttentionMatrixTattva extends Tattva {
+  constructor(
+    private readonly values: readonly (readonly number[])[],
+    private readonly tokens: readonly string[],
+  ) {
+    super();
+    this.worldSize = matrixFrame(values, tokens.length > 0);
+  }
+
+  override contentHTML(): string {
+    return matrixMarkup(this.values, this.tokens, this.worldSize ?? { width: 1, height: 1 });
+  }
+}
+
+export interface EncoderStage {
+  id: string;
+  label: string;
+  kind: "norm" | "accent" | "residual";
+  residualFrom?: "input" | string;
+}
+
+export const ENCODER_STAGES: readonly EncoderStage[] = [
+  { id: "attention_norm", label: "Layer Norm", kind: "norm" },
+  { id: "self_attention", label: "Multi-Head Self-Attention", kind: "accent" },
+  { id: "attention_residual", label: "Residual Add", kind: "residual", residualFrom: "input" },
+  { id: "mlp_norm", label: "Layer Norm", kind: "norm" },
+  { id: "mlp", label: "MLP", kind: "accent" },
+  { id: "mlp_residual", label: "Residual Add", kind: "residual", residualFrom: "attention_residual" },
+];
+
+export interface TransformerBlockOptions {
+  width?: number;
+  blockHeight?: number;
+  gap?: number;
+  accent?: string;
+  frame?: string;
+  inputLabel?: string;
+  outputLabel?: string;
+  focus?: readonly FocusStep[];
+}
+
+/** A pre-norm encoder stack. Focus steps dim every stage except the one in progress. */
+export function TransformerBlock(options: TransformerBlockOptions = {}): Tattva {
+  return new TransformerBlockTattva(options);
+}
+
+class TransformerBlockTattva extends Tattva {
+  private sampleTime = 0;
+
+  constructor(private readonly options: TransformerBlockOptions) {
+    super();
+    this.dynamicGeometry = true;
+    const width = options.width ?? 3;
+    const blockHeight = options.blockHeight ?? 0.5;
+    const gap = options.gap ?? 0.16;
+    const stack = ENCODER_STAGES.length * blockHeight + (ENCODER_STAGES.length - 1) * gap;
+    this.worldSize = { width: width + 0.75, height: stack + blockHeight * 1.8 };
+  }
+
+  override influenceState(time: number): void {
+    this.sampleTime = time;
+  }
+
+  override contentHTML(): string {
+    return blockMarkup(this.options, this.worldSize ?? { width: 1, height: 1 }, stageFocusAt(this.sampleTime, this.options.focus ?? []));
+  }
+}
+
 interface Frame {
   width: number;
   height: number;
@@ -389,7 +525,7 @@ function svgText(
   text: string,
   height: number,
   color: string,
-  anchor: "start" | "middle",
+  anchor: "start" | "middle" | "end",
 ): string {
   const [x, y] = svgPoint(frame, point);
   return `<text x="${x}" y="${y}" fill="${color}" font-size="${height}" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle">${escapeText(text)}</text>`;
@@ -402,4 +538,783 @@ function unitColor(red: number, green: number, blue: number, alpha = 1): string 
 
 function escapeText(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+const f32 = Math.fround;
+
+export interface Matrix2 {
+  rows: number;
+  columns: number;
+  values: number[];
+  rowLabels: readonly string[];
+  columnLabels: readonly string[];
+  rowTitle: string;
+  columnTitle: string;
+}
+
+/** Rank-2 product. Each multiply and running sum is rounded to 32 bits, matching Murali's floats. */
+export function matmul2(left: Matrix2, right: Matrix2): Matrix2 {
+  if (left.columns !== right.rows) throw new Error("Matrix multiply needs matching inner dimensions.");
+  const values: number[] = [];
+  for (let row = 0; row < left.rows; row += 1) {
+    for (let column = 0; column < right.columns; column += 1) {
+      let sum = 0;
+      for (let inner = 0; inner < left.columns; inner += 1) {
+        const product = f32(f32(left.values[row * left.columns + inner] ?? 0) * f32(right.values[inner * right.columns + column] ?? 0));
+        sum = f32(sum + product);
+      }
+      values.push(sum);
+    }
+  }
+  return {
+    rows: left.rows,
+    columns: right.columns,
+    values,
+    rowLabels: left.rowLabels,
+    columnLabels: right.columnLabels,
+    rowTitle: left.rowTitle,
+    columnTitle: right.columnTitle,
+  };
+}
+
+export function transpose2(matrix: Matrix2): Matrix2 {
+  const values: number[] = [];
+  for (let column = 0; column < matrix.columns; column += 1) {
+    for (let row = 0; row < matrix.rows; row += 1) {
+      values.push(matrix.values[row * matrix.columns + column] ?? 0);
+    }
+  }
+  return {
+    rows: matrix.columns,
+    columns: matrix.rows,
+    values,
+    rowLabels: matrix.columnLabels,
+    columnLabels: matrix.rowLabels,
+    rowTitle: matrix.columnTitle,
+    columnTitle: matrix.rowTitle,
+  };
+}
+
+export function scaleMatrix(matrix: Matrix2, divisor: number): Matrix2 {
+  return { ...matrix, values: matrix.values.map((value) => f32(value / divisor)) };
+}
+
+export function causalMask(matrix: Matrix2, maskedValue: number): Matrix2 {
+  const values = matrix.values.slice();
+  for (let row = 0; row < matrix.rows; row += 1) {
+    for (let column = row + 1; column < matrix.columns; column += 1) values[row * matrix.columns + column] = maskedValue;
+  }
+  return { ...matrix, values };
+}
+
+/** Stable softmax along each row. */
+export function softmaxRows(matrix: Matrix2): Matrix2 {
+  const values: number[] = [];
+  for (let row = 0; row < matrix.rows; row += 1) {
+    let max = Number.NEGATIVE_INFINITY;
+    for (let column = 0; column < matrix.columns; column += 1) max = Math.max(max, matrix.values[row * matrix.columns + column] ?? 0);
+    const weights = Array.from({ length: matrix.columns }, (_, column) => Math.exp((matrix.values[row * matrix.columns + column] ?? 0) - max));
+    const sum = weights.reduce((total, weight) => total + weight, 0);
+    values.push(...weights.map((weight) => weight / sum));
+  }
+  return { ...matrix, values };
+}
+
+const TOKENS = ["The", "model", "reads", "context"] as const;
+const QUERY_VALUES = [1, 0.2, 0.1, 1, -0.4, 0.8, -0.5, 0.6];
+const KEY_VALUES = [1, 0.3, 0.2, 1, -0.3, 0.7, 0.1, 0.5];
+
+/** Q, K, and the four attention stages from the tensor-semantics scene. */
+export function attentionMatrices(): { dots: Matrix2; scaled: Matrix2; masked: Matrix2; weights: Matrix2 } {
+  const queries: Matrix2 = {
+    rows: 4,
+    columns: 2,
+    values: QUERY_VALUES,
+    rowLabels: TOKENS,
+    columnLabels: ["x", "y"],
+    rowTitle: "Query tokens",
+    columnTitle: "Features",
+  };
+  const keys: Matrix2 = {
+    rows: 4,
+    columns: 2,
+    values: KEY_VALUES,
+    rowLabels: TOKENS,
+    columnLabels: ["x", "y"],
+    rowTitle: "Key tokens",
+    columnTitle: "Features",
+  };
+  const transposed = transpose2(keys);
+  const dots = matmul2(queries, {
+    ...transposed,
+    columnLabels: TOKENS,
+    columnTitle: "Key tokens",
+  });
+  const scaled = scaleMatrix(dots, Math.sqrt(2));
+  const masked = causalMask(scaled, -4);
+  return { dots, scaled, masked, weights: softmaxRows(masked) };
+}
+
+export interface TensorFrame {
+  rowLabels: readonly string[];
+  columnLabels: readonly string[];
+  rowTitle: string;
+  columnTitle: string;
+  values: readonly number[];
+  highlightRow: number;
+  highlight: number;
+  cellWidth: number;
+  cellHeight: number;
+  labelHeight: number;
+  valueHeight: number;
+  scaleLimit: number;
+}
+
+const smoothstep = (value: number) => value * value * (3 - 2 * value);
+
+/** The tensor-semantics picture at `time`: select "reads", then scale, mask, and softmax. */
+export function tensorSemanticsFrame(time: number): TensorFrame {
+  const { dots, scaled, masked, weights } = attentionMatrices();
+  const stage = morphStage(time, [
+    { at: 3.2, duration: 1.1, from: dots, to: scaled },
+    { at: 4.8, duration: 1.1, from: scaled, to: masked },
+    { at: 6.4, duration: 1.1, from: masked, to: weights },
+  ], dots);
+  const highlight = time < 2.1 ? 0 : time >= 2.8 ? 1 : easeInOutQuad((time - 2.1) / 0.7);
+  return {
+    rowLabels: dots.rowLabels,
+    columnLabels: dots.columnLabels,
+    rowTitle: dots.rowTitle,
+    columnTitle: dots.columnTitle,
+    values: stage.values,
+    highlightRow: 2,
+    highlight,
+    cellWidth: 1.05,
+    cellHeight: 0.72,
+    labelHeight: 0.2,
+    valueHeight: 0.17,
+    scaleLimit: stage.limit,
+  };
+}
+
+export function TensorGrid(frameAt: (time: number) => TensorFrame): Tattva {
+  return new TensorGridTattva(frameAt);
+}
+
+class TensorGridTattva extends Tattva {
+  private sampleTime = 0;
+
+  constructor(private readonly frameAt: (time: number) => TensorFrame) {
+    super();
+    this.dynamicGeometry = true;
+    const sample = frameAt(0);
+    const labelWidth = Math.max(...sample.rowLabels.map((label) => label.length * sample.labelHeight * 0.58));
+    const pad = labelWidth + sample.labelHeight * 1.8;
+    this.worldSize = {
+      width: sample.columnLabels.length * sample.cellWidth + pad * 2,
+      height: sample.rowLabels.length * sample.cellHeight + sample.labelHeight * 5.2,
+    };
+  }
+
+  override influenceState(time: number): void {
+    this.sampleTime = time;
+  }
+
+  override contentHTML(): string {
+    return tensorMarkup(this.frameAt(this.sampleTime), this.worldSize ?? { width: 1, height: 1 });
+  }
+}
+
+export interface CachePanel {
+  tokens: readonly string[];
+  values: readonly number[];
+}
+
+/** Keys beside values. `occupancy` is how many token rows have been written. */
+export function KvCache(keys: CachePanel, values: CachePanel): KvCacheTattva {
+  return new KvCacheTattva(keys, values);
+}
+
+export class KvCacheTattva extends Tattva<TattvaState & { occupancy: number }> {
+  private filled = 0;
+
+  constructor(
+    private readonly keys: CachePanel,
+    private readonly valuePanel: CachePanel,
+  ) {
+    super({ state: { occupancy: 0 } });
+    this.dynamicGeometry = true;
+    const features = keys.values.length / keys.tokens.length;
+    const cell = { x: 0.48, y: 0.4 };
+    const width = 0.34 * 2 + 1.35 + features * cell.x * 2 + 0.72;
+    const height = 0.34 * 2 + 0.72 + keys.tokens.length * cell.y;
+    this.worldSize = { width, height };
+  }
+
+  override influenceState(_time: number, state: TattvaState & { occupancy: number }): void {
+    this.filled = state.occupancy;
+  }
+
+  override contentHTML(): string {
+    return cacheMarkup(this.keys, this.valuePanel, this.filled, this.worldSize ?? { width: 1, height: 1 });
+  }
+}
+
+function morphStage(
+  time: number,
+  steps: readonly { at: number; duration: number; from: Matrix2; to: Matrix2 }[],
+  initial: Matrix2,
+): { values: number[]; limit: number } {
+  let current = initial;
+  for (const step of steps) {
+    if (time < step.at) break;
+    const local = Math.min(1, (time - step.at) / step.duration);
+    const mix = local >= 1 ? 1 : smoothstep(local);
+    current = {
+      ...step.to,
+      values: step.from.values.map((value, index) => value + ((step.to.values[index] ?? 0) - value) * mix),
+    };
+    if (local < 1) return { values: current.values, limit: limitOf(step.from.values, step.to.values) };
+  }
+  return { values: current.values, limit: limitOf(current.values) };
+}
+
+function limitOf(...groups: readonly (readonly number[])[]): number {
+  return Math.max(Number.EPSILON, ...groups.flat().map((value) => Math.abs(value)));
+}
+
+function tensorMarkup(frame: TensorFrame, box: Frame): string {
+  const columns = frame.columnLabels.length;
+  const rows = frame.rowLabels.length;
+  const gridWidth = columns * frame.cellWidth;
+  const gridHeight = rows * frame.cellHeight;
+  const left = -gridWidth / 2;
+  const top = gridHeight / 2;
+  const parts = [svgOpen(box)];
+  frame.values.forEach((value, index) => {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const center: Vec2 = [left + (column + 0.5) * frame.cellWidth, top - (row + 0.5) * frame.cellHeight];
+    parts.push(svgRect(box, center, frame.cellWidth * 0.98, frame.cellHeight * 0.98, divergingColor(value, frame.scaleLimit)));
+    parts.push(svgText(box, center, value.toFixed(2), frame.valueHeight, unitColor(0.97, 0.98, 0.99), "middle"));
+    if (row === frame.highlightRow && frame.highlight > 0) {
+      parts.push(`<rect x="${svgPoint(box, [center[0] - frame.cellWidth * 0.46, center[1] + frame.cellHeight * 0.46])[0]}" y="${svgPoint(box, [center[0], center[1] + frame.cellHeight * 0.46])[1]}" width="${frame.cellWidth * 0.92}" height="${frame.cellHeight * 0.92}" fill="none" stroke="#f7c797" stroke-width="${0.03}" stroke-opacity="${frame.highlight}" />`);
+    }
+  });
+  frame.columnLabels.forEach((label, column) => {
+    parts.push(svgText(box, [left + (column + 0.5) * frame.cellWidth, top + frame.labelHeight * 1.1], label, frame.labelHeight, unitColor(0.9, 0.93, 0.96), "middle"));
+  });
+  frame.rowLabels.forEach((label, row) => {
+    parts.push(svgText(box, [left - frame.labelHeight * 1.2, top - (row + 0.5) * frame.cellHeight], label, frame.labelHeight, unitColor(0.9, 0.93, 0.96), "end"));
+  });
+  parts.push(svgText(box, [0, top + frame.labelHeight * 2.5], frame.columnTitle, frame.labelHeight, unitColor(0.9, 0.93, 0.96), "middle"));
+  parts.push("</svg>");
+  return parts.join("");
+}
+
+function cacheMarkup(keys: CachePanel, values: CachePanel, occupancy: number, box: Frame): string {
+  const tokens = keys.tokens.length;
+  const features = keys.values.length / tokens;
+  const cellX = 0.48;
+  const cellY = 0.4;
+  const padding = 0.34;
+  const width = box.width;
+  const height = box.height;
+  const left = -width / 2 + padding;
+  const top = height / 2 - padding;
+  const matrixWidth = features * cellX;
+  const keyLeft = left + 1.35;
+  const valueLeft = keyLeft + matrixWidth + 0.72;
+  const limit = Math.max(Number.EPSILON, ...keys.values.map(Math.abs), ...values.values.map(Math.abs));
+  const parts = [svgOpen(box), svgRect(box, [0, 0], width, height, unitColor(0.055, 0.068, 0.085, 0.98))];
+  parts.push(svgText(box, [left + 0.7, top - 0.13], "KV CACHE", 0.22, unitColor(0.94, 0.97, 1), "middle"));
+  parts.push(svgText(box, [width / 2 - padding - 0.7, top - 0.13], `${Math.round(occupancy)} / ${tokens} SLOTS`, 0.15, unitColor(0.7, 0.75, 0.8), "middle"));
+  parts.push(svgText(box, [keyLeft + matrixWidth / 2, top - 0.48], "KEYS", 0.16, unitColor(0.33, 0.78, 0.72), "middle"));
+  parts.push(svgText(box, [valueLeft + matrixWidth / 2, top - 0.48], "VALUES", 0.16, unitColor(0.36, 0.64, 0.91), "middle"));
+  const rowTop = top - 0.72;
+  for (let token = 0; token < tokens; token += 1) {
+    const rowY = rowTop - token * cellY - cellY / 2;
+    const strength = Math.max(0, Math.min(1, occupancy - token));
+    const newest = strength > 0 && token === Math.ceil(Math.max(occupancy, 1)) - 1;
+    if (newest) {
+      const outlineTop = rowY + cellY * 0.94 / 2;
+      const outlineHeight = cellY * 0.94;
+      const outlineLeft = keyLeft - 0.06;
+      const outlineWidth = valueLeft + matrixWidth + 0.06 - outlineLeft;
+      const origin = svgPoint(box, [outlineLeft, outlineTop]);
+      parts.push(`<rect x="${origin[0]}" y="${origin[1]}" width="${outlineWidth}" height="${outlineHeight}" fill="none" stroke="${unitColor(0.96, 0.72, 0.35)}" stroke-width="0.018" />`);
+    }
+    parts.push(svgText(box, [left + 0.58, rowY], `${keys.tokens[token] ?? ""}  [${token}]`, 0.13, strength > 0 ? unitColor(0.94, 0.97, 1) : unitColor(0.42, 0.47, 0.53), "middle"));
+    for (let feature = 0; feature < features; feature += 1) {
+      const panels = [
+        [keys.values[token * features + feature] ?? 0, keyLeft, [0.33, 0.78, 0.72]] as const,
+        [values.values[token * features + feature] ?? 0, valueLeft, [0.36, 0.64, 0.91]] as const,
+      ];
+      for (const [value, panelLeft, positive] of panels) {
+        const ink = strength <= 0
+          ? unitColor(0.105, 0.125, 0.15)
+          : mixColor(cacheColor(value, limit, positive), unitColor(0.105, 0.125, 0.15), 1 - strength);
+        parts.push(svgRect(box, [panelLeft + feature * cellX + cellX / 2, rowY], cellX * 0.94, cellY * 0.88, ink));
+      }
+    }
+  }
+  parts.push("</svg>");
+  return parts.join("");
+}
+
+function cacheColor(value: number, limit: number, positive: readonly [number, number, number]): string {
+  const normalized = Math.max(-1, Math.min(1, value / limit));
+  if (normalized < 0) return unitColor(lerp(0.14, 0.9, -normalized), lerp(0.17, 0.36, -normalized), lerp(0.21, 0.48, -normalized));
+  return unitColor(lerp(0.14, positive[0], normalized), lerp(0.17, positive[1], normalized), lerp(0.21, positive[2], normalized));
+}
+
+function divergingColor(value: number, limit: number): string {
+  const amount = Math.max(0, Math.min(1, Math.abs(value) / limit));
+  if (value < 0) return unitColor(lerp(0.12, 0.94, amount), lerp(0.16, 0.42, amount), lerp(0.22, 0.48, amount));
+  return unitColor(lerp(0.12, 0.25, amount), lerp(0.16, 0.78, amount), lerp(0.22, 0.74, amount));
+}
+
+function lerp(from: number, to: number, mix: number): number {
+  return from + (to - from) * mix;
+}
+
+function mixColor(from: string, to: string, mix: number): string {
+  const read = (color: string) => [...color.matchAll(/[\d.]+/g)].map((part) => Number(part[0]));
+  const start = read(from);
+  const end = read(to);
+  return `rgba(${start.map((channel, index) => channel + ((end[index] ?? channel) - channel) * mix).join(", ")})`;
+}
+
+export interface NormRow {
+  label: string;
+  input: number[];
+  output: number[];
+  mean: number;
+  divisor: number;
+}
+
+/** Layer-norm each row. Sums are 32-bit, and the divisor is the square root of variance plus epsilon. */
+export function layerNormRows(rows: readonly (readonly number[])[], epsilon = 1e-5): NormRow[] {
+  const eps = f32(epsilon);
+  return rows.map((row) => {
+    const values = row.map((value) => f32(value));
+    const count = values.length;
+    let mean = 0;
+    for (const value of values) mean = f32(mean + value);
+    mean = f32(mean / count);
+    let variance = 0;
+    for (const value of values) {
+      const delta = f32(value - mean);
+      variance = f32(variance + f32(delta * delta));
+    }
+    variance = f32(variance / count);
+    const divisor = f32(Math.sqrt(f32(variance + eps)));
+    return {
+      label: "",
+      input: values,
+      output: values.map((value) => f32(f32(value - mean) / divisor)),
+      mean,
+      divisor,
+    };
+  });
+}
+
+/** Before and after panels for one layer-norm. */
+export function NormalizationPanel(labels: readonly string[], values: readonly number[], features: number): Tattva {
+  const rows = layerNormRows(chunk(values, features)).map((row, index) => ({ ...row, label: labels[index] ?? "" }));
+  return new NormalizationPanelTattva(rows, features);
+}
+
+class NormalizationPanelTattva extends Tattva {
+  constructor(
+    private readonly rows: readonly NormRow[],
+    private readonly features: number,
+  ) {
+    super();
+    const cell = { x: 0.54, y: 0.46 };
+    this.worldSize = {
+      width: 0.34 * 2 + 1.25 + features * cell.x * 2 + 2.35,
+      height: 0.34 * 2 + 0.86 + rows.length * cell.y,
+    };
+  }
+
+  override contentHTML(): string {
+    return normMarkup(this.rows, this.features, this.worldSize ?? { width: 1, height: 1 });
+  }
+}
+
+export interface TokenCandidate {
+  token: string;
+  logit: number;
+  model: number;
+  sampling: number;
+  retained: boolean;
+  selected: boolean;
+}
+
+export interface NextTokenChoice {
+  candidates: TokenCandidate[];
+  selected: string;
+}
+
+/**
+ * Temperature, top-k, then top-p, then one categorical draw.
+ * `unit` is in `[0, 1)`. Exponentials stay 64-bit; the authored scenes still pick the 32-bit token.
+ */
+export function nextTokenChoice(
+  tokens: readonly string[],
+  logits: readonly number[],
+  options: { temperature: number; topK: number; topP: number; unit: number },
+): NextTokenChoice {
+  const model = softmax(logits.map((logit) => logit / options.temperature));
+  const filtered = model.slice();
+  const byScore = filtered.map((_, index) => index).sort((left, right) => filtered[right]! - filtered[left]! || left - right);
+  for (const index of byScore.slice(options.topK)) filtered[index] = 0;
+  renormalize(filtered);
+  const nucleus = filtered.map((_, index) => index).filter((index) => (filtered[index] ?? 0) > 0)
+    .sort((left, right) => filtered[right]! - filtered[left]! || left - right);
+  let cumulative = 0;
+  let keep = 0;
+  for (const index of nucleus) {
+    cumulative += filtered[index] ?? 0;
+    keep += 1;
+    if (cumulative >= options.topP) break;
+  }
+  for (const index of nucleus.slice(keep)) filtered[index] = 0;
+  renormalize(filtered);
+  const total = filtered.reduce((sum, value) => sum + value, 0);
+  let walked = 0;
+  let chosen = filtered.length - 1;
+  for (let index = 0; index < filtered.length; index += 1) {
+    walked += total > 0 ? (filtered[index] ?? 0) / total : 0;
+    if (options.unit < walked || index + 1 === filtered.length) {
+      chosen = index;
+      break;
+    }
+  }
+  const candidates = tokens.map((token, index) => ({
+    token,
+    logit: logits[index] ?? 0,
+    model: model[index] ?? 0,
+    sampling: filtered[index] ?? 0,
+    retained: (filtered[index] ?? 0) > 0,
+    selected: index === chosen,
+  }));
+  return { candidates, selected: tokens[chosen] ?? "" };
+}
+
+export function entropyBits(probabilities: readonly number[]): { bits: number; maxBits: number; ratio: number } {
+  const bits = probabilities.filter((probability) => probability > 0).reduce((sum, probability) => sum - probability * Math.log2(probability), 0);
+  const maxBits = probabilities.length <= 1 ? 0 : Math.log2(probabilities.length);
+  return { bits, maxBits, ratio: maxBits <= 0 ? 0 : Math.max(0, Math.min(1, bits / maxBits)) };
+}
+
+export function NextTokenBoard(choice: NextTokenChoice, sampling: { temperature: number; topK: number; topP: number; unit: number }): Tattva {
+  return new NextTokenBoardTattva(choice, sampling);
+}
+
+class NextTokenBoardTattva extends Tattva {
+  constructor(
+    private readonly choice: NextTokenChoice,
+    private readonly sampling: { temperature: number; topK: number; topP: number; unit: number },
+  ) {
+    super();
+    const rowHeight = 0.48;
+    const rowGap = 0.08;
+    const rows = choice.candidates.length * rowHeight + Math.max(0, choice.candidates.length - 1) * rowGap;
+    this.worldSize = { width: 8.8, height: 0.34 * 2 + 0.72 + rows + 0.32 };
+  }
+
+  override contentHTML(): string {
+    return tokenBoardMarkup(this.choice, this.sampling, this.worldSize ?? { width: 1, height: 1 });
+  }
+}
+
+export function EntropyBar(probabilities: readonly number[], colors: { track: string; fill: string; label: string }): Tattva {
+  return new EntropyBarTattva(probabilities, colors);
+}
+
+class EntropyBarTattva extends Tattva {
+  private readonly bits: number;
+  private readonly ratio: number;
+
+  constructor(
+    probabilities: readonly number[],
+    private readonly colors: { track: string; fill: string; label: string },
+  ) {
+    super();
+    const meter = entropyBits(probabilities);
+    this.bits = meter.bits;
+    this.ratio = meter.ratio;
+    // The bar stays on the object center. Empty space below the label balances the space above it.
+    this.worldSize = { width: 2.8, height: 0.56 };
+  }
+
+  override contentHTML(): string {
+    const frame = this.worldSize ?? { width: 2.8, height: 0.56 };
+    const bar = 0.12;
+    const fill = frame.width * this.ratio;
+    const parts = [
+      svgOpen(frame),
+      svgRect(frame, [0, 0], frame.width, bar, this.colors.track),
+    ];
+    if (fill > 0) parts.push(svgRect(frame, [-frame.width / 2 + fill / 2, 0], fill, bar, this.colors.fill));
+    parts.push(svgText(frame, [0, bar * 1.4], `sampling entropy: ${this.bits.toFixed(2)} bits`, 0.16, this.colors.label, "middle"));
+    parts.push("</svg>");
+    return parts.join("");
+  }
+}
+
+function chunk(values: readonly number[], size: number): number[][] {
+  const rows: number[][] = [];
+  for (let index = 0; index < values.length; index += size) rows.push(values.slice(index, index + size));
+  return rows;
+}
+
+function softmax(values: readonly number[]): number[] {
+  const max = Math.max(...values);
+  const weights = values.map((value) => Math.exp(value - max));
+  const sum = weights.reduce((total, weight) => total + weight, 0);
+  return weights.map((weight) => weight / sum);
+}
+
+function renormalize(values: number[]): void {
+  const sum = values.reduce((total, value) => total + value, 0);
+  if (sum > 0) {
+    for (let index = 0; index < values.length; index += 1) values[index] = (values[index] ?? 0) / sum;
+  }
+}
+
+function normMarkup(rows: readonly NormRow[], features: number, box: Frame): string {
+  const cellX = 0.54;
+  const cellY = 0.46;
+  const padding = 0.34;
+  const left = -box.width / 2 + padding;
+  const top = box.height / 2 - padding;
+  const matrixWidth = features * cellX;
+  const inputLeft = left + 1.25;
+  const outputLeft = inputLeft + matrixWidth + 2.35;
+  const statsX = inputLeft + matrixWidth + 1.175;
+  const limit = Math.max(Number.EPSILON, ...rows.flatMap((row) => [...row.input, ...row.output].map(Math.abs)));
+  const parts = [svgOpen(box), svgRect(box, [0, 0], box.width, box.height, unitColor(0.055, 0.068, 0.085, 0.98))];
+  parts.push(svgText(box, [left + 0.85, top - 0.13], "LAYER NORM", 0.22, unitColor(0.94, 0.97, 1), "middle"));
+  parts.push(svgText(box, [box.width / 2 - padding - 1.05, top - 0.13], `axis feature   epsilon ${formatEpsilon(1e-5)}`, 0.14, unitColor(0.44, 0.49, 0.55), "middle"));
+  parts.push(svgText(box, [inputLeft + matrixWidth / 2, top - 0.53], "INPUT", 0.16, unitColor(0.45, 0.61, 0.88), "middle"));
+  parts.push(svgText(box, [outputLeft + matrixWidth / 2, top - 0.53], "NORMALIZED", 0.16, unitColor(0.33, 0.79, 0.68), "middle"));
+  const rowTop = top - 0.86;
+  rows.forEach((row, group) => {
+    const rowY = rowTop - group * cellY - cellY / 2;
+    parts.push(svgText(box, [left + 0.52, rowY], row.label, 0.14, unitColor(0.94, 0.97, 1), "middle"));
+    parts.push(svgText(box, [statsX, rowY], `mu ${signed(row.mean, 2)}  sigma ${row.divisor.toFixed(2)}`, 0.12, unitColor(0.44, 0.49, 0.55), "middle"));
+    for (let feature = 0; feature < features; feature += 1) {
+      const panels = [
+        [row.input[feature] ?? 0, inputLeft, [0.45, 0.61, 0.88]] as const,
+        [row.output[feature] ?? 0, outputLeft, [0.33, 0.79, 0.68]] as const,
+      ];
+      for (const [value, panelLeft, positive] of panels) {
+        const x = panelLeft + feature * cellX + cellX / 2;
+        parts.push(svgRect(box, [x, rowY], cellX * 0.94, cellY * 0.88, cacheColor(value, limit, positive)));
+        parts.push(svgText(box, [x, rowY], signed(value, 1), 0.11, unitColor(0.94, 0.97, 1), "middle"));
+      }
+    }
+  });
+  parts.push("</svg>");
+  return parts.join("");
+}
+
+function tokenBoardMarkup(
+  choice: NextTokenChoice,
+  sampling: { temperature: number; topK: number; topP: number; unit: number },
+  box: Frame,
+): string {
+  const padding = 0.34;
+  const rowHeight = 0.48;
+  const rowGap = 0.08;
+  const top = box.height / 2 - padding;
+  const left = -box.width / 2 + padding;
+  const trackX = left + 2.25;
+  const trackWidth = box.width - padding * 2 - 3;
+  const parts = [svgOpen(box), svgRect(box, [0, 0], box.width, box.height, unitColor(0.055, 0.068, 0.085, 0.98))];
+  parts.push(svgText(box, [left + 0.8, top - 0.13], "NEXT TOKEN", 0.22, unitColor(0.94, 0.97, 1), "middle"));
+  parts.push(svgText(
+    box,
+    [box.width / 2 - padding - 1.55, top - 0.13],
+    `T ${sampling.temperature.toFixed(2)}   TOP-K ${sampling.topK}   TOP-P ${sampling.topP.toFixed(2)}   u ${sampling.unit.toFixed(2)}`,
+    0.15,
+    unitColor(0.7, 0.75, 0.8),
+    "middle",
+  ));
+  let rowY = top - 0.72 - rowHeight / 2;
+  for (const candidate of choice.candidates) {
+    if (candidate.selected) parts.push(svgRect(box, [0, rowY], box.width - padding * 2, rowHeight, unitColor(0.18, 0.145, 0.09)));
+    const nameInk = candidate.selected
+      ? unitColor(0.96, 0.72, 0.35)
+      : candidate.retained ? unitColor(0.94, 0.97, 1) : unitColor(0.31, 0.33, 0.37);
+    const rowInk = candidate.retained ? unitColor(0.94, 0.97, 1) : unitColor(0.31, 0.33, 0.37);
+    parts.push(svgText(box, [left + 0.7, rowY], `${candidate.selected ? "> " : ""}${candidate.token}`, 0.17, nameInk, "middle"));
+    parts.push(svgText(box, [left + 1.75, rowY], signed(candidate.logit, 2), 0.13, rowInk, "middle"));
+    parts.push(svgRect(box, [trackX + trackWidth / 2, rowY], trackWidth, 0.18, unitColor(0.14, 0.17, 0.21)));
+    const bar = trackWidth * candidate.sampling;
+    if (bar > 0) {
+      parts.push(svgRect(box, [trackX + bar / 2, rowY], bar, 0.18, candidate.selected ? unitColor(0.96, 0.72, 0.35) : unitColor(0.35, 0.77, 0.87)));
+    }
+    const readout = candidate.retained
+      ? `${(candidate.sampling * 100).toFixed(1).padStart(5)}%  model ${(candidate.model * 100).toFixed(1).padStart(5)}%`
+      : `FILTERED  model ${(candidate.model * 100).toFixed(1).padStart(5)}%`;
+    parts.push(svgText(box, [trackX + trackWidth - 0.72, rowY], readout, 0.12, rowInk, "middle"));
+    rowY -= rowHeight + rowGap;
+  }
+  parts.push("</svg>");
+  return parts.join("");
+}
+
+function formatEpsilon(epsilon: number): string {
+  const exp = Math.round(Math.log10(epsilon));
+  return `${Math.round(epsilon / 10 ** exp)}e${exp}`;
+}
+
+function signed(value: number, digits: number): string {
+  const text = Math.abs(value).toFixed(digits);
+  return value < 0 ? `-${text}` : `+${text}`;
+}
+
+function tokenWidth(token: string, tokenHeight: number): number {
+  const text = Math.max(token.length, 1) * tokenHeight * 0.58;
+  return text + tokenHeight * 0.35 * 2;
+}
+
+function tokenRowSize(tokens: readonly string[], tokenHeight: number): Frame {
+  const gap = tokenHeight * 0.45;
+  const width = tokens.reduce((sum, token) => sum + tokenWidth(token, tokenHeight), 0) + gap * Math.max(0, tokens.length - 1);
+  const height = tokenHeight + tokenHeight * 0.28 * 2;
+  return { width: Math.max(0.1, width), height: Math.max(0.1, height) };
+}
+
+function tokenRowMarkup(tokens: readonly string[], tokenHeight: number, frame: Frame): string {
+  const gap = tokenHeight * 0.45;
+  const boxHeight = tokenHeight + tokenHeight * 0.28 * 2;
+  let cursor = -frame.width / 2;
+  const parts = [svgOpen(frame)];
+  for (const token of tokens) {
+    const width = tokenWidth(token, tokenHeight);
+    const center = cursor + width / 2;
+    parts.push(`<rect x="${svgPoint(frame, [center - width / 2, boxHeight / 2])[0]}" y="${svgPoint(frame, [center, boxHeight / 2])[1]}" width="${width}" height="${boxHeight}" fill="none" stroke="${unitColor(0.42, 0.55, 0.86)}" stroke-width="0.02" />`);
+    parts.push(svgText(frame, [center, 0], token, tokenHeight, unitColor(0.97, 0.98, 0.99), "middle"));
+    cursor += width + gap;
+  }
+  parts.push("</svg>");
+  return parts.join("");
+}
+
+function matrixFrame(values: readonly (readonly number[])[], labeled: boolean): Frame {
+  const rows = values.length;
+  const columns = values.reduce((max, row) => Math.max(max, row.length), 0);
+  const cell = 0.38;
+  const pad = labeled ? cell * 1.4 : 0;
+  return {
+    width: Math.max(0.2, columns * cell + pad * 1.5),
+    height: Math.max(0.2, rows * cell + pad * 1.2),
+  };
+}
+
+function matrixMarkup(values: readonly (readonly number[])[], tokens: readonly string[], frame: Frame): string {
+  const cell = 0.38;
+  const rows = values.length;
+  const columns = values.reduce((max, row) => Math.max(max, row.length), 0);
+  const gridWidth = columns * cell;
+  const gridHeight = rows * cell;
+  const left = -gridWidth / 2;
+  const top = gridHeight / 2;
+  const parts = [svgOpen(frame)];
+  values.forEach((row, rowIndex) => {
+    row.forEach((value, column) => {
+      const center: Vec2 = [left + column * cell + cell / 2, top - rowIndex * cell - cell / 2];
+      parts.push(svgRect(frame, center, cell * 0.96, cell * 0.96, heatColor(value)));
+    });
+  });
+  const grid = unitColor(0.88, 0.92, 0.96);
+  for (let column = 0; column <= columns; column += 1) {
+    const x = left + column * cell;
+    parts.push(svgLine(frame, [x, -gridHeight / 2], [x, gridHeight / 2], grid, 0.015));
+  }
+  for (let row = 0; row <= rows; row += 1) {
+    const y = top - row * cell;
+    parts.push(svgLine(frame, [left, y], [left + gridWidth, y], grid, 0.015));
+  }
+  tokens.forEach((token, index) => {
+    if (index < columns) {
+      const x = left + index * cell + cell / 2;
+      const [sx, sy] = svgPoint(frame, [x, top + cell * 0.55]);
+      parts.push(`<text x="${sx}" y="${sy}" fill="${grid}" font-size="0.2" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 ${sx} ${sy})">${escapeText(token)}</text>`);
+    }
+    if (index < rows) {
+      const y = top - index * cell - cell / 2;
+      parts.push(svgText(frame, [left - cell * 0.7, y], token, 0.2, grid, "end"));
+    }
+  });
+  parts.push("</svg>");
+  return parts.join("");
+}
+
+function heatColor(value: number): string {
+  const mix = Math.max(0, Math.min(1, value));
+  const low = [0.14, 0.18, 0.27];
+  const high = [0.2, 0.82, 0.88];
+  return unitColor(
+    low[0] + (high[0] - low[0]) * mix,
+    low[1] + (high[1] - low[1]) * mix,
+    low[2] + (high[2] - low[2]) * mix,
+  );
+}
+
+function blockMarkup(options: TransformerBlockOptions, frame: Frame, focus: StageFocus): string {
+  const width = options.width ?? 3;
+  const blockHeight = options.blockHeight ?? 0.5;
+  const gap = options.gap ?? 0.16;
+  const accent = options.accent ?? unitColor(0.45, 0.78, 0.98);
+  const frameColor = options.frame ?? unitColor(0.86, 0.9, 0.95);
+  const residual = unitColor(0.98, 0.72, 0.35);
+  const ink = unitColor(0.95, 0.97, 0.99);
+  const stages = ENCODER_STAGES;
+  const stack = stages.length * blockHeight + (stages.length - 1) * gap;
+  const stageY = (index: number) => stack / 2 - blockHeight / 2 - index * (blockHeight + gap);
+  const colorFor = (kind: EncoderStage["kind"]) => (kind === "residual" ? residual : kind === "accent" ? accent : frameColor);
+  const parts = [svgOpen(frame)];
+  const inner = width * 0.86;
+  stages.forEach((stage, index) => {
+    const y = stageY(index);
+    const opacity = stageOpacity(stage.id, focus);
+    parts.push(`<g opacity="${opacity}">`);
+    parts.push(`<rect x="${svgPoint(frame, [-inner / 2, y + blockHeight / 2])[0]}" y="${svgPoint(frame, [0, y + blockHeight / 2])[1]}" width="${inner}" height="${blockHeight}" fill="none" stroke="${colorFor(stage.kind)}" stroke-width="0.03" />`);
+    parts.push(svgText(frame, [0, y], stage.label, blockHeight * 0.32, ink, "middle"));
+    parts.push("</g>");
+    if (index + 1 < stages.length) {
+      const next = stageY(index + 1);
+      parts.push(svgLine(frame, [0, y - blockHeight / 2], [0, next + blockHeight / 2], frameColor, 0.03));
+    }
+  });
+  const inputY = stageY(0) + blockHeight / 2 + 0.4;
+  const outputY = stageY(stages.length - 1) - blockHeight / 2 - 0.4;
+  for (const stage of stages) {
+    if (!stage.residualFrom) continue;
+    const sourceY = stage.residualFrom === "input"
+      ? inputY
+      : stageY(stages.findIndex((candidate) => candidate.id === stage.residualFrom));
+    const targetY = stageY(stages.findIndex((candidate) => candidate.id === stage.id));
+    const lane = width / 2 + 0.3;
+    const boxRight = inner / 2;
+    for (const [start, end] of [
+      [[boxRight, sourceY], [lane, sourceY]],
+      [[lane, sourceY], [lane, targetY]],
+      [[lane, targetY], [boxRight, targetY]],
+    ] as const) {
+      const [x1, y1] = svgPoint(frame, start);
+      const [x2, y2] = svgPoint(frame, end);
+      parts.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${residual}" stroke-width="0.03" stroke-dasharray="0.1 0.06" />`);
+    }
+  }
+  parts.push(svgText(frame, [0, inputY], options.inputLabel ?? "Input Residual Stream", 0.2, ink, "middle"));
+  parts.push(svgText(frame, [0, outputY], options.outputLabel ?? "Output Residual Stream", 0.2, ink, "middle"));
+  parts.push("</svg>");
+  return parts.join("");
 }
