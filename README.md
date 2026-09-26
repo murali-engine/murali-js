@@ -41,7 +41,7 @@ Define and render the animation from one entry point:
 
 ```ts
 // hello.ts
-import { Circle, Label, Scene, Timeline, render } from "venu";
+import { Circle, Label, Scene, clip, render, timeline } from "venu";
 
 class HelloScene extends Scene {
   override construct() {
@@ -53,10 +53,12 @@ class HelloScene extends Scene {
       { at: [-4, 0] },
     );
 
-    const timeline = new Timeline();
-    timeline.animate(title).duration(0.8).typewrite();
-    timeline.animate(circle).at(0.4).duration(2).ease("inOutQuad").moveTo([3, 0]);
-    this.play(timeline);
+    const introduction = clip((local) => {
+      local.animate(title).duration(0.8).typewrite();
+      local.animate(circle).at(0.4).duration(2).ease("inOutQuad").moveTo([3, 0]);
+    });
+
+    this.play(timeline().then(introduction));
   }
 }
 

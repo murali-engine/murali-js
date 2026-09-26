@@ -1,6 +1,6 @@
 # Venu authoring ergonomics
 
-Status: active implementation contract. `examples/hello-shapes.ts` implements the first vertical slice; later golden examples may not compile until their corresponding milestones are complete.
+Status: active implementation contract. `examples/hello-shapes.ts` implements the first vertical slice, including local-time clip composition; later golden examples may not compile until their corresponding milestones are complete.
 
 ## Product direction
 
@@ -32,7 +32,7 @@ CSS is a first-class styling and transformation language, not an implementation 
 ## Target scene shape
 
 ```ts
-import { Circle, Label, Scene, Timeline, render } from "venu";
+import { Circle, Label, Scene, clip, render, timeline } from "venu";
 
 class MotionBasics extends Scene {
   construct() {
@@ -53,22 +53,12 @@ class MotionBasics extends Scene {
       { at: [-4, 0, 0] },
     );
 
-    const timeline = new Timeline();
-    timeline
-      .animate(title)
-      .at(0)
-      .duration(1)
-      .ease("linear")
-      .typewrite();
+    const introduction = clip((local) => {
+      local.animate(title).duration(1).ease("linear").typewrite();
+      local.animate(circle).at(0.4).duration(2).ease("inOutQuad").moveTo([3, 0, 0]);
+    });
 
-    timeline
-      .animate(circle)
-      .at(0.4)
-      .duration(2)
-      .ease("inOutQuad")
-      .moveTo([3, 0, 0]);
-
-    this.play(timeline);
+    this.play(timeline().then(introduction));
   }
 }
 
@@ -130,17 +120,36 @@ Common terminal verbs:
 
 Reveal verbs are capability-aware. `typewrite`, `untypewrite`, and `revealText` operate on text Tattvas using grapheme clusters. `draw` and `undraw` operate on SVG-backed path Tattvas. Applying a reveal verb to an incompatible object produces an authoring error instead of silently falling back to opacity.
 
-### Scene sequencing
+### Clips and scene sequencing
 
-`Scene.play(timeline)` appends a completed timeline after the current scene cursor. `Scene.wait` advances that cursor. A scene can therefore combine precise absolute choreography inside each timeline with readable sequential sections.
+`clip()` authors a reusable section in local time starting at zero. `timeline()` flattens those sections onto the scene's one global clock. Clips do not have independent runtime clocks.
 
 ```ts
-const entrance = new Timeline();
-entrance.animate(title).duration(0.8).appear();
-entrance.animate(circle).at(0.2).duration(1.2).ease("inOutQuad").moveTo([3, 0]);
-this.play(entrance);
-this.wait(0.5);
+const introduction = clip((local) => {
+  local.animate(title).duration(0.8).appear();
+  local.animate(circle).at(0.2).duration(1.2).ease("inOutQuad").moveTo([3, 0]);
+});
+
+const explanation = clip((local) => {
+  local.animate(label).duration(1).typewrite();
+});
+
+this.play(
+  timeline()
+    .then(introduction)
+    .overlap(explanation, { by: 0.3 }),
+);
 ```
+
+Composition methods have distinct timing behavior:
+
+- `then(clip)` places the clip at the composition cursor and advances by its duration.
+- `overlap(clip)` places the clip at the start of the latest sequential group.
+- `overlap(clip, { by: seconds })` starts it before the current cursor by that amount.
+- `add(clip, { at: seconds })` uses an explicit global or enclosing-clip time without moving the cursor.
+- `wait(seconds)` advances the composition cursor without adding animations.
+
+Clips may contain other clips and may be placed more than once. Composition copies and offsets their schedules without modifying the source clip. `Scene.play(timeline)` then appends the completed global timeline after the scene cursor; `Scene.wait()` advances that scene cursor between played timelines.
 
 ## Coordinates and frames
 

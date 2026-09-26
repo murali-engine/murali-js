@@ -12,9 +12,11 @@ import {
   Timeline,
   ThreeTattva,
   VStack,
+  clip,
   interpolateCSSValue,
   interpolateHex,
   splitGraphemes,
+  timeline,
 } from "../src/index.ts";
 import type { Camera3DState, TattvaState } from "../src/index.ts";
 
@@ -124,6 +126,65 @@ test("freezes overlapping animation starts and samples correctly in any order", 
   assert.equal(earlier, 8.75);
   assert.equal(later, 16.25);
   assert.equal(scene.sampleAt(1.5).get(scene.dot)?.x, earlier);
+});
+
+test("composes clip-local animations sequentially and with overlap", () => {
+  const first = Circle();
+  const second = Square();
+  const third = Circle();
+  const intro = clip((local) => {
+    local.animate(first).at(0.5).duration(1).moveTo([1, 0]);
+  });
+  const content = clip((local) => {
+    local.animate(second).duration(2).moveTo([2, 0]);
+  });
+  const accent = clip((local) => {
+    local.animate(third).duration(1).appear();
+  });
+
+  const composed = timeline()
+    .then(intro)
+    .then(content)
+    .overlap(accent, { by: 0.5 });
+
+  assert.deepEqual(composed.animations.map(({ start }) => start), [0.5, 1.5, 3]);
+  assert.equal(composed.duration, 4);
+});
+
+test("places and reuses nested clips without mutating their local schedules", () => {
+  const dot = Circle();
+  const pulse = clip((local) => {
+    local.animate(dot).at(0.25).duration(0.75).scaleTo(2);
+  });
+  const section = clip()
+    .then(pulse)
+    .wait(0.5)
+    .then(pulse);
+  const composed = timeline()
+    .add(section, { at: 2 })
+    .add(section, { at: 8 });
+
+  assert.deepEqual(pulse.animations.map(({ start }) => start), [0.25]);
+  assert.deepEqual(section.animations.map(({ start }) => start), [0.25, 1.75]);
+  assert.deepEqual(composed.animations.map(({ start }) => start), [2.25, 3.75, 8.25, 9.75]);
+  assert.equal(section.duration, 2.5);
+  assert.equal(composed.duration, 10.5);
+});
+
+test("keeps explicit clip placement independent from the sequential cursor", () => {
+  const placed = clip((local) => {
+    local.animate(Circle()).duration(5).appear();
+  });
+  const sequential = clip((local) => {
+    local.animate(Square()).duration(1).appear();
+  });
+  const composed = timeline()
+    .add(placed, { at: 10 })
+    .then(sequential);
+
+  assert.deepEqual(composed.animations.map(({ start }) => start), [10, 0]);
+  assert.equal(composed.duration, 15);
+  assert.throws(() => timeline().add(placed, { at: Number.NaN }), /non-negative finite/);
 });
 
 test("interpolates short and long hex colors", () => {

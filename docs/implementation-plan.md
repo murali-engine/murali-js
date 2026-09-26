@@ -106,11 +106,12 @@ Exit criteria:
 
 Build:
 
-- local-time Clip
-- append, overlay, and placeAt
-- duration queries
-- reusable clip factories
-- clear flattening into the scene timeline
+- local-time `clip()` (implemented)
+- sequential `then`, concurrent/tail `overlap`, and explicit `add(..., { at })` placement (implemented)
+- duration queries, waits, and nested clips (implemented)
+- reusable clip factories (implemented)
+- clear flattening into the scene timeline (implemented)
+- multi-target animation and stagger ergonomics
 
 Exit criteria:
 

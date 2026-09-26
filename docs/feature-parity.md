@@ -36,7 +36,7 @@ Status values:
 | Draw/undraw paths | partial | 5 |
 | Typewrite/reveal text | partial | 5 |
 | Morph and match transforms | planned | 8 |
-| Clips: append/overlay/placeAt | planned | 6 |
+| Clips: sequential/overlap/explicit placement | partial | 6 |
 | `callAt` and `callDuring` | planned | 7 |
 | Seeking and reverse sampling | partial | 2 |
 | Camera animation | partial | 9 |

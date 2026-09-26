@@ -9,8 +9,9 @@ import {
   Rectangle,
   Scene,
   Square,
-  Timeline,
+  clip,
   render,
+  timeline,
 } from "venu";
 
 class HelloShapes extends Scene {
@@ -42,20 +43,22 @@ class HelloShapes extends Scene {
       { at: [5.3, 0.4, 0] },
     );
 
-    const timeline = new Timeline();
-    timeline.animate(title).at(0).duration(1).ease("linear").typewrite();
-    timeline.animate(subtitle).at(0.35).duration(1.3).ease("linear").typewrite();
-
-    [square, circle, rectangle, polygon].forEach((shape, index) => {
-      timeline
-        .animate(shape)
-        .at(1.5 + index * 1.2)
-        .duration(0.95)
-        .ease("outCubic")
-        .appear();
+    const introduction = clip((local) => {
+      local.animate(title).duration(1).ease("linear").typewrite();
+      local.animate(subtitle).at(0.35).duration(1.3).ease("linear").typewrite();
     });
 
-    this.play(timeline);
+    const shapeEntrance = clip((local) => {
+      [square, circle, rectangle, polygon].forEach((shape, index) => {
+        local.animate(shape).at(index * 1.2).duration(0.95).ease("outCubic").appear();
+      });
+    });
+
+    this.play(
+      timeline()
+        .then(introduction)
+        .overlap(shapeEntrance, { by: 0.15 }),
+    );
   }
 }
 

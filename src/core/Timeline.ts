@@ -45,8 +45,21 @@ export interface ScheduledAnimation<State extends TattvaState = TattvaState> {
   styleFrom?: CSSStyles;
 }
 
+export interface ClipPlacementOptions {
+  at: number;
+}
+
+export interface ClipOverlapOptions {
+  by?: number;
+}
+
+export type TimelineAuthor = (timeline: Timeline) => void;
+export type ClipAuthor = (clip: Clip) => void;
+
 export class Timeline {
   readonly animations: ScheduledAnimation<any>[] = [];
+  private compositionCursor = 0;
+  private compositionGroupStart = 0;
 
   animate<State extends TattvaState>(tattva: Tattva<State>): AnimationBuilder<State> {
     return new AnimationBuilder(this, tattva);
@@ -57,12 +70,71 @@ export class Timeline {
   }
 
   get duration(): number {
-    return this.animations.reduce((end, animation) => Math.max(end, animation.start + animation.duration), 0);
+    return Math.max(
+      this.compositionCursor,
+      this.animations.reduce((end, animation) => Math.max(end, animation.start + animation.duration), 0),
+    );
   }
 
   schedule<State extends TattvaState>(animation: ScheduledAnimation<State>): void {
     this.animations.push(animation);
   }
+
+  /** Place a clip at an explicit absolute time without advancing the composition cursor. */
+  add(source: Clip, options: ClipPlacementOptions): this {
+    this.place(source, finiteTime(options.at, "Clip placement time"));
+    return this;
+  }
+
+  /** Append a clip at the composition cursor and advance by its duration. */
+  then(source: Clip): this {
+    const start = this.compositionCursor;
+    this.place(source, start);
+    this.compositionGroupStart = start;
+    this.compositionCursor = start + source.duration;
+    return this;
+  }
+
+  /**
+   * Place a clip concurrently with the latest sequential group. Passing `by`
+   * instead overlaps the end of the composed timeline by that many seconds.
+   */
+  overlap(source: Clip, options: ClipOverlapOptions = {}): this {
+    const start = options.by === undefined
+      ? this.compositionGroupStart
+      : Math.max(0, this.compositionCursor - finiteTime(options.by, "Clip overlap"));
+    this.place(source, start);
+    this.compositionCursor = Math.max(this.compositionCursor, start + source.duration);
+    return this;
+  }
+
+  /** Advance the composition cursor without scheduling an animation. */
+  wait(seconds: number): this {
+    this.compositionCursor += finiteTime(seconds, "Timeline wait");
+    return this;
+  }
+
+  private place(source: Clip, offset: number): void {
+    if (source === this) throw new Error("A timeline cannot contain itself.");
+    for (const animation of source.animations) {
+      this.schedule({ ...animation, start: offset + animation.start });
+    }
+  }
+}
+
+/** A reusable animation section whose authored times are local to zero. */
+export class Clip extends Timeline {}
+
+export function timeline(author?: TimelineAuthor): Timeline {
+  const result = new Timeline();
+  author?.(result);
+  return result;
+}
+
+export function clip(author?: ClipAuthor): Clip {
+  const result = new Clip();
+  author?.(result);
+  return result;
 }
 
 export interface OrbitCameraOptions {
@@ -297,6 +369,13 @@ export class AnimationBuilder<State extends TattvaState> {
 function positiveCameraValue(value: number, label: string): number {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`${label} must be a positive finite number; received ${value}.`);
+  }
+  return value;
+}
+
+function finiteTime(value: number, label: string): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative finite number; received ${value}.`);
   }
   return value;
 }
