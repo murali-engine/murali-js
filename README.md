@@ -1,6 +1,10 @@
 # Venu
 
-Venu is a deterministic, code-first animation engine inspired by Manim. A scene is ordinary TypeScript that can combine DOM, React, and Three.js content on one timeline, then render that timeline frame-by-frame to an MP4.
+Venu is a fully deterministic video tool. That is the first priority. It is also code-first and built on the web, and neither of those changes the rule: the same scene always produces the same frames.
+
+Manim and Murali are the baseline. A scene is ordinary code, objects sit in a world, and a timeline samples them at a virtual time. Rendering seeks that time. It does not play a wall clock.
+
+The web is why scene construction is not limited to the built-in library. The shapes Venu ships are conveniences. If the browser can draw it — DOM, CSS, React, another web library, or Three.js — it can be in the scene, on that same timeline, and rendered frame-by-frame to an MP4. Web content is allowed only when its picture is a function of scene time.
 
 ## Quick start
 
@@ -10,8 +14,13 @@ npm run example -- hello-shapes
 ```
 
 The rendered video is written to `examples/output/hello-shapes.mp4`.
+Pass `--preview` to open the scene in a window instead. Nothing is encoded. Playback seeks the same timeline the exporter uses. Close the window, then run the command again without `--preview` to write the MP4.
+
+```bash
+npm run example -- hello-shapes --preview
+```
 Venu depends on Playwright's Chromium package, so the compatible browser is downloaded during a normal npm installation. Set `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` before installing only when your environment manages browsers separately.
-The local package is also compiled automatically during `npm install`, so files can be run directly from the examples directory with `npx tsx hello-shapes.ts`.
+The local package is also compiled automatically during `npm install`, so files can be run directly from the examples directory with `npx tsx hello-shapes.ts`. Add `--preview` to open a window instead of exporting: `npx tsx hello-shapes.ts --preview`.
 
 To render a specific example, pass its short name:
 
@@ -88,6 +97,7 @@ render(import.meta.url, HelloScene, {
 
 ```bash
 npm run example -- hello-shapes
+npm run example -- hello-shapes --preview
 npm run example -- layout-and-groups
 npm run example -- react-card
 npm run example -- three-camera
@@ -111,11 +121,6 @@ The core has no dependency on Chromium, esbuild, or ffmpeg; those concerns stay 
 
 ## Design roadmap
 
-The builder API and ongoing Murali feature-parity work are tracked in:
-
-- [`docs/ergonomics.md`](./docs/ergonomics.md)
-- [`docs/feature-parity.md`](./docs/feature-parity.md)
-- [`docs/implementation-plan.md`](./docs/implementation-plan.md)
-- [`docs/golden-examples`](./docs/golden-examples)
+The authoring contract is in [`docs/ergonomics.md`](./docs/ergonomics.md). Implementation order is in [`docs/implementation-plan.md`](./docs/implementation-plan.md). [`docs/feature-parity.md`](./docs/feature-parity.md) records the Manim and Murali baseline, and where the browser intentionally differs. That ledger is not a limit on what a scene may contain. Target scenes are in [`docs/golden-examples`](./docs/golden-examples).
 
 `examples/hello-shapes.ts` is the first runnable vertical slice of that contract. The remaining golden examples continue to define upcoming milestones.

@@ -2,6 +2,7 @@ import { chromium } from "playwright-core";
 import { resolve } from "node:path";
 import { bundleScene } from "./bundle.ts";
 import { createEncoder } from "./encode.ts";
+import { frameCount } from "./frames.ts";
 import { createProgressReporter } from "./progress.ts";
 
 export interface RenderOptions {
@@ -24,7 +25,7 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
 
     await page.setViewportSize({ width: metadata.width, height: metadata.height });
     const fps = options.fps ?? metadata.fps;
-    const frames = Math.max(1, Math.ceil(metadata.duration * fps));
+    const frames = frameCount(metadata.duration, fps);
     const encoder = await createEncoder(resolve(options.output), fps);
     const reportProgress = options.onProgress
       ?? (options.progress === false ? undefined : createProgressReporter());

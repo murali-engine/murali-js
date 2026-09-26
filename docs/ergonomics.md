@@ -4,26 +4,30 @@ Status: active implementation contract. `examples/hello-shapes.ts` implements th
 
 ## Product direction
 
-Venu preserves Murali's semantic, deterministic authoring model while adapting it to the JavaScript ecosystem and a browser-native renderer.
+Full determinism is the first priority. Code-first authoring and the web are how scenes are built. Neither one relaxes the rule: the picture at time `t` is fixed by the scene and `t`. The same scene, sampled in any order or rendered again, produces the same frames.
+
+Manim and Murali are the baseline for that model. Venu keeps code-first scenes, semantic objects, and a timeline that can be sampled at any virtual time and exported frame by frame. Authoring records the schedule. It does not play a wall clock.
+
+The web changes what a scene may contain, not how time works. Construction is not limited to the objects Venu implements. Anything the browser can draw can be in a scene, provided its visible state is a function of scene time. Built-in shapes cover the baseline. DOM, CSS, React, and other browser content enter the same timeline without a new engine primitive. They do not bring their own clock.
 
 ```text
-Scene → semantic objects → Timeline → play → preview or export
+Scene → anything the web can draw → Timeline → play → preview or export
 ```
 
-The browser is part of the medium. CSS is a first-class styling and transformation language, not an implementation detail hidden behind a narrow wrapper.
+CSS is a first-class styling and transformation language, not an implementation detail hidden behind a narrow wrapper. It is sampled at scene time. It is not left running on the browser clock.
 
 ## Principles
 
-1. The scene is the source of truth for objects, time, frame, camera, and authored state.
-2. Authors manipulate semantic objects rather than DOM nodes, meshes, or frame numbers.
-3. Animation is deterministic and can be sampled at any scene time.
+1. Determinism comes first. A frame is a pure function of the scene and virtual time. Sampling in any order, or rendering again, produces the same frames. Web content participates only through that function: no wall clock, no unseeded randomness, and no browser animation running on its own.
+2. The scene is the source of truth for objects, time, frame, camera, and authored state.
+3. Built-in objects are a baseline, not a boundary. Any web content can enter a scene when its picture stays deterministic. The timeline still addresses that content as a scene object, not as frame numbers.
 4. Builder APIs read in the order people think: target, start, duration, easing, action.
 5. Scene composition uses resolution-independent world coordinates.
 6. DOM and React content may use ordinary CSS pixels internally.
 7. CSS remains directly available for gradients, filters, masks, typography, layout, blend modes, and custom properties.
 8. Simple narrative scenes should be concise; explicit timelines remain available for precise choreography.
 9. Renderer, browser, capture, and encoder details do not leak into scene construction.
-10. If a feature is the visual language, it belongs in the engine. If it is a lesson, sentence, or look, it belongs in a future kit layer.
+10. The engine owns time, world placement, sampling, and export. It does not own every visual. A lesson, sentence, or look can be ordinary web content in the scene. It does not need a new built-in before it can render.
 
 ## Target scene shape
 

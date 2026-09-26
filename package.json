@@ -1,7 +1,7 @@
 {
   "name": "venu",
   "version": "0.1.0",
-  "description": "Deterministic, code-first scene authoring and video rendering for the web.",
+  "description": "Fully deterministic video creation. Code-first and web-enabled; the same scene always produces the same frames.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

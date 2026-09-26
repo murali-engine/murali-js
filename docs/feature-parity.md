@@ -1,6 +1,6 @@
 # Murali → Venu feature parity
 
-This ledger tracks semantic parity with the original Murali project at `/Users/ravishankar/personal-work/animation/murali`.
+This ledger tracks the Manim and Murali baseline, using Murali at `/Users/ravishankar/personal-work/animation/murali` as the reference implementation. It is not a limit on scene content. Anything the web can draw can be in a Venu scene without an entry here, as long as the picture at time `t` is fully determined by the scene and `t`. Determinism outranks that openness.
 
 Status values:
 
@@ -87,7 +87,7 @@ Status values:
 
 | Capability | Venu status | Target milestone |
 | --- | --- | --- |
-| Browser preview | planned | 7 |
+| Browser preview | partial | 7 |
 | MP4 export | baseline | 7 |
 | PNG capture | planned | 7 |
 | GIF export | planned | 7 |

@@ -2,15 +2,21 @@
 import { Command } from "commander";
 import { resolve } from "node:path";
 import { renderScene } from "./render/capture.ts";
+import { previewScene } from "./render/preview.ts";
 
 const program = new Command().name("venu").description("Render deterministic TypeScript scenes to video.");
 
 interface RenderCommandOptions {
   output: string;
   fps?: number;
+  preview?: boolean;
 }
 
 async function runRender(scene: string, options: RenderCommandOptions): Promise<void> {
+  if (options.preview) {
+    await previewScene(resolve(scene));
+    return;
+  }
   let lastPercent = -1;
   const result = await renderScene(resolve(scene), {
     output: options.output,
@@ -32,7 +38,8 @@ program
   .argument("<scene>", "scene file exporting a Scene subclass")
   .option("-o, --output <path>", "output MP4 path", "output/scene.mp4")
   .option("--fps <number>", "override the scene frame rate", Number.parseFloat)
-  .action(async (scene: string, options: { output: string; fps?: number }) => {
+  .option("--preview", "open a preview window instead of writing an MP4")
+  .action(async (scene: string, options: RenderCommandOptions) => {
     await runRender(scene, options);
   });
 

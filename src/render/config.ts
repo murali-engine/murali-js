@@ -16,6 +16,8 @@ interface MuraliConfig {
 
 export interface RenderOverrides extends Partial<RenderOptions> {
   configFile?: string;
+  /** Open a preview window instead of writing an MP4. */
+  preview?: boolean;
 }
 
 function parseEnv(contents: string): Record<string, string> {

@@ -9,11 +9,14 @@ const examples = new Map(entries
   .map((entry) => [basename(entry.name, extname(entry.name)), entry.name])
   .sort());
 
-const requested = process.argv[2] ?? "basic";
-if (requested === "--list" || requested === "-l") {
+const args = process.argv.slice(2);
+if (args.includes("--list") || args.includes("-l")) {
   process.stdout.write(`${[...examples.keys()].join("\n")}\n`);
   process.exit(0);
 }
+
+const requested = args.find((arg) => !arg.startsWith("-")) ?? "basic";
+const forward = args.filter((arg) => arg !== requested);
 
 const aliases = new Map([["hello", "basic"]]);
 const name = aliases.get(requested) ?? requested;
@@ -24,7 +27,7 @@ if (!entry) {
 }
 
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-const child = spawn(npmCommand, ["run", "render", "--workspace", "@venu/examples", "--", entry], {
+const child = spawn(npmCommand, ["run", "render", "--workspace", "@venu/examples", "--", entry, ...forward], {
   cwd: process.cwd(),
   stdio: "inherit",
 });

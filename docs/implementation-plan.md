@@ -1,6 +1,6 @@
 # Venu implementation plan
 
-The milestones below are deliberately ordered so public ergonomics drive implementation. Do not implement later collection features by bypassing unfinished language layers.
+The milestones below are deliberately ordered so public ergonomics drive implementation. Do not implement later collection features by bypassing unfinished language layers. Those milestones are the Manim and Murali baseline. They do not limit scene content: web content does not wait on an engine primitive. Determinism outranks every milestone. Web content is in scope only when its picture is a pure function of scene time.
 
 ## Milestone 0 — ergonomic contract
 
