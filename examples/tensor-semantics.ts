@@ -8,7 +8,7 @@ import {
   WHITE,
   render,
   tensorSemanticsFrame,
-} from "venu";
+} from "murali-js";
 
 /**
  * Port of Murali `examples/tensor_semantics.rs`.

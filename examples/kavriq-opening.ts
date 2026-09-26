@@ -1,4 +1,4 @@
-import { Opening, Scene, Timeline, render } from "venu";
+import { Opening, Scene, Timeline, render } from "murali-js";
 
 const PARTICLE_PALETTE = ["#2ed1c7", "#5294ff", "#eb6190", "#ffb838", "#7adc61", "#ff6666"];
 

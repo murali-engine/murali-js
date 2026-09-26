@@ -1,4 +1,4 @@
-import { Circle, Label, Scene, Timeline, render } from "venu";
+import { Circle, Label, Scene, Timeline, render } from "murali-js";
 
 class BasicScene extends Scene {
   constructor() {

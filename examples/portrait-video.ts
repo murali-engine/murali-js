@@ -1,4 +1,4 @@
-import { BLUE_D, Circle, GREEN_D, Label, Scene, Timeline, WHITE, render } from "venu";
+import { BLUE_D, Circle, GREEN_D, Label, Scene, Timeline, WHITE, render } from "murali-js";
 
 /** Port of Murali `examples/portrait_video.rs`. */
 class PortraitVideo extends Scene {

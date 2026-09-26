@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { Label, Scene, ThreeTattva, clip, render, timeline } from "venu";
-import type { TattvaState } from "venu";
+import { Label, Scene, ThreeTattva, clip, render, timeline } from "murali-js";
+import type { TattvaState } from "murali-js";
 
 interface OrbitState extends TattvaState {
   angle: number;

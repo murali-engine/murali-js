@@ -6,7 +6,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 const rustCode = `fn highlight(tokens: &[&str]) -> Vec<String> {
     tokens

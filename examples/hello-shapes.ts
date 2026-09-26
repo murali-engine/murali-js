@@ -14,7 +14,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/hello_shapes.rs`. */
 class HelloShapes extends Scene {

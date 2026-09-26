@@ -10,8 +10,8 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
-import type { Vec3 } from "venu";
+} from "murali-js";
+import type { Vec3 } from "murali-js";
 
 /** Port of Murali `examples/surfaces_3d.rs`. The sheet writes in by parameter row. */
 class Surfaces3D extends Scene {

@@ -34,7 +34,7 @@ import type { RenderOverrides } from "./render/config.ts";
 
 declare global {
   interface Window {
-    __venuSceneClass?: SceneConstructor;
+    __muraliSceneClass?: SceneConstructor;
   }
 }
 
@@ -43,6 +43,6 @@ export async function render(
   scene: SceneConstructor,
   _overrides: RenderOverrides = {},
 ): Promise<{ frames: number; duration: number }> {
-  window.__venuSceneClass = scene;
+  window.__muraliSceneClass = scene;
   return { frames: 0, duration: 0 };
 }

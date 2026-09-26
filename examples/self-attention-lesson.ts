@@ -13,7 +13,7 @@ import {
   WHITE,
   render,
   selfAttentionLesson,
-} from "venu";
+} from "murali-js";
 import trace from "./data/self_attention_trace.json" with { type: "json" };
 
 const VIEW = { labelHeight: 0.16, valueHeight: 0.14 };

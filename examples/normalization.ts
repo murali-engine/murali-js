@@ -6,7 +6,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 const TOKENS = ["The", "model", "learns", "patterns"];
 const RESIDUAL = [

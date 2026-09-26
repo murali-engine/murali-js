@@ -13,7 +13,7 @@ import {
   TEAL_C,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/linear_algebra_column_combination.rs`. */
 class LinearAlgebraColumnCombination extends Scene {

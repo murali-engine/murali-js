@@ -1,12 +1,12 @@
-# Murali → Venu feature parity
+# Murali → Murali JS feature parity
 
 This is an evidence ledger, not a roadmap. It tracks the Manim and Murali baseline, using Murali at `/Users/ravishankar/personal-work/animation/murali` as the reference implementation. Current priorities live in [`roadmap.md`](./roadmap.md).
 
-The ledger is not a limit on scene content. Anything the web can draw can be in a Venu scene without an entry here, as long as the picture at time `t` is fully determined by the scene and `t`. Determinism outranks that openness.
+The ledger is not a limit on scene content. Anything the web can draw can be in a Murali JS scene without an entry here, as long as the picture at time `t` is fully determined by the scene and `t`. Determinism outranks that openness.
 
 Status values:
 
-- `baseline` — a limited form exists in Venu today
+- `baseline` — a limited form exists in Murali JS today
 - `planned` — target behavior is specified but not implemented
 - `partial` — meaningful coverage exists but parity is incomplete
 - `parity` — behavior, tests, and a reference example are complete
@@ -14,7 +14,7 @@ Status values:
 
 ## Core language
 
-| Capability | Original reference | Venu status |
+| Capability | Original reference | Murali JS status |
 | --- | --- | --- |
 | Scene owns visual state | `engine/scene.rs` | baseline |
 | Deterministic sampling | `engine/timeline.rs` | baseline |
@@ -27,7 +27,7 @@ Status values:
 
 ## Timeline and animation
 
-| Capability | Venu status |
+| Capability | Murali JS status |
 | --- | --- |
 | Builder grammar: target/time/duration/ease/verb | partial |
 | Absolute-time scheduling | partial |
@@ -46,7 +46,7 @@ Status values:
 
 ## Styling and browser capabilities
 
-| Capability | Venu status |
+| Capability | Murali JS status |
 | --- | --- |
 | Fill and stroke builders | partial |
 | Arbitrary typed CSS | partial |
@@ -59,7 +59,7 @@ Status values:
 
 ## Layout and composition
 
-| Capability | Venu status |
+| Capability | Murali JS status |
 | --- | --- |
 | `toEdge` | partial |
 | `nextTo` | partial |
@@ -72,7 +72,7 @@ Status values:
 
 ## Visual primitives and content
 
-| Capability | Venu status |
+| Capability | Murali JS status |
 | --- | --- |
 | Circle, rectangle, square, ellipse, polygon | partial |
 | Line, arrow, path | partial |
@@ -88,7 +88,7 @@ Status values:
 
 ## Runtime and output
 
-| Capability | Venu status |
+| Capability | Murali JS status |
 | --- | --- |
 | Browser preview | partial |
 | MP4 export | baseline |
@@ -106,7 +106,7 @@ Configuration currently reads `murali.json` and `.env` from the working director
 
 The original Murali collections belong above the core language and renderer. The implementation and comparison state of the 51 reference examples is in [`example-parity.md`](./example-parity.md).
 
-| Collection | Venu status |
+| Collection | Murali JS status |
 | --- | --- |
 | Themes and named colors | partial |
 | Cards, title cards, openings | partial |
@@ -123,7 +123,7 @@ A capability reaches `parity` only when it has:
 
 1. A documented authoring API.
 2. Deterministic behavioral tests.
-3. A runnable Venu reference example.
+3. A runnable Murali JS reference example.
 4. A comparison against the corresponding Murali example.
 5. Documented intentional platform differences.
 
@@ -131,7 +131,7 @@ A capability reaches `parity` only when it has:
 
 ### Transform parity
 
-Murali's `DrawableProps` represents position as `Vec3`, rotation as a quaternion, and scale as `Vec3`; parent model matrices compose through the scene graph. Venu provides the same visible capability through XYZ position, degree-based XYZ Euler rotation, XYZ scale, and hierarchical CSS `matrix3d()` composition. The runnable comparison is `examples/css-3d-transforms.ts`, with deterministic interpolation and browser hierarchy coverage in the core and preview tests. Euler degrees are an intentional JavaScript/CSS-facing authoring difference; Venu converts them to quaternions when constructing render matrices. The 2D `at`, `rotate`, and `scale` builders are shorthand for the corresponding 3D state.
+Murali's `DrawableProps` represents position as `Vec3`, rotation as a quaternion, and scale as `Vec3`; parent model matrices compose through the scene graph. Murali JS provides the same visible capability through XYZ position, degree-based XYZ Euler rotation, XYZ scale, and hierarchical CSS `matrix3d()` composition. The runnable comparison is `examples/css-3d-transforms.ts`, with deterministic interpolation and browser hierarchy coverage in the core and preview tests. Euler degrees are an intentional JavaScript/CSS-facing authoring difference; Murali JS converts them to quaternions when constructing render matrices. The 2D `at`, `rotate`, and `scale` builders are shorthand for the corresponding 3D state.
 
 ### Stepwise storytelling
 
@@ -139,6 +139,6 @@ Murali's `DrawableProps` represents position as `Vec3`, rotation as a quaternion
 
 ### Camera parity
 
-Venu's scene camera matches Murali's camera model: orthographic projection by default, opt-in perspective, frame-aware aspect, position/target/up vectors, forward/right helpers, visible bounds on a world Z plane, orthographic zoom, and deterministic `frameTo`, `moveTo`, `lookAt`, `zoomTo`, and `fovTo` animation. `toEdge` resolves against the camera intersection at the object's Z plane. World and overlay depth modes are distinct.
+Murali JS's scene camera matches Murali's camera model: orthographic projection by default, opt-in perspective, frame-aware aspect, position/target/up vectors, forward/right helpers, visible bounds on a world Z plane, orthographic zoom, and deterministic `frameTo`, `moveTo`, `lookAt`, `zoomTo`, and `fovTo` animation. `toEdge` resolves against the camera intersection at the object's Z plane. World and overlay depth modes are distinct.
 
-The runnable comparison is `examples/three-camera.ts`, corresponding to Murali's perspective surface and curve examples. It combines camera-animated Three.js geometry, a CSS label projected in world space, and a fixed overlay label. Venu expresses FOV in degrees rather than Murali's radians because degrees match Three.js and CSS-facing JavaScript APIs. Projection-mode changes are immediate configuration; numeric camera properties are the animatable surface. Browser DOM planes and WebGL geometry share camera state but remain separate compositing surfaces, so cross-surface geometric intersection is intentionally unsupported.
+The runnable comparison is `examples/three-camera.ts`, corresponding to Murali's perspective surface and curve examples. It combines camera-animated Three.js geometry, a CSS label projected in world space, and a fixed overlay label. Murali JS expresses FOV in degrees rather than Murali's radians because degrees match Three.js and CSS-facing JavaScript APIs. Projection-mode changes are immediate configuration; numeric camera properties are the animatable surface. Browser DOM planes and WebGL geometry share camera state but remain separate compositing surfaces, so cross-surface geometric intersection is intentionally unsupported.

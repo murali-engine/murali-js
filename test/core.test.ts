@@ -391,7 +391,7 @@ test("segments typewritten text by grapheme and rejects incompatible reveal verb
 
 test("dashes a line and pulses indicate back to rest", () => {
   const guide = Line().from([-1, 0]).to([1, 0]).stroke({ color: "tealC", width: 0.06 }).dash(0.18, 0.1);
-  assert.match(guide.contentHTML(), /data-venu-dash="0.18 0.1"/);
+  assert.match(guide.contentHTML(), /data-murali-dash="0.18 0.1"/);
   assert.throws(() => Line().dash(-1, 0.1), /non-negative/);
 
   class IndicateScene extends Scene {
@@ -1193,14 +1193,14 @@ test("authors a reusable opening on the ordinary scene timeline", () => {
   assert.equal(scene.sampleAt(0).get(tagline)?.opacity, 0);
   assert.equal(scene.sampleAt(scene.duration).get(tagline)?.opacity, 1);
   assert.ok(openingDuration(4) > 5);
-  assert.throws(() => Opening("Venu", "invalid").duration(), /ASCII capitals/);
+  assert.throws(() => Opening("Murali JS", "invalid").duration(), /ASCII capitals/);
   assert.throws(() => Opening("   ", "invalid").duration(), /at least one capital/);
   assert.throws(() => Opening("VENU", "invalid").style({ particleCount: 0 }).duration(), /positive integer/);
 });
 
 test("lays out word clouds deterministically without overlapping labels", () => {
   const entries = [
-    { text: "Venu", weight: 10 },
+    { text: "Murali JS", weight: 10 },
     { text: "timeline", weight: 8 },
     { text: "CSS", weight: 6 },
     { text: "camera", weight: 5 },
@@ -1274,7 +1274,7 @@ test("resolves Murali palette names and draws solid shapes", () => {
   assert.equal(scene.square.initialState.background, RED_B);
   assert.equal(scene.sampleAt(0).get(scene.square)?.revealProgress, 0);
   assert.equal(scene.sampleAt(1).get(scene.square)?.revealProgress, 0.5);
-  assert.match(scene.square.contentHTML() ?? "", /data-venu-shape/);
+  assert.match(scene.square.contentHTML() ?? "", /data-murali-shape/);
 });
 
 test("configures and deterministically animates the scene-owned perspective camera", () => {

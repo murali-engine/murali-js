@@ -11,8 +11,8 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
-import type { Vec3 } from "venu";
+} from "murali-js";
+import type { Vec3 } from "murali-js";
 
 /** Port of Murali `examples/curves_3d.rs`. The curve is a Three.js line revealed by scene time. */
 class Curves3D extends Scene {

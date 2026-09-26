@@ -14,8 +14,8 @@ import {
   piOutline,
   render,
   worldPath,
-} from "venu";
-import type { TattvaState, Vec2 } from "venu";
+} from "murali-js";
+import type { TattvaState, Vec2 } from "murali-js";
 
 const traceStart = 1.1;
 const traceDuration = 30;
@@ -25,7 +25,7 @@ const terms = fourierTerms(outlinePoints, harmonics);
 
 /**
  * Port of Murali `examples/fourier_formula_trace.rs`.
- * The π outline is a geometric stand-in: Venu does not run Typst to extract a glyph.
+ * The π outline is a geometric stand-in: Murali JS does not run Typst to extract a glyph.
  */
 class FourierFormulaTrace extends Scene {
   constructor() {

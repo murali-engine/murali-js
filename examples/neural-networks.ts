@@ -11,7 +11,7 @@ import {
   networkDiagram,
   networkPaths,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/neural_networks.rs`. The gold pulse loops four times, then the trace stays. */
 class NeuralNetworks extends Scene {

@@ -11,7 +11,7 @@ import {
   WHITE,
   render,
   worldPath,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/text_animation.rs`. */
 class TextAnimation extends Scene {

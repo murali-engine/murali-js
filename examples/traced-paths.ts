@@ -12,7 +12,7 @@ import {
   TracedPath,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 const groundY = -1.15;
 const radius = 0.55;

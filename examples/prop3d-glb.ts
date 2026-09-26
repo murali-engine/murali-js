@@ -7,7 +7,7 @@ import {
   WHITE,
   parseGlb,
   render,
-} from "venu";
+} from "murali-js";
 import { pyramidGlb } from "./assets/props/files.ts";
 
 const YAW = -0.35 * 180 / Math.PI;

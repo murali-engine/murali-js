@@ -10,7 +10,7 @@ import {
   TransformableGrid,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/linear_algebra_matrix_vector.rs`. */
 class LinearAlgebraMatrixVector extends Scene {

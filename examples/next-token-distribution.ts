@@ -11,7 +11,7 @@ import {
   WHITE,
   nextTokenChoice,
   render,
-} from "venu";
+} from "murali-js";
 
 const TOKENS = ["scattered", "blue", "across", "through", "softly", "above", "dark"];
 const LOGITS = [2.8, 2.25, 1.7, 1.05, 0.4, -0.1, -0.8];

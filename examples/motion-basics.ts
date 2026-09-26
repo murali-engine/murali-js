@@ -12,7 +12,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/motion_basics.rs`. */
 class MotionBasics extends Scene {

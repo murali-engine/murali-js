@@ -2,7 +2,7 @@
  * Golden API example: aspirational authoring contract, not part of the current build.
  * Original reference: Murali examples/motion_basics.rs.
  */
-import { Circle, Label, Scene, Square, Timeline, render } from "venu";
+import { Circle, Label, Scene, Square, Timeline, render } from "murali-js";
 
 class MotionBasics extends Scene {
   construct() {

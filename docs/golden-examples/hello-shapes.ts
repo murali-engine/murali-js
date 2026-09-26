@@ -12,7 +12,7 @@ import {
   clip,
   render,
   timeline,
-} from "venu";
+} from "murali-js";
 
 class HelloShapes extends Scene {
   construct() {

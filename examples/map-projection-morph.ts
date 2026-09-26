@@ -11,7 +11,7 @@ import {
   WHITE,
   mapPoint,
   render,
-} from "venu";
+} from "murali-js";
 
 /**
  * Port of Murali `examples/map_projection_morph.rs`.

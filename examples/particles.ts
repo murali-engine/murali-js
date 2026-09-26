@@ -12,7 +12,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 const evolveStart = 2.6;
 const evolveDuration = 5.6;

@@ -7,8 +7,8 @@ import {
   WHITE,
   composeColumns,
   render,
-} from "venu";
-import type { Vec2 } from "venu";
+} from "murali-js";
+import type { Vec2 } from "murali-js";
 
 /** Port of Murali `examples/linear_algebra_composition.rs`. */
 class LinearAlgebraComposition extends Scene {

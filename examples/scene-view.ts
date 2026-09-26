@@ -19,8 +19,8 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
-import type { CircleTattva, LabelTattva, RectangleTattva, Vec3 } from "venu";
+} from "murali-js";
+import type { CircleTattva, LabelTattva, RectangleTattva, Vec3 } from "murali-js";
 
 /**
  * Port of Murali `examples/scene_view.rs`.

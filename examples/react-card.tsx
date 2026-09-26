@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
-import { ReactTattva, Scene, Timeline, render } from "venu";
-import type { TattvaState } from "venu";
+import { ReactTattva, Scene, Timeline, render } from "murali-js";
+import type { TattvaState } from "murali-js";
 
 interface CardState extends TattvaState {
   progress: number;

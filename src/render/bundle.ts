@@ -10,7 +10,7 @@ export async function bundleScene(scenePath: string): Promise<string> {
   const source = `
     import * as sceneModule from ${JSON.stringify(absoluteScene)};
     import { mountAndExpose } from ${JSON.stringify(runtimePath)};
-    const SceneClass = window.__venuSceneClass ?? Reflect.get(sceneModule, "default");
+    const SceneClass = window.__muraliSceneClass ?? Reflect.get(sceneModule, "default");
     if (!SceneClass) throw new Error("The scene file must call render(import.meta.url, SceneClass, options) or export a default Scene class.");
     mountAndExpose(SceneClass);
   `;

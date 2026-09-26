@@ -15,8 +15,8 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
-import type { Tattva, Vec3 } from "venu";
+} from "murali-js";
+import type { Tattva, Vec3 } from "murali-js";
 
 /** Port of Murali `examples/layout_and_groups.rs`. */
 class LayoutAndGroups extends Scene {

@@ -13,7 +13,7 @@ import {
   WHITE,
   basisCoordinates,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/linear_algebra_basis_change.rs`. */
 class LinearAlgebraBasisChange extends Scene {

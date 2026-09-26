@@ -7,7 +7,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/tables.rs`. Rules draw first, then the cells type on, then the table unwrites. */
 class Tables extends Scene {

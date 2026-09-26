@@ -12,8 +12,8 @@ import {
   circleSeeds,
   easeInOutQuad,
   render,
-} from "venu";
-import type { Vec2 } from "venu";
+} from "murali-js";
+import type { Vec2 } from "murali-js";
 
 const growthStart = 2;
 const growthDuration = 2.8;

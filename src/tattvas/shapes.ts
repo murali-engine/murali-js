@@ -43,7 +43,7 @@ class ShapeTattva extends Tattva {
     const width = this.worldSize?.width ?? 0;
     const height = this.worldSize?.height ?? 0;
     if (width <= 0 || height <= 0) return undefined;
-    return `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" overflow="visible" xmlns="http://www.w3.org/2000/svg"><path data-venu-path data-venu-shape d="${this.shapePath(width, height)}" fill="${escapeAttribute(this.shapeFill)}" stroke="${escapeAttribute(this.shapeStroke)}" stroke-width="${this.shapeStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" /></svg>`;
+    return `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" overflow="visible" xmlns="http://www.w3.org/2000/svg"><path data-murali-path data-murali-shape d="${this.shapePath(width, height)}" fill="${escapeAttribute(this.shapeFill)}" stroke="${escapeAttribute(this.shapeStroke)}" stroke-width="${this.shapeStrokeWidth}" stroke-linejoin="round" stroke-linecap="round" /></svg>`;
   }
 }
 

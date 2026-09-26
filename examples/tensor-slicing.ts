@@ -10,7 +10,7 @@ import {
   WHITE,
   render,
   tensorSlicingHeads,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/tensor_slicing.rs`. One head, then the other, same token and feature ids. */
 class TensorSlicing extends Scene {

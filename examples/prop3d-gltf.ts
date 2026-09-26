@@ -7,7 +7,7 @@ import {
   WHITE,
   parseGltf,
   render,
-} from "venu";
+} from "murali-js";
 import { appleBin, appleGltf } from "./assets/props/files.ts";
 
 const YAW = -0.35 * 180 / Math.PI;

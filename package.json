@@ -1,7 +1,7 @@
 {
-  "name": "venu",
+  "name": "murali-js",
   "version": "0.1.0",
-  "description": "Fully deterministic video creation. Code-first and web-enabled; the same scene always produces the same frames.",
+  "description": "Murali JS is a deterministic, code-first animation engine built on the web platform.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,7 +16,15 @@
       "import": "./dist/render/index.js"
     }
   },
-  "bin": { "venu": "./dist/cli.js" },
+  "bin": { "murali": "./dist/cli.js" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/murali-engine/murali-js.git"
+  },
+  "homepage": "https://github.com/murali-engine/murali-js#readme",
+  "bugs": {
+    "url": "https://github.com/murali-engine/murali-js/issues"
+  },
   "files": ["dist", "README.md"],
   "workspaces": ["examples"],
   "scripts": {

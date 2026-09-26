@@ -1,4 +1,4 @@
-import { Arrow, Label, Line, Path, Scene, Timeline, render } from "venu";
+import { Arrow, Label, Line, Path, Scene, Timeline, render } from "murali-js";
 
 class TextAndPaths extends Scene {
   override construct(): void {

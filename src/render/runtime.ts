@@ -34,20 +34,20 @@ interface MountedObject {
 
 declare global {
   interface Window {
-    __venu?: {
+    __murali?: {
       width: number;
       height: number;
       duration: number;
       fps: number;
       renderFrame: (time: number) => void;
     };
-    __venuReady?: boolean;
-    __venuSceneClass?: new () => Scene;
+    __muraliReady?: boolean;
+    __muraliSceneClass?: new () => Scene;
   }
 }
 
 function applyCSS(element: HTMLElement, styles: CSSStyles): void {
-  const shape = element.querySelector("[data-venu-shape]");
+  const shape = element.querySelector("[data-murali-shape]");
   for (const [property, value] of Object.entries(styles)) {
     if (property === "background" && shape) {
       if (typeof value === "string") shape.setAttribute("fill", value);
@@ -177,7 +177,7 @@ function applyPaint(content: HTMLElement, state: TattvaState): void {
     content.style.color = state.indicate ? indicateColor(state.color, state.indicate) : state.color;
   }
   if (typeof state.background !== "string") return;
-  const shape = content.querySelector("[data-venu-shape]");
+  const shape = content.querySelector("[data-murali-shape]");
   if (shape) shape.setAttribute("fill", state.background);
   else content.style.background = state.background;
 }
@@ -215,8 +215,8 @@ function applyReveal(item: MountedObject, state: TattvaState): void {
   }
   if (item.tattva.revealKind === "path") {
     for (const { element, length } of item.paths ?? []) {
-      const authoredDash = element.getAttribute("data-venu-dash");
-      const clip = element.ownerSVGElement?.querySelector("[data-venu-reveal-clip]");
+      const authoredDash = element.getAttribute("data-murali-dash");
+      const clip = element.ownerSVGElement?.querySelector("[data-murali-reveal-clip]");
       if (authoredDash && clip) {
         element.setAttribute("stroke-dasharray", authoredDash);
         element.setAttribute("stroke-dashoffset", "0");
@@ -306,8 +306,8 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
   const wrapper = document.createElement("div");
   const content = document.createElement(tattva.tag);
   wrapper.dataset.tattvaId = tattva.id;
-  wrapper.className = "venu-transform";
-  content.className = ["venu-content", tattva.elementClassName].filter(Boolean).join(" ");
+  wrapper.className = "murali-transform";
+  content.className = ["murali-content", tattva.elementClassName].filter(Boolean).join(" ");
   const html = tattva.contentHTML();
   if (html !== undefined) content.innerHTML = html;
   else if (tattva.text !== undefined) content.textContent = tattva.text;
@@ -340,13 +340,13 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
     content,
     graphemes: tattva.revealKind === "text" ? splitGraphemes(tattva.text ?? "") : undefined,
     paths: tattva.revealKind === "path"
-      ? [...content.querySelectorAll<SVGPathElement>("[data-venu-path]")].map((element) => ({
+      ? [...content.querySelectorAll<SVGPathElement>("[data-murali-path]")].map((element) => ({
           element,
           length: Math.max(element.getTotalLength(), 0.001),
         }))
       : undefined,
     arrowheads: tattva.revealKind === "path"
-      ? [...content.querySelectorAll<SVGPathElement>("[data-venu-arrowhead]")]
+      ? [...content.querySelectorAll<SVGPathElement>("[data-murali-arrowhead]")]
       : undefined,
   };
 }
@@ -386,7 +386,7 @@ function mountScene(
     aspect,
   );
   const worldLayer = document.createElement("div");
-  worldLayer.dataset.venuLayer = "world";
+  worldLayer.dataset.muraliLayer = "world";
   Object.assign(worldLayer.style, {
     position: "absolute",
     left: "0",
@@ -397,7 +397,7 @@ function mountScene(
     pointerEvents: "none",
   });
   const overlayLayer = document.createElement("div");
-  overlayLayer.dataset.venuLayer = "overlay";
+  overlayLayer.dataset.muraliLayer = "overlay";
   Object.assign(overlayLayer.style, {
     position: "absolute",
     inset: "0",
@@ -491,7 +491,7 @@ function mountScene(
 
 function mountNestedScene(item: MountedObject, view: SceneViewTattva, pixelsPerUnit: number): void {
   const host = document.createElement("div");
-  host.dataset.venuLayer = "scene-view";
+  host.dataset.muraliLayer = "scene-view";
   Object.assign(host.style, {
     position: "absolute",
     left: "0",
@@ -532,9 +532,9 @@ function mountNestedScene(item: MountedObject, view: SceneViewTattva, pixelsPerU
 export function mountAndExpose(SceneClass: new () => Scene): void {
   const scene = new SceneClass().prepare();
   const stage = document.querySelector<HTMLElement>("#stage");
-  if (!stage) throw new Error("Venu runtime requires a #stage element.");
+  if (!stage) throw new Error("Murali JS runtime requires a #stage element.");
   const mounted = mountScene(scene, stage);
-  window.__venu = {
+  window.__murali = {
     width: scene.width,
     height: scene.height,
     duration: scene.duration,
@@ -542,5 +542,5 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
     renderFrame: mounted.renderAt,
   };
   mounted.renderAt(0);
-  window.__venuReady = true;
+  window.__muraliReady = true;
 }

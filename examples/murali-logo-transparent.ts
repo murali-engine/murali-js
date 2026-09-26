@@ -1,4 +1,4 @@
-import { Circle, Line, Scene, render, worldPath } from "venu";
+import { Circle, Line, Scene, render, worldPath } from "murali-js";
 
 /**
  * Port of Murali `examples/murali_logo_transparent.rs`.
@@ -95,7 +95,7 @@ render(import.meta.url, TransparentLogo, {
 });
 
 function logoMode(): "dark" | "light" {
-  const injected = (globalThis as { __venuArgs?: { logo?: string } }).__venuArgs?.logo;
+  const injected = (globalThis as { __muraliArgs?: { logo?: string } }).__muraliArgs?.logo;
   if (injected === "light" || injected === "dark") return injected;
   if (typeof process !== "undefined" && process.argv?.includes("--light")) return "light";
   return "dark";

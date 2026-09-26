@@ -1,4 +1,4 @@
-# Venu authoring ergonomics
+# Murali JS authoring ergonomics
 
 Status: active authoring contract. Most of this contract is implemented across the runnable examples. Known deviations and their work order are tracked in [`roadmap.md`](./roadmap.md); this document describes the intended coherent API, not evidence of completeness.
 
@@ -6,9 +6,9 @@ Status: active authoring contract. Most of this contract is implemented across t
 
 Full determinism is the first priority. Code-first authoring and the web are how scenes are built. Neither one relaxes the rule: the picture at time `t` is fixed by the scene and `t`. The same scene, sampled in any order or rendered again, produces the same frames.
 
-Manim and Murali are the baseline for that model. Venu keeps code-first scenes, semantic objects, and a timeline that can be sampled at any virtual time and exported frame by frame. Authoring records the schedule. It does not play a wall clock.
+Manim and Murali are the baseline for that model. Murali JS keeps code-first scenes, semantic objects, and a timeline that can be sampled at any virtual time and exported frame by frame. Authoring records the schedule. It does not play a wall clock.
 
-The web changes what a scene may contain, not how time works. Construction is not limited to the objects Venu implements. Anything the browser can draw can be in a scene, provided its visible state is a function of scene time. Built-in shapes cover the baseline. DOM, CSS, React, and other browser content enter the same timeline without a new engine primitive. They do not bring their own clock.
+The web changes what a scene may contain, not how time works. Construction is not limited to the objects Murali JS implements. Anything the browser can draw can be in a scene, provided its visible state is a function of scene time. Built-in shapes cover the baseline. DOM, CSS, React, and other browser content enter the same timeline without a new engine primitive. They do not bring their own clock.
 
 ```text
 Scene → anything the web can draw → Timeline → play → preview or export
@@ -32,7 +32,7 @@ CSS is a first-class styling and transformation language, not an implementation 
 ## Target scene shape
 
 ```ts
-import { Circle, Label, Scene, clip, render, timeline } from "venu";
+import { Circle, Label, Scene, clip, render, timeline } from "murali-js";
 
 class MotionBasics extends Scene {
   construct() {
@@ -203,12 +203,12 @@ Output resolution changes pixel quality, not composition.
 Every DOM-backed visual uses two layers:
 
 ```html
-<div class="venu-transform">
-  <div class="venu-content"></div>
+<div class="murali-transform">
+  <div class="murali-content"></div>
 </div>
 ```
 
-Venu owns the outer transform wrapper and composes translation, rotation, scale, opacity, and layer there. Authors own the inner content and may apply arbitrary CSS—including `transform`—without replacing scene placement.
+Murali JS owns the outer transform wrapper and composes translation, rotation, scale, opacity, and layer there. Authors own the inner content and may apply arbitrary CSS—including `transform`—without replacing scene placement.
 
 CSS can be animated through the same timeline grammar:
 
@@ -221,7 +221,7 @@ timeline
   .setStyle({ filter: "blur(0px)", borderRadius: "32px" });
 ```
 
-Venu deterministically interpolates numbers, compatible numeric CSS functions, lengths with matching structure, standalone hex colors, and custom properties with compatible numeric values. Incompatible or discrete values retain their starting value and switch when the animation completes.
+Murali JS deterministically interpolates numbers, compatible numeric CSS functions, lengths with matching structure, standalone hex colors, and custom properties with compatible numeric values. Incompatible or discrete values retain their starting value and switch when the animation completes.
 
 ## Layout
 

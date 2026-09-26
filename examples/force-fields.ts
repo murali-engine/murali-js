@@ -13,8 +13,8 @@ import {
   VectorField,
   WHITE,
   render,
-} from "venu";
-import type { Vec2 } from "venu";
+} from "murali-js";
+import type { Vec2 } from "murali-js";
 
 /** Port of Murali `examples/force_fields.rs`. Charges and arrows are both functions of scene time. */
 class ForceFields extends Scene {

@@ -1,5 +1,5 @@
-import { BLUE_B, Circle, Line, Scene, Timeline, WHITE, render, worldPath } from "venu";
-import type { Tattva } from "venu";
+import { BLUE_B, Circle, Line, Scene, Timeline, WHITE, render, worldPath } from "murali-js";
+import type { Tattva } from "murali-js";
 
 /** Port of Murali `examples/murali_logo.rs`, without the commented title and footer. */
 class MuraliLogo extends Scene {

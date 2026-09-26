@@ -15,7 +15,7 @@ import {
   easeInOutCubic,
   matrixMarkup,
   render,
-} from "venu";
+} from "murali-js";
 
 const entries = [
   ["2", "-1", "0"],

@@ -5,7 +5,7 @@ import { frameCount } from "./frames.ts";
 
 export interface PreviewOptions {
   headless?: boolean;
-  /** Values exposed to the scene as `globalThis.__venuArgs` before it loads. */
+  /** Values exposed to the scene as `globalThis.__muraliArgs` before it loads. */
   args?: Record<string, string>;
   /** Runs after the window is showing the scene. The window closes when this returns. */
   ready?: (page: Page) => Promise<void>;
@@ -32,12 +32,12 @@ export async function previewScene(
     page.on("pageerror", (error) => {
       process.stderr.write(`Preview failed: ${error.message}\n`);
     });
-    await page.addInitScript(`globalThis.__venuArgs = ${JSON.stringify(options.args ?? {})};`);
+    await page.addInitScript(`globalThis.__muraliArgs = ${JSON.stringify(options.args ?? {})};`);
     await page.setContent(previewDocument(basename(scenePath)));
     await page.addScriptTag({ content: bundle, type: "module" });
-    await page.waitForFunction(() => window.__venuReady === true);
+    await page.waitForFunction(() => window.__muraliReady === true);
     const metadata = await page.evaluate((): SceneMetadata | null => {
-      const api = window.__venu;
+      const api = window.__murali;
       if (!api) return null;
       return { width: api.width, height: api.height, duration: api.duration, fps: api.fps };
     });
@@ -85,18 +85,18 @@ function previewDocument(title: string): string {
     #bar { display: flex; gap: 10px; align-items: center; padding: 10px 14px; background: #161b22; border-top: 1px solid #2a3340; }
     button { background: #222a35; color: inherit; border: 1px solid #3a4656; border-radius: 6px; padding: 6px 10px; font: inherit; }
     button:hover { background: #2a3442; }
-    #venu-scrub { flex: 1; accent-color: #7dd3fc; }
-    #venu-readout { min-width: 12rem; text-align: right; font-variant-numeric: tabular-nums; color: #b7c3d4; }
+    #murali-scrub { flex: 1; accent-color: #7dd3fc; }
+    #murali-readout { min-width: 12rem; text-align: right; font-variant-numeric: tabular-nums; color: #b7c3d4; }
   </style>
 </head>
 <body>
   <div id="fit"><div id="frame"><div id="stage"></div></div></div>
   <div id="bar">
-    <button id="venu-play" type="button">Play</button>
-    <button id="venu-prev" type="button">Prev</button>
-    <button id="venu-next" type="button">Next</button>
-    <input id="venu-scrub" type="range" min="0" max="0" step="any" value="0" aria-label="Scene time">
-    <span id="venu-readout"></span>
+    <button id="murali-play" type="button">Play</button>
+    <button id="murali-prev" type="button">Prev</button>
+    <button id="murali-next" type="button">Next</button>
+    <input id="murali-scrub" type="range" min="0" max="0" step="any" value="0" aria-label="Scene time">
+    <span id="murali-readout"></span>
   </div>
 </body>
 </html>`;
@@ -105,12 +105,12 @@ function previewDocument(title: string): string {
 function playerScript(input: SceneMetadata & { frames: number }): string {
   return `(() => {
   const input = ${JSON.stringify(input)};
-  const api = window.__venu;
+  const api = window.__murali;
   const stage = document.querySelector("#stage");
   const frameElement = document.querySelector("#frame");
-  const playButton = document.querySelector("#venu-play");
-  const scrub = document.querySelector("#venu-scrub");
-  const readout = document.querySelector("#venu-readout");
+  const playButton = document.querySelector("#murali-play");
+  const scrub = document.querySelector("#murali-scrub");
+  const readout = document.querySelector("#murali-readout");
   if (!api || !stage || !frameElement || !playButton || !scrub || !readout) return;
 
   const width = input.width;
@@ -158,8 +158,8 @@ function playerScript(input: SceneMetadata & { frames: number }): string {
     }
     show(time, frame);
   });
-  const previous = document.querySelector("#venu-prev");
-  const next = document.querySelector("#venu-next");
+  const previous = document.querySelector("#murali-prev");
+  const next = document.querySelector("#murali-next");
   if (previous) previous.addEventListener("click", () => step(-1));
   if (next) next.addEventListener("click", () => step(1));
   scrub.addEventListener("input", () => {

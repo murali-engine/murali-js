@@ -11,7 +11,7 @@ import {
   VectorAddition,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/linear_algebra_span.rs`. */
 class LinearAlgebraSpan extends Scene {

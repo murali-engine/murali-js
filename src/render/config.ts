@@ -63,7 +63,7 @@ export async function resolveRenderOptions(
   const env = { ...fileEnv, ...process.env };
   const renderConfig = config.render ?? {};
 
-  const configuredFps = env.MURALI_FPS ?? env.VENU_FPS;
+  const configuredFps = env.MURALI_FPS;
   const fps = overrides.fps
     ?? (configuredFps === undefined ? renderConfig.fps : Number.parseFloat(configuredFps));
   if (fps !== undefined && (!Number.isFinite(fps) || fps <= 0)) {
@@ -71,14 +71,13 @@ export async function resolveRenderOptions(
   }
 
   const sourceName = basename(sourcePath, extname(sourcePath));
-  const outputDirectory = env.MURALI_OUTPUT_DIR ?? env.VENU_OUTPUT_DIR ?? renderConfig.outputDir ?? "./output";
+  const outputDirectory = env.MURALI_OUTPUT_DIR ?? renderConfig.outputDir ?? "./output";
   const output = overrides.output
     ?? env.MURALI_OUTPUT
-    ?? env.VENU_OUTPUT
     ?? renderConfig.output
     ?? join(outputDirectory, `${sourceName}.mp4`);
   const progress = overrides.progress
-    ?? parseBoolean(env.MURALI_PROGRESS ?? env.VENU_PROGRESS)
+    ?? parseBoolean(env.MURALI_PROGRESS)
     ?? renderConfig.progress
     ?? true;
 

@@ -11,8 +11,8 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
-import type { Vec3 } from "venu";
+} from "murali-js";
+import type { Vec3 } from "murali-js";
 
 /** Port of Murali `examples/textured_surface.rs`. The wrap is a generated map, not the bundled Earth JPEG. */
 class TexturedSurface extends Scene {

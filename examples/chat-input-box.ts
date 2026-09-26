@@ -8,7 +8,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 const rgba = (red: number, green: number, blue: number, alpha: number) => {
   const channel = (value: number) => Math.round(value * 255);

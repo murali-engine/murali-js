@@ -9,8 +9,8 @@ import {
   modelDimensions,
   parseGltf,
   render,
-} from "venu";
-import type { Vec3 } from "venu";
+} from "murali-js";
+import type { Vec3 } from "murali-js";
 import { appleBin, appleGltf } from "./assets/props/files.ts";
 
 const FOV = 42;

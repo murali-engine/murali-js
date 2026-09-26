@@ -6,7 +6,7 @@ import {
   clip,
   render,
   timeline,
-} from "venu";
+} from "murali-js";
 
 class CSS3DTransforms extends Scene {
   constructor() {

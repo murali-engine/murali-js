@@ -15,8 +15,8 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
-import type { Tattva, Vec3 } from "venu";
+} from "murali-js";
+import type { Tattva, Vec3 } from "murali-js";
 
 const BACKGROUND = "#0a121c";
 

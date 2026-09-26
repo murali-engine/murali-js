@@ -15,7 +15,7 @@ import {
   TransformerBlock,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/transformer_attention.rs`. Stage focus is a function of scene time. */
 class TransformerAttention extends Scene {

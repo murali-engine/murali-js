@@ -1,10 +1,10 @@
-# Venu
+# Murali JS
 
-Venu is a fully deterministic video tool. That is the first priority. It is also code-first and built on the web, and neither of those changes the rule: the same scene always produces the same frames.
+Murali JS is a fully deterministic video tool. That is the first priority. It is also code-first and built on the web, and neither of those changes the rule: the same scene always produces the same frames.
 
 Manim and Murali are the baseline. A scene is ordinary code, objects sit in a world, and a timeline samples them at a virtual time. Rendering seeks that time. It does not play a wall clock.
 
-The web is why scene construction is not limited to the built-in library. The shapes Venu ships are conveniences. If the browser can draw it — DOM, CSS, React, another web library, or Three.js — it can be in the scene, on that same timeline, and rendered frame-by-frame to an MP4. Web content is allowed only when its picture is a function of scene time.
+The web is why scene construction is not limited to the built-in library. The shapes Murali JS ships are conveniences. If the browser can draw it — DOM, CSS, React, another web library, or Three.js — it can be in the scene, on that same timeline, and rendered frame-by-frame to an MP4. Web content is allowed only when its picture is a function of scene time.
 
 ## Quick start
 
@@ -19,7 +19,7 @@ Pass `--preview` to open the scene in a window instead. Nothing is encoded. Play
 ```bash
 npm run example -- hello-shapes --preview
 ```
-Venu depends on Playwright's Chromium package, so the compatible browser is downloaded during a normal npm installation. Set `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` before installing only when your environment manages browsers separately.
+Murali JS depends on Playwright's Chromium package, so the compatible browser is downloaded during a normal npm installation. Set `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` before installing only when your environment manages browsers separately.
 The local package is also compiled automatically during `npm install`, so files can be run directly from the examples directory with `npx tsx hello-shapes.ts`. Add `--preview` to open a window instead of exporting: `npx tsx hello-shapes.ts --preview`.
 
 To render a specific example, pass its short name:
@@ -36,17 +36,17 @@ The `examples` directory is one consumer package, and each example is normally o
 npm run example -- --list
 ```
 
-## Use Venu as a package
+## Use Murali JS as a package
 
 Define and render the animation from one entry point:
 
 ```ts
 // hello.ts
-import { Circle, Label, Scene, clip, render, timeline } from "venu";
+import { Circle, Label, Scene, clip, render, timeline } from "murali-js";
 
 class HelloScene extends Scene {
   override construct() {
-    const title = this.add(Label("Hello, Venu").height(0.5).color("white"));
+    const title = this.add(Label("Hello, Murali JS").height(0.5).color("white"));
     this.toEdge(title, "up", { margin: 0.8 });
 
     const circle = this.add(
@@ -68,13 +68,13 @@ render(import.meta.url, HelloScene, {
 });
 ```
 
-Run it with `npx tsx hello.ts`. `import.meta.url` identifies the current source file so Venu can bundle the scene for Chromium. The CLI remains available as an optional convenience.
+Run it with `npx tsx hello.ts`. `import.meta.url` identifies the current source file so Murali JS can bundle the scene for Chromium. The CLI remains available as an optional convenience.
 
-Venu displays frame progress by default while rendering. Disable it for scripts or CI with `render(import.meta.url, HelloScene, { progress: false })`, or provide `onProgress(completed, total)` for custom reporting.
+Murali JS displays frame progress by default while rendering. Disable it for scripts or CI with `render(import.meta.url, HelloScene, { progress: false })`, or provide `onProgress(completed, total)` for custom reporting.
 
 ### Shared render configuration
 
-Venu reads `murali.json` and `.env` from the working directory. Explicit options passed to `render()` have the highest priority, followed by environment settings, followed by `murali.json`.
+Murali JS reads `murali.json` and `.env` from the working directory. Explicit options passed to `render()` have the highest priority, followed by environment settings, followed by `murali.json`.
 
 ```json
 {
@@ -85,7 +85,7 @@ Venu reads `murali.json` and `.env` from the working directory. Explicit options
 }
 ```
 
-Supported environment variables are `MURALI_FPS`, `MURALI_OUTPUT`, `MURALI_OUTPUT_DIR`, and `MURALI_PROGRESS`; `VENU_` aliases are also accepted. Any individual scene can override them:
+Supported environment variables are `MURALI_FPS`, `MURALI_OUTPUT`, `MURALI_OUTPUT_DIR`, and `MURALI_PROGRESS`. Any individual scene can override them:
 
 ```ts
 render(import.meta.url, HelloScene, {
@@ -148,7 +148,7 @@ timeline.animate(flow).duration(2.8).to({ reveal: 1 });
 timeline.animate(flow).at(3).duration(3).to({ signal: 1 });
 ```
 
-If connections are omitted, Venu creates a linear chain. A cyclic graph must provide an explicit `sequence()`. See [`examples/stepwise-storytelling.ts`](./examples/stepwise-storytelling.ts).
+If connections are omitted, Murali JS creates a linear chain. A cyclic graph must provide an explicit `sequence()`. See [`examples/stepwise-storytelling.ts`](./examples/stepwise-storytelling.ts).
 
 ### Word clouds
 
@@ -156,7 +156,7 @@ Word clouds use deterministic seeded placement and keep every word as an ordinar
 
 ```ts
 const cloud = this.add(WordCloud([
-  { text: "Venu", weight: 100 },
+  { text: "Murali JS", weight: 100 },
   { text: "animation", weight: 80 },
   { text: "TypeScript", weight: 65 },
 ])
@@ -190,7 +190,7 @@ npm test
 npm run test:package
 ```
 
-`test:package` creates an npm tarball, installs it into a clean temporary project, and verifies both `"venu"` and `"venu/render"`. This catches missing build output and incorrect package exports before publishing.
+`test:package` creates an npm tarball, installs it into a clean temporary project, and verifies both `"murali-js"` and `"murali-js/render"`. This catches missing build output and incorrect package exports before publishing.
 
 ## Architecture
 
@@ -210,4 +210,4 @@ The core has no dependency on Chromium, esbuild, or ffmpeg; those concerns stay 
 - [`docs/example-parity.md`](./docs/example-parity.md) tracks all 51 Murali reference examples.
 - [`docs/golden-examples`](./docs/golden-examples) contains compact API-design examples.
 
-Venu has runnable counterparts for all 51 Murali examples. The immediate priority is API stabilization, followed by package/runtime consistency, visual parity verification, and browser-measured DOM/React layout.
+Murali JS has runnable counterparts for all 51 Murali examples. The immediate priority is API stabilization, followed by package/runtime consistency, visual parity verification, and browser-measured DOM/React layout.

@@ -11,10 +11,10 @@ import {
   WHITE,
   WordCloud,
   render,
-} from "venu";
+} from "murali-js";
 
 const WORDS = [
-  ["Venu", 100], ["animation", 88], ["deterministic", 82], ["timeline", 75],
+  ["Murali JS", 100], ["animation", 88], ["deterministic", 82], ["timeline", 75],
   ["TypeScript", 70], ["CSS", 68], ["3D", 64], ["camera", 58],
   ["storytelling", 56], ["React", 50], ["SVG", 49], ["preview", 46],
   ["render", 45], ["scene", 44], ["motion", 42], ["layout", 40],

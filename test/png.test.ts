@@ -7,7 +7,7 @@ import { inflateSync } from "node:zlib";
 import { renderScene } from "../src/render/capture.ts";
 
 test("writes a transparent PNG of one sampled frame", { timeout: 60_000 }, async () => {
-  const directory = await mkdtemp(join(tmpdir(), "venu-png-"));
+  const directory = await mkdtemp(join(tmpdir(), "murali-png-"));
   const output = join(directory, "logo.png");
   try {
     const result = await renderScene(resolve("examples/murali-logo-transparent.ts"), {

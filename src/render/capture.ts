@@ -17,7 +17,7 @@ export interface RenderOptions {
   transparent?: boolean;
   /** Scene time sampled for a PNG. Defaults to 0. */
   at?: number;
-  /** Values exposed to the scene as `globalThis.__venuArgs` before it loads. */
+  /** Values exposed to the scene as `globalThis.__muraliArgs` before it loads. */
   args?: Record<string, string>;
 }
 
@@ -26,18 +26,18 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
-    await page.addInitScript(`globalThis.__venuArgs = ${JSON.stringify(options.args ?? {})};`);
+    await page.addInitScript(`globalThis.__muraliArgs = ${JSON.stringify(options.args ?? {})};`);
     await page.setContent(`<!doctype html><html><head><style>*{box-sizing:border-box}html,body{margin:0;overflow:hidden;background:transparent}#stage{position:relative;overflow:hidden}</style></head><body><div id="stage"></div></body></html>`);
     await page.addScriptTag({ content: bundle, type: "module" });
-    await page.waitForFunction(() => window.__venuReady === true);
-    const metadata = await page.evaluate(() => window.__venu);
+    await page.waitForFunction(() => window.__muraliReady === true);
+    const metadata = await page.evaluate(() => window.__murali);
     if (!metadata) throw new Error("Scene runtime did not expose metadata.");
 
     await page.setViewportSize({ width: metadata.width, height: metadata.height });
     const format = options.format ?? (options.output.toLowerCase().endsWith(".png") ? "png" : "mp4");
     if (format === "png") {
       const time = options.at ?? 0;
-      await page.evaluate((sampled) => window.__venu?.renderFrame(sampled), time);
+      await page.evaluate((sampled) => window.__murali?.renderFrame(sampled), time);
       const png = await page.locator("#stage").screenshot({
         type: "png",
         omitBackground: options.transparent === true,
@@ -52,7 +52,7 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
     const reportProgress = options.onProgress
       ?? (options.progress === false ? undefined : createProgressReporter());
     for (let frame = 0; frame < frames; frame += 1) {
-      await page.evaluate((time) => window.__venu?.renderFrame(time), frame / fps);
+      await page.evaluate((time) => window.__murali?.renderFrame(time), frame / fps);
       const png = await page.screenshot({ type: "png" });
       await encoder.write(png);
       reportProgress?.(frame + 1, frames);

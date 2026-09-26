@@ -11,8 +11,8 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
-import type { Vec3 } from "venu";
+} from "murali-js";
+import type { Vec3 } from "murali-js";
 
 /** Port of Murali `examples/wireframe_surfaces.rs`. */
 class WireframeSurfaces extends Scene {

@@ -15,7 +15,7 @@ import {
   WHITE,
   render,
   worldPath,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/graphs_2d.rs`. */
 class Graphs2D extends Scene {

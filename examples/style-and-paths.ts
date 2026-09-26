@@ -17,7 +17,7 @@ import {
   WHITE,
   render,
   worldPath,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/style_and_paths.rs`. */
 class StyleAndPaths extends Scene {

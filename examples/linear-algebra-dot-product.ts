@@ -14,7 +14,7 @@ import {
   WHITE,
   projectOnto,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/linear_algebra_dot_product.rs`. */
 class LinearAlgebraDotProduct extends Scene {

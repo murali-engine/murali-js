@@ -27,7 +27,7 @@ if (!entry) {
 }
 
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-const child = spawn(npmCommand, ["run", "render", "--workspace", "@venu/examples", "--", entry, ...forward], {
+const child = spawn(npmCommand, ["run", "render", "--workspace", "@murali-js/examples", "--", entry, ...forward], {
   cwd: process.cwd(),
   stdio: "inherit",
 });

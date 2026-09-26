@@ -7,7 +7,7 @@ import {
   WHITE,
   contextWindow,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/context_window.rs`. Older history is trimmed from the start. */
 class ContextWindowScene extends Scene {

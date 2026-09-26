@@ -12,7 +12,7 @@ import {
   Timeline,
   easeInOutCubic,
   render,
-} from "venu";
+} from "murali-js";
 
 /**
  * Port of Murali `examples/latex_and_typst.rs`.

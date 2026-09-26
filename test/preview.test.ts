@@ -21,23 +21,23 @@ test("preview seeks the scene without writing a video", { timeout: 60_000 }, asy
   const result = await previewScene(resolve("examples/basic.ts"), {
     headless: true,
     async ready(page) {
-      await page.locator("#venu-scrub").evaluate((input) => {
+      await page.locator("#murali-scrub").evaluate((input) => {
         const scrub = input as HTMLInputElement;
         scrub.value = "0";
         scrub.dispatchEvent(new Event("input", { bubbles: true }));
       });
-      const hidden = await page.locator(".venu-transform").first().evaluate((element) => {
+      const hidden = await page.locator(".murali-transform").first().evaluate((element) => {
         return (element as HTMLElement).style.opacity;
       });
-      await page.locator("#venu-scrub").evaluate((input) => {
+      await page.locator("#murali-scrub").evaluate((input) => {
         const scrub = input as HTMLInputElement;
         scrub.value = "0.9";
         scrub.dispatchEvent(new Event("input", { bubbles: true }));
       });
-      const shown = await page.locator(".venu-transform").first().evaluate((element) => {
+      const shown = await page.locator(".murali-transform").first().evaluate((element) => {
         return (element as HTMLElement).style.opacity;
       });
-      const readout = await page.locator("#venu-readout").innerText();
+      const readout = await page.locator("#murali-readout").innerText();
       assert.equal(hidden, "0");
       assert.equal(shown, "1");
       assert.match(readout, /0\.90s/);
@@ -50,19 +50,19 @@ test("preview scrubs semantic text and path reveals", { timeout: 60_000 }, async
   await previewScene(resolve("examples/text-and-paths.ts"), {
     headless: true,
     async ready(page) {
-      const seek = (time: number) => page.locator("#venu-scrub").evaluate((input, value) => {
+      const seek = (time: number) => page.locator("#murali-scrub").evaluate((input, value) => {
         const scrub = input as HTMLInputElement;
         scrub.value = String(value);
         scrub.dispatchEvent(new Event("input", { bubbles: true }));
       }, time);
 
       await seek(0.5);
-      const partialTitle = await page.locator(".venu-content").first().innerText();
+      const partialTitle = await page.locator(".murali-content").first().innerText();
       assert.ok(partialTitle.length > 0);
       assert.ok(partialTitle.length < "Text and Paths ✨".length);
 
       await seek(4.2);
-      const arrow = page.locator("[data-venu-path]").nth(1);
+      const arrow = page.locator("[data-murali-path]").nth(1);
       assert.equal(await arrow.getAttribute("stroke-dashoffset"), "0");
       assert.equal(await arrow.evaluate((path) => getComputedStyle(path).stroke), "rgb(56, 189, 248)");
     },
@@ -73,14 +73,14 @@ test("preview composes hierarchical XYZ transforms while overlays stay camera-in
   await previewScene(resolve("examples/css-3d-transforms.ts"), {
     headless: true,
     async ready(page) {
-      const seek = (time: number) => page.locator("#venu-scrub").evaluate((input, value) => {
+      const seek = (time: number) => page.locator("#murali-scrub").evaluate((input, value) => {
         const scrub = input as HTMLInputElement;
         scrub.value = String(value);
         scrub.dispatchEvent(new Event("input", { bubbles: true }));
       }, time);
-      const worldRoot = page.locator('[data-venu-layer="world"] > .venu-transform').first();
-      const child = worldRoot.locator(".venu-transform").first();
-      const overlay = page.locator('[data-venu-layer="overlay"] > .venu-transform').first();
+      const worldRoot = page.locator('[data-murali-layer="world"] > .murali-transform').first();
+      const child = worldRoot.locator(".murali-transform").first();
+      const overlay = page.locator('[data-murali-layer="overlay"] > .murali-transform').first();
 
       await seek(0);
       const initialRootTransform = await worldRoot.evaluate((element) => (element as HTMLElement).style.transform);

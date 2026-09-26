@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { renderScene } from "./render/capture.ts";
 import { previewScene } from "./render/preview.ts";
 
-const program = new Command().name("venu").description("Render deterministic TypeScript scenes to video.");
+const program = new Command().name("murali").description("Render deterministic TypeScript scenes to video.");
 
 interface RenderCommandOptions {
   output: string;

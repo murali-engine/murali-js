@@ -64,7 +64,7 @@ export interface CameraFrameBounds {
 export class SceneCamera extends Tattva<Camera3DState> {
   constructor(viewHeight: number, private readonly frameAspect: number) {
     super({
-      id: "venu-scene-camera",
+      id: "murali-scene-camera",
       state: Camera3D.orthographic({ viewHeight })
         .position([0, 0, 8])
         .lookAt([0, 0, 0])

@@ -7,7 +7,7 @@ import {
   Timeline,
   WHITE,
   render,
-} from "venu";
+} from "murali-js";
 
 /** Port of Murali `examples/stepwise_storytelling.rs`. The path reveals, then the signal replays it. */
 class StepwiseStory extends Scene {

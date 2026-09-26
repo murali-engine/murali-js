@@ -10,7 +10,7 @@ import {
   WHITE,
   render,
   tensorOperationStages,
-} from "venu";
+} from "murali-js";
 
 const STYLE = { cellWidth: 0.9, cellHeight: 0.66, labelHeight: 0.18, valueHeight: 0.16 };
 

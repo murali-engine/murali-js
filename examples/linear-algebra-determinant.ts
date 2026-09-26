@@ -8,8 +8,8 @@ import {
   TransformableGrid,
   WHITE,
   render,
-} from "venu";
-import type { Vec2 } from "venu";
+} from "murali-js";
+import type { Vec2 } from "murali-js";
 
 /** Port of Murali `examples/linear_algebra_determinant.rs`. */
 class LinearAlgebraDeterminant extends Scene {
