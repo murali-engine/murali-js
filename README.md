@@ -123,6 +123,8 @@ local.animateCamera(this.camera)
 
 DOM, SVG, React, and Three.js roots consume this same sampled camera state. Supported camera animation verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. See [`examples/three-camera.ts`](./examples/three-camera.ts).
 
+Camera configuration also includes `fov()`, `viewHeight()`, `viewWidth()`, `clipping()`, `zoom()`, `zoomIn()`, and `zoomOut()`. `forward()`, `right()`, and `frameBoundsAtZ()` expose deterministic camera geometry for layout. Objects use world depth by default; use `.depthMode("overlay")` for camera-independent titles or UI and `.layer()` for painter ordering inside that overlay.
+
 ## Commands
 
 ```bash

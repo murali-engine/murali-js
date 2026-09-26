@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Scene, ThreeTattva, clip, render, timeline } from "venu";
+import { Label, Scene, ThreeTattva, clip, render, timeline } from "venu";
 import type { TattvaState } from "venu";
 
 interface OrbitState extends TattvaState {
@@ -18,6 +18,21 @@ class ThreeCameraScene extends Scene {
       .lookAt([0, 0, 0]);
 
     const cubes: THREE.Mesh[] = [];
+    this.add(
+      Label("CSS in the same 3D world")
+        .height(0.28)
+        .color("#c4b5fd")
+        .at([0, 2.35, 0]),
+    );
+    const overlay = this.add(
+      Label("Scene camera · Perspective")
+        .height(0.2)
+        .color("white")
+        .depthMode("overlay")
+        .layer(1000),
+    );
+    this.toEdge(overlay, "up", { margin: 0.45 });
+
     const world = this.add(new ThreeTattva<OrbitState>({
       setup({ scene }) {
         scene.add(new THREE.AmbientLight(0x8ea7ff, 1.8));

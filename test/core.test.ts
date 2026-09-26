@@ -355,3 +355,77 @@ test("gives every scene an orthographic camera matching its logical frame", () =
   assert.equal(scene.camera.initialState.cameraViewHeight, 9);
   assert.equal(scene.camera.initialState.cameraTargetZ, 0);
 });
+
+test("provides Murali-parity camera geometry and orthographic framing helpers", () => {
+  class EmptyScene extends Scene {
+    override construct(): void {}
+  }
+
+  const scene = new EmptyScene({ width: 1600, height: 800, viewWidth: 16 });
+  scene.camera.position([3, -2, 10]).lookAt([3, -2, 0]).viewWidth(20);
+  assert.deepEqual(scene.camera.forward(), [0, 0, -1]);
+  assert.deepEqual(scene.camera.right(), [1, 0, 0]);
+  assert.equal(scene.camera.initialState.cameraViewHeight, 10);
+  assert.deepEqual(scene.camera.frameBoundsAtZ(0), {
+    min: [-7, -7],
+    max: [13, 3],
+    width: 20,
+    height: 10,
+    center: [3, -2],
+  });
+
+  scene.camera.zoomIn(2);
+  assert.equal(scene.camera.frameBoundsAtZ(0)?.width, 10);
+  scene.camera.zoomOut(2);
+  assert.equal(scene.camera.frameBoundsAtZ(0)?.width, 20);
+});
+
+test("computes perspective layout-plane bounds and validates camera configuration", () => {
+  class PerspectiveScene extends Scene {
+    override construct(): void {}
+  }
+
+  const scene = new PerspectiveScene({ width: 1600, height: 800 });
+  scene.camera
+    .perspective({ fov: 90 })
+    .position([0, 0, 10])
+    .lookAt([0, 0, 0])
+    .clipping(0.1, 100);
+  const bounds = scene.camera.frameBoundsAtZ(0);
+  assert.ok(bounds);
+  assert.ok(Math.abs(bounds.width - 40) < 1e-10);
+  assert.ok(Math.abs(bounds.height - 20) < 1e-10);
+  assert.throws(() => scene.camera.clipping(-1, 100), /near < far/);
+
+  const invalidProjection = new Timeline();
+  invalidProjection.animate(scene.camera).to({ cameraProjection: "orthographic" });
+  assert.throws(() => scene.play(invalidProjection), /configured immediately/);
+});
+
+test("places objects at perspective camera edges on their world Z plane", () => {
+  class PerspectiveLayoutScene extends Scene {
+    override construct(): void {}
+  }
+
+  const scene = new PerspectiveLayoutScene({ width: 1600, height: 800 });
+  scene.camera.perspective({ fov: 90 }).position([0, 0, 10]).lookAt([0, 0, 0]);
+  const square = Square().size(2).at([0, 0, 0]);
+  scene.toEdge(square, "right", { margin: 1 });
+  assert.ok(Math.abs(square.initialState.x - 18) < 1e-10);
+
+  const overlay = Square().size(2).depthMode("overlay");
+  scene.toEdge(overlay, "right", { margin: 1 });
+  assert.equal(overlay.initialState.x, 6);
+
+  scene.camera.position([10, 0, 0]).lookAt([0, 0, 0]);
+  assert.equal(scene.camera.frameBoundsAtZ(0), undefined);
+  assert.throws(() => scene.toEdge(square, "right"), /Cannot place/);
+});
+
+test("separates world depth from painter-order overlay layers", () => {
+  const object = Circle().at([0, 0, 5]).layer(42).depthMode("overlay");
+  assert.equal(object.initialState.z, 5);
+  assert.equal(object.renderLayer, 42);
+  assert.equal(object.depthModeValue, "overlay");
+  assert.throws(() => object.layer(Number.NaN), /Layer must be finite/);
+});

@@ -52,9 +52,17 @@ export interface OrthographicCameraOptions {
   far?: number;
 }
 
+export interface CameraFrameBounds {
+  min: readonly [number, number];
+  max: readonly [number, number];
+  width: number;
+  height: number;
+  center: readonly [number, number];
+}
+
 /** The scene-owned, deterministically sampled camera. */
 export class SceneCamera extends Tattva<Camera3DState> {
-  constructor(viewHeight: number) {
+  constructor(viewHeight: number, private readonly frameAspect: number) {
     super({
       id: "venu-scene-camera",
       state: Camera3D.orthographic({ viewHeight })
@@ -75,7 +83,10 @@ export class SceneCamera extends Tattva<Camera3DState> {
   }
 
   orthographic(options: OrthographicCameraOptions = {}): this {
-    const projection = Camera3D.orthographic(options).toState();
+    const projection = Camera3D.orthographic({
+      ...options,
+      viewHeight: options.viewHeight ?? this.initialState.cameraViewHeight,
+    }).toState();
     return this.setInitial({
       cameraProjection: projection.cameraProjection,
       cameraViewHeight: projection.cameraViewHeight,
@@ -98,6 +109,95 @@ export class SceneCamera extends Tattva<Camera3DState> {
 
   zoom(cameraZoom: number): this {
     return this.setInitial({ cameraZoom: positive(cameraZoom, "Camera zoom") });
+  }
+
+  fov(cameraFov: number): this {
+    return this.setInitial({
+      cameraFov: range(cameraFov, 0.1, 179, "Camera field of view"),
+    });
+  }
+
+  viewHeight(cameraViewHeight: number): this {
+    return this.setInitial({
+      cameraViewHeight: positive(cameraViewHeight, "Orthographic view height"),
+    });
+  }
+
+  viewWidth(cameraViewWidth: number): this {
+    return this.viewHeight(positive(cameraViewWidth, "Orthographic view width") / this.frameAspect);
+  }
+
+  clipping(cameraNear: number, cameraFar: number): this {
+    const builder = new Camera3DBuilder(this.initialState.cameraProjection)
+      .clipping(cameraNear, cameraFar);
+    const clipping = builder.toState();
+    return this.setInitial({ cameraNear: clipping.cameraNear, cameraFar: clipping.cameraFar });
+  }
+
+  zoomIn(factor: number): this {
+    return this.zoom(this.initialState.cameraZoom * positive(factor, "Camera zoom factor"));
+  }
+
+  zoomOut(factor: number): this {
+    return this.zoom(this.initialState.cameraZoom / positive(factor, "Camera zoom factor"));
+  }
+
+  forward(): Vec3 {
+    return normalize([
+      this.initialState.cameraTargetX - this.initialState.cameraX,
+      this.initialState.cameraTargetY - this.initialState.cameraY,
+      this.initialState.cameraTargetZ - this.initialState.cameraZ,
+    ], "Camera position and target must differ");
+  }
+
+  right(): Vec3 {
+    return normalize(cross(this.forward(), [
+      this.initialState.cameraUpX,
+      this.initialState.cameraUpY,
+      this.initialState.cameraUpZ,
+    ]), "Camera up direction must not be parallel to its view direction");
+  }
+
+  frameBoundsAtZ(planeZ = 0): CameraFrameBounds | undefined {
+    if (!Number.isFinite(planeZ)) throw new Error(`Camera plane Z must be finite; received ${planeZ}.`);
+    const state = this.initialState;
+    const position: Vec3 = [state.cameraX, state.cameraY, state.cameraZ];
+    const forward = this.forward();
+    const right = this.right();
+    const cameraUp = normalize(cross(right, forward), "Camera up direction is invalid");
+    const halfHeight = state.cameraProjection === "orthographic"
+      ? state.cameraViewHeight / (2 * state.cameraZoom)
+      : Math.tan(state.cameraFov * Math.PI / 360) * state.cameraZoom ** -1;
+    const halfWidth = halfHeight * this.frameAspect;
+    const points: Array<readonly [number, number]> = [];
+
+    for (const [horizontal, vertical] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
+      const offset = add(scale(right, horizontal * halfWidth), scale(cameraUp, vertical * halfHeight));
+      const origin = state.cameraProjection === "orthographic" ? add(position, offset) : position;
+      const direction = state.cameraProjection === "orthographic"
+        ? forward
+        : normalize(add(forward, offset), "Camera corner ray is invalid");
+      if (Math.abs(direction[2]) <= Number.EPSILON) return undefined;
+      const distance = (planeZ - origin[2]) / direction[2];
+      if (!Number.isFinite(distance)) return undefined;
+      const intersection = add(origin, scale(direction, distance));
+      points.push([intersection[0], intersection[1]]);
+    }
+
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    if (maxX - minX <= Number.EPSILON || maxY - minY <= Number.EPSILON) return undefined;
+    return {
+      min: [minX, minY],
+      max: [maxX, maxY],
+      width: maxX - minX,
+      height: maxY - minY,
+      center: [(minX + maxX) / 2, (minY + maxY) / 2],
+    };
   }
 }
 
@@ -191,4 +291,31 @@ function range(value: number, minimum: number, maximum: number, label: string): 
     throw new Error(`${label} must be between ${minimum} and ${maximum}; received ${value}.`);
   }
   return value;
+}
+
+function add(left: Vec3, right: Vec3): Vec3 {
+  return [left[0] + right[0], left[1] + right[1], left[2] + right[2]];
+}
+
+function scale(vector: Vec3, factor: number): Vec3 {
+  return [vector[0] * factor, vector[1] * factor, vector[2] * factor];
+}
+
+function cross(left: Vec3, right: Vec3): Vec3 {
+  return [
+    left[1] * right[2] - left[2] * right[1],
+    left[2] * right[0] - left[0] * right[2],
+    left[0] * right[1] - left[1] * right[0],
+  ];
+}
+
+function normalize(vector: Vec3, message: string): Vec3 {
+  const length = Math.hypot(...vector);
+  if (!Number.isFinite(length) || length <= Number.EPSILON) throw new Error(message);
+  const normalized = scale(vector, 1 / length);
+  return [
+    Math.abs(normalized[0]) <= Number.EPSILON ? 0 : normalized[0],
+    Math.abs(normalized[1]) <= Number.EPSILON ? 0 : normalized[1],
+    Math.abs(normalized[2]) <= Number.EPSILON ? 0 : normalized[2],
+  ];
 }

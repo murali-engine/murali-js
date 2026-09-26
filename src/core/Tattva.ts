@@ -18,6 +18,7 @@ export interface TattvaState {
 }
 
 export type RevealKind = "none" | "text" | "path";
+export type DepthMode = "world" | "overlay";
 
 export interface TattvaOptions<State extends TattvaState = TattvaState> {
   id?: string;
@@ -53,6 +54,8 @@ export class Tattva<State extends TattvaState = TattvaState> {
   worldFontSize?: number;
   colorProperty: "color" | "background" = "color";
   revealKind: RevealKind = "none";
+  renderLayer = 0;
+  depthModeValue: DepthMode = "world";
 
   constructor(options: TattvaOptions<State> = {}) {
     this.id = options.id ?? `tattva-${++tattvaSequence}`;
@@ -95,7 +98,14 @@ export class Tattva<State extends TattvaState = TattvaState> {
   }
 
   layer(value: number): this {
-    return this.setInitial({ z: value } as Partial<State>);
+    if (!Number.isFinite(value)) throw new Error(`Layer must be finite; received ${value}.`);
+    this.renderLayer = value;
+    return this;
+  }
+
+  depthMode(value: DepthMode): this {
+    this.depthModeValue = value;
+    return this;
   }
 
   css(styles: CSSStyles): this {

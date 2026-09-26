@@ -265,6 +265,19 @@ timeline.animateCamera(this.camera)
 
 Perspective and orthographic projections are built in. Root DOM-family objects are projected as world-space planes; nested children retain local transforms. Three.js surfaces remain viewports and render their geometry through the scene camera. Camera terminal verbs include `frameTo`, `moveTo`, `lookAt`, `orbitTo`, `zoomTo`, `fovTo`, and `viewHeightTo`. Camera values are ordinary deterministic scene state, so preview scrubbing and exported frames resolve the same viewpoint.
 
+Static camera configuration includes `position`, `lookAt`, `up`, `fov`, `viewHeight`, `viewWidth`, `clipping`, `zoom`, `zoomIn`, and `zoomOut`. Camera geometry helpers include `forward()`, `right()`, and `frameBoundsAtZ(z)`. Scene edge layout uses those plane bounds, including under perspective projection.
+
+World objects participate in camera projection and clipping by default. Titles and UI that must remain fixed to the output frame opt into overlay depth:
+
+```ts
+const title = Label("Fixed title")
+  .depthMode("overlay")
+  .layer(1000);
+scene.toEdge(title, "up");
+```
+
+Projection mode is configured immediately with `perspective()` or `orthographic()`; it is not interpolated as a discrete timeline value. Animate numeric camera properties instead. DOM planes and WebGL geometry use the same camera but remain separate browser compositing surfaces, so they cannot geometrically intersect across that boundary.
+
 ## Compatibility stance
 
 Feature parity means equivalent semantic capability, timing, and composition—not identical internals. Browser-native CSS may intentionally produce a better implementation than the original GPU path. Every deliberate difference must be documented in the parity ledger.

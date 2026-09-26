@@ -56,7 +56,7 @@ export abstract class Scene {
     this.viewWidth = options.viewWidth ?? frame.viewWidth;
     this.fps = options.fps ?? 30;
     this.background = options.background ?? "#080b12";
-    this.camera = new SceneCamera(this.viewHeight);
+    this.camera = new SceneCamera(this.viewHeight, this.width / this.height);
   }
 
   abstract construct(): void;
@@ -109,12 +109,19 @@ export abstract class Scene {
   ): T {
     const margin = options.margin ?? 0.5;
     const size = tattva.getLayoutSize();
-    const x = this.viewWidth / 2 - margin - size.width / 2;
-    const y = this.viewHeight / 2 - margin - size.height / 2;
-    if (edge === "left") tattva.at([-x, tattva.initialState.y]);
-    if (edge === "right") tattva.at([x, tattva.initialState.y]);
-    if (edge === "up") tattva.at([tattva.initialState.x, y]);
-    if (edge === "down") tattva.at([tattva.initialState.x, -y]);
+    const bounds = tattva.depthModeValue === "overlay"
+      ? {
+          min: [-this.viewWidth / 2, -this.viewHeight / 2] as const,
+          max: [this.viewWidth / 2, this.viewHeight / 2] as const,
+        }
+      : this.camera.frameBoundsAtZ(tattva.initialState.z);
+    if (!bounds) {
+      throw new Error(`Cannot place ${tattva.id} at a camera edge on Z=${tattva.initialState.z}.`);
+    }
+    if (edge === "left") tattva.at([bounds.min[0] + margin + size.width / 2, tattva.initialState.y, tattva.initialState.z]);
+    if (edge === "right") tattva.at([bounds.max[0] - margin - size.width / 2, tattva.initialState.y, tattva.initialState.z]);
+    if (edge === "up") tattva.at([tattva.initialState.x, bounds.max[1] - margin - size.height / 2, tattva.initialState.z]);
+    if (edge === "down") tattva.at([tattva.initialState.x, bounds.min[1] + margin + size.height / 2, tattva.initialState.z]);
     return tattva;
   }
 
@@ -152,6 +159,11 @@ export abstract class Scene {
   play(timeline: Timeline): this {
     const animations = [...timeline.animations].sort((left, right) => left.start - right.start);
     for (const animation of animations) {
+      if (animation.tattva === this.camera && "cameraProjection" in animation.to) {
+        throw new Error(
+          "Camera projection mode is configured immediately; animate numeric camera properties instead.",
+        );
+      }
       if (animation.tattva !== this.camera) this.add(animation.tattva);
       const start = this.cursor + animation.start;
       const stateAtStart = this.sampleTattvaAt(animation.tattva, start);

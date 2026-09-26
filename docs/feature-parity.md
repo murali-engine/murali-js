@@ -40,7 +40,7 @@ Status values:
 | Clips: sequential/overlap/explicit placement | partial | 6 |
 | `callAt` and `callDuring` | planned | 7 |
 | Seeking and reverse sampling | partial | 2 |
-| Scene-owned camera and camera animation | partial | 9 |
+| Scene-owned camera and camera animation | parity | 9 |
 
 ## Styling and browser capabilities
 
@@ -122,3 +122,9 @@ A capability reaches `parity` only when it has:
 3. A runnable Venu reference example.
 4. A comparison against the corresponding Murali example.
 5. Documented intentional platform differences.
+
+## Camera parity comparison
+
+Venu's scene camera matches Murali's camera model: orthographic projection by default, opt-in perspective, frame-aware aspect, position/target/up vectors, forward/right helpers, visible bounds on a world Z plane, orthographic zoom, and deterministic `frameTo`, `moveTo`, `lookAt`, `zoomTo`, and `fovTo` animation. `toEdge` resolves against the camera intersection at the object's Z plane. World and overlay depth modes are distinct.
+
+The runnable comparison is `examples/three-camera.ts`, corresponding to Murali's perspective surface and curve examples. It combines camera-animated Three.js geometry, a CSS label projected in world space, and a fixed overlay label. Venu expresses FOV in degrees rather than Murali's radians because degrees match Three.js and CSS-facing JavaScript APIs. Projection-mode changes are immediate configuration; numeric camera properties are the animatable surface. Browser DOM planes and WebGL geometry share camera state but remain separate compositing surfaces, so cross-surface geometric intersection is intentionally unsupported.

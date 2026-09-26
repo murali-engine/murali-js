@@ -1,8 +1,10 @@
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import {
+  Matrix4,
   OrthographicCamera,
   PerspectiveCamera,
+  Quaternion,
   Scene as ThreeScene,
   Vector3,
   WebGLRenderer,
@@ -53,58 +55,95 @@ function applyCSS(element: HTMLElement, styles: CSSStyles): void {
   }
 }
 
-function applyFrame(
+function applyOverlayFrame(
   wrapper: HTMLElement,
   content: HTMLElement,
   state: TattvaState,
   pixelsPerUnit: number,
-  camera?: Camera,
-  frame?: { width: number; height: number },
 ): void {
-  if (camera && frame) {
-    const radians = state.rotation * Math.PI / 180;
-    const unit = state.scale / pixelsPerUnit;
-    const origin = projectToFrame(camera, state.x, state.y, state.z, frame);
-    const xAxis = projectToFrame(
-      camera,
-      state.x + Math.cos(radians) * unit,
-      state.y + Math.sin(radians) * unit,
-      state.z,
-      frame,
-    );
-    const yAxis = projectToFrame(
-      camera,
-      state.x + Math.sin(radians) * unit,
-      state.y - Math.cos(radians) * unit,
-      state.z,
-      frame,
-    );
-    const a = xAxis.x - origin.x;
-    const b = xAxis.y - origin.y;
-    const c = yAxis.x - origin.x;
-    const d = yAxis.y - origin.y;
-    wrapper.style.transform = `translate(-50%, -50%) matrix(${a}, ${b}, ${c}, ${d}, ${origin.x}, ${origin.y})`;
-  } else {
-    wrapper.style.transform = `translate(-50%, -50%) translate(${state.x * pixelsPerUnit}px, ${-state.y * pixelsPerUnit}px) scale(${state.scale}) rotate(${-state.rotation}deg)`;
-  }
+  wrapper.style.left = "50%";
+  wrapper.style.top = "50%";
+  wrapper.style.visibility = "visible";
+  wrapper.style.transform = `translate(-50%, -50%) translate(${state.x * pixelsPerUnit}px, ${-state.y * pixelsPerUnit}px) scale(${state.scale}) rotate(${-state.rotation}deg)`;
   wrapper.style.opacity = String(state.opacity);
-  wrapper.style.zIndex = String(state.z);
   if (typeof state.color === "string") content.style.color = state.color;
   if (typeof state.background === "string") content.style.background = state.background;
 }
 
-function projectToFrame(
+function applyWorldFrame(
+  wrapper: HTMLElement,
+  content: HTMLElement,
+  state: TattvaState,
+  pixelsPerUnit: number,
   camera: Camera,
-  x: number,
-  y: number,
-  z: number,
-  frame: { width: number; height: number },
-): { x: number; y: number } {
-  const projected = new Vector3(x, y, z).project(camera);
-  return {
-    x: projected.x * frame.width / 2,
-    y: -projected.y * frame.height / 2,
-  };
+): void {
+  const position = new Vector3(
+    state.x * pixelsPerUnit,
+    state.y * pixelsPerUnit,
+    state.z * pixelsPerUnit,
+  );
+  const rotation = new Quaternion().setFromAxisAngle(
+    new Vector3(0, 0, 1),
+    state.rotation * Math.PI / 180,
+  );
+  const objectMatrix = new Matrix4().compose(
+    position,
+    rotation,
+    new Vector3(state.scale, state.scale, state.scale),
+  );
+  const projected = new Vector3(state.x, state.y, state.z).project(camera);
+  const visible = Number.isFinite(projected.z) && projected.z >= -1 && projected.z <= 1;
+  wrapper.style.left = "0";
+  wrapper.style.top = "0";
+  wrapper.style.visibility = visible ? "visible" : "hidden";
+  wrapper.style.transform = objectCSSMatrix(objectMatrix);
+  wrapper.style.opacity = String(state.opacity);
+  if (typeof state.color === "string") content.style.color = state.color;
+  if (typeof state.background === "string") content.style.background = state.background;
+}
+
+function applyWorldCamera(
+  element: HTMLElement,
+  camera: Camera,
+  width: number,
+  height: number,
+): void {
+  const fov = camera.projectionMatrix.elements[5] * height / 2;
+  let cameraTransform: string;
+  let perspective = "";
+  if (camera instanceof OrthographicCamera) {
+    const tx = -(camera.right + camera.left) / 2;
+    const ty = (camera.top + camera.bottom) / 2;
+    cameraTransform = `scale(${fov}) translate(${clean(tx)}px, ${clean(ty)}px)${cameraCSSMatrix(camera.matrixWorldInverse)}`;
+  } else {
+    perspective = `perspective(${fov}px) `;
+    cameraTransform = `translateZ(${fov}px)${cameraCSSMatrix(camera.matrixWorldInverse)}`;
+  }
+  element.style.transform = `${perspective}${cameraTransform} translate(${width / 2}px, ${height / 2}px)`;
+}
+
+function cameraCSSMatrix(matrix: Matrix4): string {
+  const elements = matrix.elements;
+  return `matrix3d(${[
+    elements[0], -elements[1], elements[2], elements[3],
+    elements[4], -elements[5], elements[6], elements[7],
+    elements[8], -elements[9], elements[10], elements[11],
+    elements[12], -elements[13], elements[14], elements[15],
+  ].map(clean).join(",")})`;
+}
+
+function objectCSSMatrix(matrix: Matrix4): string {
+  const elements = matrix.elements;
+  return `translate(-50%, -50%) matrix3d(${[
+    elements[0], elements[1], elements[2], elements[3],
+    -elements[4], -elements[5], -elements[6], -elements[7],
+    elements[8], elements[9], elements[10], elements[11],
+    elements[12], elements[13], elements[14], elements[15],
+  ].map(clean).join(",")})`;
+}
+
+function clean(value: number): number {
+  return Math.abs(value) < 1e-10 ? 0 : value;
 }
 
 function applyReveal(item: MountedObject, state: TattvaState): void {
@@ -178,6 +217,21 @@ function applyThreeCamera(camera: Camera, state: Camera3DState, aspect: number):
   return camera;
 }
 
+function scaledCameraState(state: Camera3DState, pixelsPerUnit: number): Camera3DState {
+  return {
+    ...state,
+    cameraX: state.cameraX * pixelsPerUnit,
+    cameraY: state.cameraY * pixelsPerUnit,
+    cameraZ: state.cameraZ * pixelsPerUnit,
+    cameraTargetX: state.cameraTargetX * pixelsPerUnit,
+    cameraTargetY: state.cameraTargetY * pixelsPerUnit,
+    cameraTargetZ: state.cameraTargetZ * pixelsPerUnit,
+    cameraNear: state.cameraNear * pixelsPerUnit,
+    cameraFar: state.cameraFar * pixelsPerUnit,
+    cameraViewHeight: state.cameraViewHeight * pixelsPerUnit,
+  };
+}
+
 function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: number): MountedObject {
   const wrapper = document.createElement("div");
   const content = document.createElement(tattva.tag);
@@ -239,6 +293,35 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
   const aspect = scene.width / scene.height;
   let sceneCamera: Camera = createThreeCamera(scene.camera.initialState, aspect);
   sceneCamera = applyThreeCamera(sceneCamera, scene.camera.initialState, aspect);
+  let cssCamera: Camera = createThreeCamera(
+    scaledCameraState(scene.camera.initialState, pixelsPerUnit),
+    aspect,
+  );
+  cssCamera = applyThreeCamera(
+    cssCamera,
+    scaledCameraState(scene.camera.initialState, pixelsPerUnit),
+    aspect,
+  );
+  const worldLayer = document.createElement("div");
+  worldLayer.dataset.venuLayer = "world";
+  Object.assign(worldLayer.style, {
+    position: "absolute",
+    left: "0",
+    top: "0",
+    width: `${scene.width}px`,
+    height: `${scene.height}px`,
+    transformStyle: "preserve-3d",
+    pointerEvents: "none",
+  });
+  const overlayLayer = document.createElement("div");
+  overlayLayer.dataset.venuLayer = "overlay";
+  Object.assign(overlayLayer.style, {
+    position: "absolute",
+    inset: "0",
+    zIndex: "2147480000",
+    pointerEvents: "none",
+  });
+  stage.append(worldLayer, overlayLayer);
   const mounted: MountedObject[] = [];
   const mountTree = (tattva: Tattva<any>, container: HTMLElement): void => {
     const item = mountDom(tattva, container, pixelsPerUnit);
@@ -256,27 +339,37 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
     }
     tattva.children.forEach((child) => mountTree(child, item.content));
   };
-  scene.tattvas.forEach((tattva) => mountTree(tattva, stage));
+  scene.tattvas.forEach((tattva) => {
+    const container = tattva.kind === "three"
+      ? stage
+      : tattva.depthModeValue === "overlay"
+        ? overlayLayer
+        : worldLayer;
+    mountTree(tattva, container);
+  });
+  stage.appendChild(overlayLayer);
 
   const renderFrame = (time: number) => {
     const states = scene.sampleAt(time);
     const styles = scene.sampleStylesAt(time);
     const cameraState = states.get(scene.camera) as Camera3DState;
     sceneCamera = applyThreeCamera(sceneCamera, cameraState, aspect);
+    cssCamera = applyThreeCamera(cssCamera, scaledCameraState(cameraState, pixelsPerUnit), aspect);
+    applyWorldCamera(worldLayer, cssCamera, scene.width, scene.height);
     for (const item of mounted) {
       const state = states.get(item.tattva);
       if (!state) continue;
       const style = styles.get(item.tattva);
       if (style) applyCSS(item.content, style);
-      const projectAsWorldPlane = !item.tattva.parent && item.tattva.kind !== "three";
-      applyFrame(
-        item.wrapper,
-        item.content,
-        state,
-        pixelsPerUnit,
-        projectAsWorldPlane ? sceneCamera : undefined,
-        projectAsWorldPlane ? { width: scene.width, height: scene.height } : undefined,
-      );
+      const projectAsWorldPlane = !item.tattva.parent
+        && item.tattva.kind !== "three"
+        && item.tattva.depthModeValue === "world";
+      if (projectAsWorldPlane) {
+        applyWorldFrame(item.wrapper, item.content, state, pixelsPerUnit, sceneCamera);
+      } else {
+        applyOverlayFrame(item.wrapper, item.content, state, pixelsPerUnit);
+      }
+      item.wrapper.style.zIndex = String(item.tattva.renderLayer);
       applyReveal(item, state);
       if (item.reactRoot) {
         const component = item.tattva as ReactTattva;
