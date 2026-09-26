@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium } from "playwright-core";
 import { resolve } from "node:path";
 import { bundleScene } from "./bundle.ts";
 import { createEncoder } from "./encode.ts";
@@ -15,7 +15,7 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
   try {
     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
     await page.setContent(`<!doctype html><html><head><style>*{box-sizing:border-box}html,body{margin:0;overflow:hidden}#stage{position:relative;overflow:hidden}</style></head><body><div id="stage"></div></body></html>`);
-    await page.addScriptTag({ content: bundle });
+    await page.addScriptTag({ content: bundle, type: "module" });
     await page.waitForFunction(() => window.__venuReady === true);
     const metadata = await page.evaluate(() => window.__venu);
     if (!metadata) throw new Error("Scene runtime did not expose metadata.");

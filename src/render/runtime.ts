@@ -27,6 +27,7 @@ declare global {
       renderFrame: (time: number) => void;
     };
     __venuReady?: boolean;
+    __venuSceneClass?: new () => Scene;
   }
 }
 

@@ -8,11 +8,12 @@ import {
   SetColor,
   Text,
   easeOutCubic,
-} from "../src/index.ts";
+  render,
+} from "venu";
 
-export default class HelloScene extends Scene {
+class BasicScene extends Scene {
   constructor() {
-    super({ width: 1280, height: 720, fps: 30, background: "#070b16" });
+    super({ width: 1280, height: 720, background: "#070b16" });
   }
 
   override construct(): void {
@@ -52,3 +53,10 @@ export default class HelloScene extends Scene {
     this.play(FadeOut(title, { duration: 0.45 }), FadeOut(detail, { duration: 0.45 }), Scale(glow, 0.82, { duration: 0.45 }));
   }
 }
+
+render(import.meta.url, BasicScene, {
+  onProgress(completed, total) {
+    process.stdout.write(`\rRendering ${completed}/${total} frames`);
+    if (completed === total) process.stdout.write("\n");
+  },
+});

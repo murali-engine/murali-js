@@ -6,3 +6,5 @@ export * from "./core/ReactMobject.ts";
 export * from "./core/Scene.ts";
 export * from "./core/ThreeMobject.ts";
 export * from "./mobjects/shapes.ts";
+export * from "./render/render.ts";
+export type { RenderOverrides } from "./render/config.ts";

@@ -1,13 +1,13 @@
 import * as THREE from "three";
-import { Animate, Scene, ThreeMobject } from "../src/index.ts";
-import type { MobjectState } from "../src/index.ts";
+import { Animate, Scene, ThreeMobject, render } from "venu";
+import type { MobjectState } from "venu";
 
 interface OrbitState extends MobjectState {
   angle: number;
   radius: number;
 }
 
-export default class ThreeCameraScene extends Scene {
+class ThreeCameraScene extends Scene {
   constructor() {
     super({ width: 1280, height: 720, background: "#020617" });
   }
@@ -48,3 +48,5 @@ export default class ThreeCameraScene extends Scene {
     this.play(Animate(world, { angle: 1.2, radius: 7 }, { duration: 4 }));
   }
 }
+
+render(import.meta.url, ThreeCameraScene, { fps: 24 });

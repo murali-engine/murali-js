@@ -1,13 +1,16 @@
 import { build } from "esbuild";
-import { dirname, resolve } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export async function bundleScene(scenePath: string): Promise<string> {
   const absoluteScene = resolve(scenePath);
-  const runtimePath = resolve(dirname(fileURLToPath(import.meta.url)), "runtime.ts");
+  const bundlePath = fileURLToPath(import.meta.url);
+  const runtimePath = resolve(dirname(bundlePath), `runtime${extname(bundlePath)}`);
   const source = `
-    import SceneClass from ${JSON.stringify(absoluteScene)};
+    import * as sceneModule from ${JSON.stringify(absoluteScene)};
     import { mountAndExpose } from ${JSON.stringify(runtimePath)};
+    const SceneClass = window.__venuSceneClass ?? Reflect.get(sceneModule, "default");
+    if (!SceneClass) throw new Error("The scene file must call render(import.meta.url, SceneClass, options) or export a default Scene class.");
     mountAndExpose(SceneClass);
   `;
   const result = await build({
@@ -15,7 +18,7 @@ export async function bundleScene(scenePath: string): Promise<string> {
     bundle: true,
     write: false,
     platform: "browser",
-    format: "iife",
+    format: "esm",
     target: "chrome120",
     jsx: "automatic",
   });

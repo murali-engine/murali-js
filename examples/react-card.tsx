@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
-import { Animate, FadeIn, Move, ReactMobject, Scene } from "../src/index.ts";
-import type { MobjectState } from "../src/index.ts";
+import { Animate, FadeIn, Move, ReactMobject, Scene, render } from "venu";
+import type { MobjectState } from "venu";
 
 interface CardState extends MobjectState {
   progress: number;
@@ -17,7 +17,7 @@ const cardStyle: CSSProperties = {
   fontFamily: "Inter, system-ui, sans-serif",
 };
 
-export default class ReactCardScene extends Scene {
+class ReactCardScene extends Scene {
   constructor() {
     super({ width: 1280, height: 720, background: "#020617" });
   }
@@ -40,3 +40,5 @@ export default class ReactCardScene extends Scene {
     this.wait(0.5);
   }
 }
+
+render(import.meta.url, ReactCardScene);

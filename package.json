@@ -3,18 +3,38 @@
   "version": "0.1.0",
   "description": "Deterministic, code-first scene authoring and video rendering for the web.",
   "type": "module",
-  "bin": { "venu": "./src/cli.ts" },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/browser.js",
+      "import": "./dist/index.js"
+    },
+    "./render": {
+      "types": "./dist/render/index.d.ts",
+      "import": "./dist/render/index.js"
+    }
+  },
+  "bin": { "venu": "./dist/cli.js" },
+  "files": ["dist", "README.md"],
+  "workspaces": ["examples"],
   "scripts": {
-    "render": "tsx src/cli.ts render",
-    "example": "tsx src/cli.ts example",
+    "build": "tsc -p tsconfig.build.json",
+    "render": "npm run build --silent && node dist/cli.js render",
+    "example": "npm run build --silent && node scripts/run-example.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/**/*.test.ts"
+    "test": "tsx --test test/**/*.test.ts",
+    "test:package": "node scripts/package-smoke.mjs",
+    "prepare": "npm run build",
+    "prepack": "npm run build && npm test"
   },
   "dependencies": {
+    "@playwright/browser-chromium": "1.55.1",
     "commander": "^14.0.1",
     "esbuild": "^0.25.10",
     "ffmpeg-static": "^5.2.0",
-    "playwright": "^1.55.1",
+    "playwright-core": "1.55.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "three": "^0.180.0"

@@ -1,0 +1,16 @@
+{
+  "name": "@venu/examples",
+  "private": true,
+  "type": "module",
+  "scripts": { "render": "tsx" },
+  "dependencies": {
+    "react": "^19.1.1",
+    "three": "^0.180.0",
+    "venu": "file:.."
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.16",
+    "@types/three": "^0.180.0",
+    "tsx": "^4.20.5"
+  }
+}

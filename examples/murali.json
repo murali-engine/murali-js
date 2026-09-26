@@ -1,0 +1,6 @@
+{
+  "render": {
+    "outputDir": "./output",
+    "fps": 30
+  }
+}
