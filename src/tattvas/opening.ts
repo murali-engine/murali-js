@@ -104,6 +104,9 @@ interface OpeningRuntime {
   letters: RuntimeLetter[];
 }
 
+const GLYPH_ALPHA_TEST = 0.08;
+const GLYPH_ALPHA_THRESHOLD = Math.round(GLYPH_ALPHA_TEST * 255);
+
 /** Configurable 3D title opening with deterministic landing, shake, particle dissolve, and tagline reveal. */
 export function Opening(title: string, tagline: string): OpeningBuilder {
   return new OpeningBuilder(title, tagline);
@@ -289,22 +292,44 @@ function createRuntime(
     map.colorSpace = THREE.SRGBColorSpace;
     map.needsUpdate = true;
     const solid = new THREE.Group();
-    const layers = Math.max(3, Math.min(14, Math.round(style.letterDepth / 0.09)));
-    for (let layer = layers - 1; layer >= 0; layer -= 1) {
-      const front = layer === 0;
-      const depth = -style.letterDepth * layer / Math.max(1, layers - 1);
-      const material = new THREE.MeshBasicMaterial({
-        map,
-        color: front ? style.frontColor : layer === layers - 1 ? style.backColor : style.sideColor,
-        transparent: true,
-        alphaTest: 0.08,
-        side: THREE.DoubleSide,
-        depthWrite: true,
-      });
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(slot.width, style.letterHeight), material);
-      plane.position.z = depth;
-      solid.add(plane);
-    }
+    const faceGeometry = new THREE.PlaneGeometry(slot.width, style.letterHeight);
+    const front = new THREE.Mesh(faceGeometry, new THREE.MeshBasicMaterial({
+      map,
+      color: style.frontColor,
+      alphaTest: GLYPH_ALPHA_TEST,
+      side: THREE.FrontSide,
+      depthWrite: true,
+    }));
+    const back = new THREE.Mesh(faceGeometry, new THREE.MeshBasicMaterial({
+      map,
+      color: style.backColor,
+      alphaTest: GLYPH_ALPHA_TEST,
+      side: THREE.FrontSide,
+      depthWrite: true,
+    }));
+    back.position.z = -style.letterDepth;
+    back.rotation.y = Math.PI;
+
+    const image = glyph.getContext("2d", { willReadFrequently: true })
+      ?.getImageData(0, 0, glyph.width, glyph.height);
+    if (!image) throw new Error("Opening requires glyph image data for 3D extrusion.");
+    const sideGeometry = new THREE.BufferGeometry();
+    sideGeometry.setAttribute("position", new THREE.Float32BufferAttribute(extrudedMaskSidePositions(
+      image.data,
+      image.width,
+      image.height,
+      slot.width,
+      style.letterHeight,
+      style.letterDepth,
+      GLYPH_ALPHA_THRESHOLD,
+    ), 3));
+    sideGeometry.computeVertexNormals();
+    const sides = new THREE.Mesh(sideGeometry, new THREE.MeshBasicMaterial({
+      color: style.sideColor,
+      side: THREE.DoubleSide,
+      depthWrite: true,
+    }));
+    solid.add(front, back, sides);
     scene.add(solid);
 
     const particleData = glyphParticles(glyph, slot, style);
@@ -333,6 +358,65 @@ function createRuntime(
     };
   });
   return { letters };
+}
+
+/**
+ * Build opaque walls around an RGBA glyph mask. Unlike stacked alpha planes,
+ * these quads join the front and back faces into one continuous extrusion.
+ */
+export function extrudedMaskSidePositions(
+  rgba: ArrayLike<number>,
+  pixelWidth: number,
+  pixelHeight: number,
+  worldWidth: number,
+  worldHeight: number,
+  depth: number,
+  alphaThreshold = GLYPH_ALPHA_THRESHOLD,
+): Float32Array {
+  if (!Number.isInteger(pixelWidth) || pixelWidth <= 0 || !Number.isInteger(pixelHeight) || pixelHeight <= 0) {
+    throw new Error(`Opening glyph mask dimensions must be positive integers; received ${pixelWidth} x ${pixelHeight}.`);
+  }
+  if (rgba.length < pixelWidth * pixelHeight * 4) {
+    throw new Error("Opening glyph mask does not contain enough RGBA pixels.");
+  }
+  positive(worldWidth, "Opening glyph world width");
+  positive(worldHeight, "Opening glyph world height");
+  positive(depth, "Opening glyph depth");
+  if (!Number.isFinite(alphaThreshold) || alphaThreshold < 0 || alphaThreshold > 255) {
+    throw new Error(`Opening glyph alpha threshold must be between 0 and 255; received ${alphaThreshold}.`);
+  }
+
+  const positions: number[] = [];
+  const filled = (x: number, y: number): boolean => x >= 0
+    && x < pixelWidth
+    && y >= 0
+    && y < pixelHeight
+    && (rgba[(y * pixelWidth + x) * 4 + 3] ?? 0) >= alphaThreshold;
+  const wall = (ax: number, ay: number, bx: number, by: number): void => {
+    positions.push(
+      ax, ay, 0,
+      bx, by, 0,
+      bx, by, -depth,
+      ax, ay, 0,
+      bx, by, -depth,
+      ax, ay, -depth,
+    );
+  };
+
+  for (let y = 0; y < pixelHeight; y += 1) {
+    const top = (0.5 - y / pixelHeight) * worldHeight;
+    const bottom = (0.5 - (y + 1) / pixelHeight) * worldHeight;
+    for (let x = 0; x < pixelWidth; x += 1) {
+      if (!filled(x, y)) continue;
+      const left = (x / pixelWidth - 0.5) * worldWidth;
+      const right = ((x + 1) / pixelWidth - 0.5) * worldWidth;
+      if (!filled(x, y - 1)) wall(left, top, right, top);
+      if (!filled(x + 1, y)) wall(right, top, right, bottom);
+      if (!filled(x, y + 1)) wall(right, bottom, left, bottom);
+      if (!filled(x - 1, y)) wall(left, bottom, left, top);
+    }
+  }
+  return new Float32Array(positions);
 }
 
 function applyOpeningTime(runtime: OpeningRuntime, time: number, style: OpeningStyle, timing: OpeningTiming): void {

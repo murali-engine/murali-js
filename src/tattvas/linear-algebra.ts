@@ -670,7 +670,7 @@ function meterLabel(a: Vec2, b: Vec2, mode: "both" | "dot" | "cosine"): string {
 }
 
 function flatten(...groups: GroupTattva[]): GroupTattva {
-  return Group(groups.flatMap((group) => [...group.children]));
+  return Group(groups.flatMap((group) => group.detachChildren()));
 }
 
 function unit(vector: Vec2): Vec2 {

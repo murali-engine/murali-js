@@ -4,6 +4,7 @@ import type { ScheduledAnimation, Timeline } from "./Timeline.ts";
 import { Tattva, type Point, type StateValue, type TattvaState } from "./Tattva.ts";
 import { interpolateCSSValue, type CSSStyles } from "./css.ts";
 import { SceneCamera } from "./Camera3D.ts";
+import { finiteNonNegative } from "./time.ts";
 
 export type FrameName = "landscape" | "portrait" | "square";
 
@@ -137,10 +138,11 @@ export abstract class Scene {
     const target = anchor.getLayoutSize();
     const x = anchor.initialState.x;
     const y = anchor.initialState.y;
-    if (direction === "left") tattva.at([x - target.width / 2 - gap - own.width / 2, y]);
-    if (direction === "right") tattva.at([x + target.width / 2 + gap + own.width / 2, y]);
-    if (direction === "up") tattva.at([x, y + target.height / 2 + gap + own.height / 2]);
-    if (direction === "down") tattva.at([x, y - target.height / 2 - gap - own.height / 2]);
+    const z = tattva.initialState.z;
+    if (direction === "left") tattva.at([x - target.width / 2 - gap - own.width / 2, y, z]);
+    if (direction === "right") tattva.at([x + target.width / 2 + gap + own.width / 2, y, z]);
+    if (direction === "up") tattva.at([x, y + target.height / 2 + gap + own.height / 2, z]);
+    if (direction === "down") tattva.at([x, y - target.height / 2 - gap - own.height / 2, z]);
     return tattva;
   }
 
@@ -193,7 +195,7 @@ export abstract class Scene {
   }
 
   wait(duration = 1): this {
-    this.cursor += Math.max(0, duration);
+    this.cursor += finiteNonNegative(duration, "Scene wait");
     return this;
   }
 
@@ -207,6 +209,7 @@ export abstract class Scene {
   }
 
   sampleAt(time: number): Map<Tattva<any>, TattvaState> {
+    finiteNonNegative(time, "Scene sample time");
     this.prepare();
     const states = new Map<Tattva<any>, TattvaState>([
       [this.camera, this.sampleTattvaAt(this.camera, time)],
@@ -218,6 +221,7 @@ export abstract class Scene {
   }
 
   sampleStylesAt(time: number): Map<Tattva<any>, CSSStyles> {
+    finiteNonNegative(time, "Scene style sample time");
     this.prepare();
     return new Map(this.allTattvas.map((tattva) => [tattva, this.sampleTattvaStyleAt(tattva, time)]));
   }

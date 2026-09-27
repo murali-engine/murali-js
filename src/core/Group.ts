@@ -16,6 +16,15 @@ export class GroupTattva extends Tattva {
 
   constructor(children: readonly Tattva[]) {
     super();
+    if (new Set(children).size !== children.length) {
+      throw new Error("A group cannot contain the same Tattva more than once.");
+    }
+    const parented = children.find((child) => child.parent !== undefined);
+    if (parented) {
+      throw new Error(
+        `Cannot add ${parented.id} to a group because it already belongs to ${parented.parent?.id}.`,
+      );
+    }
     this.children = [...children];
     for (const child of this.children) child.parent = this;
     this.recomputeBounds();
@@ -44,6 +53,18 @@ export class GroupTattva extends Tattva {
 
     this.recomputeBounds();
     return this;
+  }
+
+  /**
+   * Explicitly release this group's children so they can be placed in another group.
+   * The returned order is stable and this group becomes empty.
+   */
+  detachChildren(): readonly Tattva[] {
+    const detached = [...this.children];
+    for (const child of detached) child.parent = undefined;
+    (this.children as Tattva[]).splice(0, this.children.length);
+    this.recomputeBounds();
+    return detached;
   }
 
   recomputeBounds(): this {

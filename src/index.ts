@@ -27,6 +27,8 @@ export * from "./tattvas/tensor.ts";
 export * from "./tattvas/stepwise.ts";
 export * from "./tattvas/chat.ts";
 export * from "./tattvas/opening.ts";
+export * from "./tattvas/text3d.ts";
 export * from "./tattvas/word-cloud.ts";
+export * from "./tattvas/wave-mesh.ts";
 export * from "./render/render.ts";
 export type { RenderOverrides } from "./render/config.ts";

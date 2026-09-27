@@ -1,5 +1,6 @@
 import { Scene } from "./Scene.ts";
 import { Tattva } from "./Tattva.ts";
+import { finiteNonNegative } from "./time.ts";
 
 /** How the child clock follows the parent. `paused` stays at the local offset. */
 export type SceneViewPlayback = "continuous" | "once" | "paused" | { readonly loop: number };
@@ -16,14 +17,20 @@ export interface SceneViewClock {
 
 /** The child clock as a function of parent time. Seeking does not depend on the previous sample. */
 export function sceneViewLocalTime(clock: SceneViewClock): number {
-  const offset = Math.max(0, clock.offset);
+  const parentTime = finiteNonNegative(clock.parentTime, "Scene view parent time");
+  const startTime = finiteNonNegative(clock.startTime, "Scene view start time");
+  const offset = finiteNonNegative(clock.offset, "Scene view local-time offset");
+  const timeScale = finiteNonNegative(clock.timeScale, "Scene view time scale");
+  const childEnd = finiteNonNegative(clock.childEnd, "Scene view child end time");
   if (clock.playback === "paused") return offset;
-  const elapsed = Math.max(0, clock.parentTime - Math.max(0, clock.startTime)) * Math.max(0, clock.timeScale);
+  const elapsed = Math.max(0, parentTime - startTime) * timeScale;
   const local = offset + elapsed;
-  if (clock.playback === "once") return Math.min(local, Math.max(0, clock.childEnd));
+  if (clock.playback === "once") return Math.min(local, childEnd);
   if (clock.playback === "continuous") return local;
-  const duration = clock.playback.loop;
-  if (!(duration > 0)) return 0;
+  const duration = finiteNonNegative(clock.playback.loop, "Scene view loop duration");
+  if (duration === 0) {
+    throw new Error("Scene view loop duration must be greater than zero; received 0.");
+  }
   return local - Math.floor(local / duration) * duration;
 }
 
@@ -75,23 +82,29 @@ export class SceneViewTattva extends Tattva {
   }
 
   playback(mode: SceneViewPlayback): this {
+    if (typeof mode === "object") {
+      finiteNonNegative(mode.loop, "Scene view loop duration");
+      if (mode.loop === 0) {
+        throw new Error("Scene view loop duration must be greater than zero; received 0.");
+      }
+    }
     this.playbackMode = mode;
     return this;
   }
 
   /** Parent time at which the child clock reads zero, before any offset. */
   startAt(parentTime: number): this {
-    this.startTime = Math.max(0, parentTime);
+    this.startTime = finiteNonNegative(parentTime, "Scene view start time");
     return this;
   }
 
   localTimeOffset(offset: number): this {
-    this.offset = Math.max(0, offset);
+    this.offset = finiteNonNegative(offset, "Scene view local-time offset");
     return this;
   }
 
   timeScale(scale: number): this {
-    this.clockScale = Math.max(0, scale);
+    this.clockScale = finiteNonNegative(scale, "Scene view time scale");
     return this;
   }
 

@@ -415,6 +415,8 @@ function mountScene(
       const renderer = new WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
       renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
+      item.content.style.width = `${width}px`;
+      item.content.style.height = `${height}px`;
       item.content.replaceChildren(renderer.domElement);
       const threeScene = new ThreeScene();
       item.three = { scene: threeScene, camera: sceneCamera, renderer };

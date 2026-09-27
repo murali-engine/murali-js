@@ -54,7 +54,6 @@ export class Tattva<State extends TattvaState = TattvaState> {
   elementClassName?: string;
   readonly initialStyle: CSSStyles;
   readonly initialState: State;
-  state: State;
   worldSize?: { width: number; height: number };
   worldStrokeWidth?: number;
   worldFontSize?: number;
@@ -89,7 +88,6 @@ export class Tattva<State extends TattvaState = TattvaState> {
       opacity: 1,
       ...options.state,
     } as State;
-    this.state = { ...this.initialState };
   }
 
   at(point: Point): this {
@@ -164,14 +162,12 @@ export class Tattva<State extends TattvaState = TattvaState> {
   }
 
   set(next: Partial<State>): this {
-    this.state = { ...this.state, ...next };
+    Object.assign(this.initialState, next);
     return this;
   }
 
   setInitial(next: Partial<State>): this {
-    Object.assign(this.initialState, next);
-    Object.assign(this.state, next);
-    return this;
+    return this.set(next);
   }
 
   getLayoutSize(): Size {

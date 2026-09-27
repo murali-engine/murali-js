@@ -45,7 +45,7 @@ The project is already a broad working implementation, not an early prototype.
 | Teaching components | Linear algebra, networks, transformers, tensors, probability, normalization, chat, stepwise stories, reusable 3D openings | Timeline-native tensor morphs, composable chat objects, API curation |
 | Murali coverage | All 51 examples have Murali JS scene files | Systematic rendered comparisons and documented intentional differences |
 
-The verification baseline is 59 deterministic tests plus a package smoke test that installs the packed npm artifact and imports both `murali-js` and `murali-js/render`.
+The verification baseline is 64 deterministic tests plus a package smoke test that installs the packed npm artifact and imports both `murali-js` and `murali-js/render`.
 
 ## Numbered implementation roadmap
 

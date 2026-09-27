@@ -11,6 +11,7 @@ import {
 import type { Point, Tattva, TattvaState, Vec3 } from "./Tattva.ts";
 import type { CSSStyles } from "./css.ts";
 import type { Camera3DState } from "./Camera3D.ts";
+import { finiteNonNegative } from "./time.ts";
 
 export type EaseName =
   | "linear"
@@ -82,12 +83,16 @@ export class Timeline {
   }
 
   schedule<State extends TattvaState>(animation: ScheduledAnimation<State>): void {
-    this.animations.push(animation);
+    this.animations.push({
+      ...animation,
+      start: finiteNonNegative(animation.start, "Animation start time"),
+      duration: finiteNonNegative(animation.duration, "Animation duration"),
+    });
   }
 
   /** Place a clip at an explicit absolute time without advancing the composition cursor. */
   add(source: Clip, options: ClipPlacementOptions): this {
-    this.place(source, finiteTime(options.at, "Clip placement time"));
+    this.place(source, finiteNonNegative(options.at, "Clip placement time"));
     return this;
   }
 
@@ -107,7 +112,7 @@ export class Timeline {
   overlap(source: Clip, options: ClipOverlapOptions = {}): this {
     const start = options.by === undefined
       ? this.compositionGroupStart
-      : Math.max(0, this.compositionCursor - finiteTime(options.by, "Clip overlap"));
+      : Math.max(0, this.compositionCursor - finiteNonNegative(options.by, "Clip overlap"));
     this.place(source, start);
     this.compositionCursor = Math.max(this.compositionCursor, start + source.duration);
     return this;
@@ -115,7 +120,7 @@ export class Timeline {
 
   /** Advance the composition cursor without scheduling an animation. */
   wait(seconds: number): this {
-    this.compositionCursor += finiteTime(seconds, "Timeline wait");
+    this.compositionCursor += finiteNonNegative(seconds, "Timeline wait");
     return this;
   }
 
@@ -160,12 +165,12 @@ export class CameraAnimationBuilder<State extends Camera3DState> {
   ) {}
 
   at(seconds: number): this {
-    this.startTime = Math.max(0, seconds);
+    this.startTime = finiteNonNegative(seconds, "Camera animation start time");
     return this;
   }
 
   duration(seconds: number): this {
-    this.animationDuration = Math.max(0, seconds);
+    this.animationDuration = finiteNonNegative(seconds, "Camera animation duration");
     return this;
   }
 
@@ -242,12 +247,12 @@ export class AnimationBuilder<State extends TattvaState> {
   ) {}
 
   at(seconds: number): this {
-    this.startTime = Math.max(0, seconds);
+    this.startTime = finiteNonNegative(seconds, "Animation start time");
     return this;
   }
 
   duration(seconds: number): this {
-    this.animationDuration = Math.max(0, seconds);
+    this.animationDuration = finiteNonNegative(seconds, "Animation duration");
     return this;
   }
 
@@ -416,17 +421,17 @@ export class MultiAnimationBuilder {
   }
 
   at(seconds: number): this {
-    this.startTime = finiteTime(seconds, "Animation start time");
+    this.startTime = finiteNonNegative(seconds, "Animation start time");
     return this;
   }
 
   stagger(seconds: number): this {
-    this.staggerDelay = finiteTime(seconds, "Animation stagger");
+    this.staggerDelay = finiteNonNegative(seconds, "Animation stagger");
     return this;
   }
 
   duration(seconds: number): this {
-    this.animationDuration = finiteTime(seconds, "Animation duration");
+    this.animationDuration = finiteNonNegative(seconds, "Animation duration");
     return this;
   }
 
@@ -543,13 +548,6 @@ export class MultiAnimationBuilder {
 function positiveCameraValue(value: number, label: string): number {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`${label} must be a positive finite number; received ${value}.`);
-  }
-  return value;
-}
-
-function finiteTime(value: number, label: string): number {
-  if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`${label} must be a non-negative finite number; received ${value}.`);
   }
   return value;
 }

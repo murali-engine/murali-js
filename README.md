@@ -96,6 +96,42 @@ render(import.meta.url, HelloScene, {
 
 `construct()` records the full timeline synchronously. No wall-clock animation occurs while authoring. During rendering, `sampleAt(t)` computes the exact state for every object at virtual time `t`, making repeated renders reproducible.
 
+### Vector-extruded 3D text
+
+`Text3D` and `Letter3D` create real vector geometry with triangulated front and back faces, connected side walls, depth testing, and optional bevels:
+
+```ts
+const title = this.add(
+  Text3D("MURALI")
+    .height(2)
+    .depth(0.7)
+    .bevel({ enabled: true, thickness: 0.05, size: 0.03, segments: 3 })
+    .material({ faceColor: "#fff9e8", sideColor: "#6b6357" })
+    .rotation3D([15, -25, 0]),
+);
+```
+
+A bundled vector font is used by default. Use `parseText3DFont()` for Three.js typeface JSON or `parseText3DTTF()` for raw TrueType bytes, then pass the result through `.font()`. See [`examples/text-3d.ts`](./examples/text-3d.ts).
+
+### Animated wave meshes
+
+`WaveMesh()` creates a deterministic glowing wire terrain for reusable lower-third and background compositions. Animate its typed `phase` state through the ordinary timeline; one phase unit is one seamless cycle:
+
+```ts
+const mesh = this.add(
+  WaveMesh()
+    .size(18, 8)
+    .amplitude(1.1)
+    .samples(61, 27)
+    .palette({ near: "#f0a9ff", far: "#2637d4" }),
+  { at: [0, -2, 0] },
+);
+
+timeline.animate(mesh).duration(10).ease("linear").to({ phase: 2 });
+```
+
+The grid density, surface fill, nodes, sparkles, colors, and wave profile are configurable. See [`examples/wave-mesh-background.ts`](./examples/wave-mesh-background.ts).
+
 Animate an ordered collection with the same builder grammar and stagger their starts without manual timestamp arithmetic:
 
 ```ts
@@ -184,6 +220,8 @@ npm run example -- layout-and-groups
 npm run example -- text-and-paths
 npm run example -- react-card
 npm run example -- three-camera
+npm run example -- text-3d
+npm run example -- wave-mesh-background
 npm run build
 npm run typecheck
 npm test

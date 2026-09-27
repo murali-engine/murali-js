@@ -84,6 +84,7 @@ import {
   ChatInput,
   Opening,
   openingDuration,
+  extrudedMaskSidePositions,
   WordCloud,
   Stepwise,
   type StepwiseStoryBuilder,
@@ -112,6 +113,13 @@ import {
   interpolateHex,
   splitGraphemes,
   timeline,
+  Text3D,
+  Letter3D,
+  createText3DGeometry,
+  parseText3DTTF,
+  WaveMesh,
+  defaultWaveMeshProfile,
+  sampleWaveMesh,
 } from "../src/index.ts";
 import type { Camera3DState, TattvaState } from "../src/index.ts";
 
@@ -175,6 +183,16 @@ test("lays out stacks in world coordinates and preserves their hierarchy", () =>
 
   const column = VStack([Square().size(1), Square().size(2)], { gap: 1 });
   assert.deepEqual(column.getLayoutSize(), { width: 2, height: 4 });
+
+  assert.throws(() => HStack([square, square]), /same Tattva more than once/);
+  assert.throws(() => VStack([square]), /already belongs to/);
+
+  const released = row.detachChildren();
+  assert.deepEqual(released, [square, circle]);
+  assert.equal(square.parent, undefined);
+  assert.deepEqual(row.children, []);
+  const regrouped = HStack(released);
+  assert.equal(square.parent, regrouped);
 });
 
 test("positions objects relative to bounds and aligns their edges", () => {
@@ -184,11 +202,13 @@ test("positions objects relative to bounds and aligns their edges", () => {
 
   const scene = new LayoutScene();
   const anchor = scene.add(Square().size(2), { at: [1, 0] });
-  const label = scene.add(Label("Label").height(0.5));
+  const label = scene.add(Label("Label").height(0.5).at([0, 0, 3]));
   scene.nextTo(label, anchor, "right", { gap: 0.5 });
   assert.equal(label.initialState.x, 1 + 1 + 0.5 + label.getLayoutSize().width / 2);
+  assert.equal(label.initialState.z, 3);
   scene.alignTo(label, anchor, "up");
   assert.equal(label.initialState.y, 0.75);
+  assert.equal(label.initialState.z, 3);
 });
 
 test("keeps custom animation state strongly typed", () => {
@@ -204,6 +224,25 @@ test("keeps custom animation state strongly typed", () => {
     timeline.animate(meter).to({ progres: 100 });
   }
   assert.equal(timeline.animations.length, 1);
+});
+
+test("uses one authoritative authored state for set and deterministic sampling", () => {
+  interface MeterState extends TattvaState {
+    progress: number;
+  }
+  class MeterScene extends Scene {
+    readonly meter = new Tattva<MeterState>({ state: { progress: 0 } }).set({ progress: 25, z: 4 });
+
+    override construct(): void {
+      this.add(this.meter);
+    }
+  }
+
+  const scene = new MeterScene();
+  assert.equal(scene.meter.initialState.progress, 25);
+  assert.equal(scene.meter.initialState.z, 4);
+  assert.equal((scene.sampleAt(0).get(scene.meter) as MeterState | undefined)?.progress, 25);
+  assert.equal(scene.sampleAt(10).get(scene.meter)?.z, 4);
 });
 
 test("freezes overlapping animation starts and samples correctly in any order", () => {
@@ -315,6 +354,43 @@ test("validates multi-target animation before scheduling any entries", () => {
   );
   assert.equal(mixed.animations.length, 0);
   assert.throws(() => timeline().animate([dot]).stagger(-1), /non-negative finite/);
+});
+
+test("rejects invalid authored times across timelines, scenes, cameras, and child scenes", () => {
+  const dot = Circle();
+  const animation = timeline();
+  assert.throws(() => animation.animate(dot).at(-1), /Animation start time.*non-negative finite/);
+  assert.throws(() => animation.animate(dot).duration(Number.NaN), /Animation duration.*non-negative finite/);
+  assert.throws(() => animation.wait(Number.POSITIVE_INFINITY), /Timeline wait.*non-negative finite/);
+  assert.throws(
+    () => animation.schedule({
+      tattva: dot,
+      start: 0,
+      duration: -1,
+      easing: (value) => value,
+      to: { opacity: 0 },
+    }),
+    /Animation duration.*non-negative finite/,
+  );
+
+  class EmptyScene extends Scene {
+    override construct(): void {}
+  }
+  const scene = new EmptyScene();
+  assert.throws(() => scene.wait(-1), /Scene wait.*non-negative finite/);
+  assert.throws(() => scene.sampleAt(Number.NaN), /Scene sample time.*non-negative finite/);
+  assert.throws(() => scene.sampleStylesAt(-1), /Scene style sample time.*non-negative finite/);
+  assert.throws(
+    () => timeline().animateCamera(scene.camera).at(Number.POSITIVE_INFINITY),
+    /Camera animation start time.*non-negative finite/,
+  );
+
+  const view = SceneView(new EmptyScene());
+  assert.throws(() => view.startAt(-1), /Scene view start time.*non-negative finite/);
+  assert.throws(() => view.localTimeOffset(Number.NaN), /local-time offset.*non-negative finite/);
+  assert.throws(() => view.timeScale(-1), /time scale.*non-negative finite/);
+  assert.throws(() => view.playback({ loop: 0 }), /loop duration must be greater than zero/);
+  assert.throws(() => view.localTime(-1), /parent time.*non-negative finite/);
 });
 
 test("interpolates short and long hex colors", () => {
@@ -1196,6 +1272,85 @@ test("authors a reusable opening on the ordinary scene timeline", () => {
   assert.throws(() => Opening("Murali JS", "invalid").duration(), /ASCII capitals/);
   assert.throws(() => Opening("   ", "invalid").duration(), /at least one capital/);
   assert.throws(() => Opening("MURALI", "invalid").style({ particleCount: 0 }).duration(), /positive integer/);
+});
+
+test("builds continuous side walls for extruded opening glyph masks", () => {
+  const rgba = new Uint8Array([
+    0, 0, 0, 255,
+  ]);
+  const positions = extrudedMaskSidePositions(rgba, 1, 1, 2, 4, 0.75);
+  assert.equal(positions.length, 4 * 6 * 3);
+  const xs = [...positions].filter((_, index) => index % 3 === 0);
+  const ys = [...positions].filter((_, index) => index % 3 === 1);
+  const zs = [...positions].filter((_, index) => index % 3 === 2);
+  assert.deepEqual([Math.min(...xs), Math.max(...xs)], [-1, 1]);
+  assert.deepEqual([Math.min(...ys), Math.max(...ys)], [-2, 2]);
+  assert.deepEqual([Math.min(...zs), Math.max(...zs)], [-0.75, 0]);
+
+  const adjacent = new Uint8Array([
+    0, 0, 0, 255,
+    0, 0, 0, 255,
+  ]);
+  assert.equal(extrudedMaskSidePositions(adjacent, 2, 1, 2, 1, 1).length, 6 * 6 * 3);
+  assert.throws(
+    () => extrudedMaskSidePositions(new Uint8Array(0), 1, 1, 1, 1, 1),
+    /does not contain enough RGBA pixels/,
+  );
+});
+
+test("builds true vector-extruded Text3D geometry and validates its authoring API", () => {
+  const geometry = createText3DGeometry("A", { height: 2, depth: 0.6, curveSegments: 8 });
+  const positions = geometry.getAttribute("position");
+  assert.ok(positions.count > 0);
+  assert.equal(geometry.groups.some((group) => group.materialIndex === 0), true);
+  assert.equal(geometry.groups.some((group) => group.materialIndex === 1), true);
+  assert.ok(geometry.boundingBox);
+  assert.ok(Math.abs((geometry.boundingBox?.max.z ?? 0) - 0.3) < 1e-6);
+  assert.ok(Math.abs((geometry.boundingBox?.min.z ?? 0) + 0.3) < 1e-6);
+  geometry.dispose();
+
+  const title = Text3D("MURALI")
+    .height(2)
+    .depth(0.7)
+    .bevel({ enabled: true, thickness: 0.04, size: 0.02, segments: 2 })
+    .material({ faceColor: "white", sideColor: "#555", roughness: 0.5, metalness: 0.1 });
+  assert.equal(title.kind, "three");
+  assert.ok((title.worldSize?.width ?? 0) > 5);
+  assert.ok((title.worldSize?.height ?? 0) > 1.9);
+  assert.throws(() => Letter3D("AB"), /exactly one character/);
+  assert.throws(() => Text3D(" "), /no drawable outlines/);
+  assert.throws(() => title.depth(0), /positive finite number/);
+  assert.throws(() => title.material({ roughness: 2 }), /between 0 and 1/);
+
+  const ttf = readFileSync(resolve("node_modules/three/examples/fonts/ttf/kenpixel.ttf"));
+  const customFontGeometry = createText3DGeometry("A", {
+    font: parseText3DTTF(ttf),
+    height: 1,
+    depth: 0.25,
+  });
+  assert.ok(customFontGeometry.getAttribute("position").count > 0);
+  customFontGeometry.dispose();
+});
+
+test("samples a reusable WaveMesh deterministically with seamless phase cycles", () => {
+  const first = sampleWaveMesh(8, 4, 5, 3, 1.2, 0);
+  const repeated = sampleWaveMesh(8, 4, 5, 3, 1.2, 1);
+  const moving = sampleWaveMesh(8, 4, 5, 3, 1.2, 0.25);
+  assert.equal(first.length, 15);
+  first.forEach((point, index) => {
+    assert.ok(Math.abs(point[0] - (repeated[index]?.[0] ?? Number.NaN)) < 1e-10);
+    assert.ok(Math.abs(point[1] - (repeated[index]?.[1] ?? Number.NaN)) < 1e-10);
+    assert.ok(Math.abs(point[2] - (repeated[index]?.[2] ?? Number.NaN)) < 1e-10);
+  });
+  assert.notDeepEqual(first.map((point) => point[1]), moving.map((point) => point[1]));
+  assert.ok(Math.abs(defaultWaveMeshProfile(1.2, -0.7, 0) - defaultWaveMeshProfile(1.2, -0.7, 1)) < 1e-10);
+
+  const mesh = WaveMesh().size(12, 5).amplitude(0.8).samples(31, 15).phase(0.5).energy(0.7);
+  assert.equal(mesh.initialState.phase, 0.5);
+  assert.equal(mesh.initialState.energy, 0.7);
+  assert.deepEqual(mesh.worldSize, { width: 12, height: 1.6 });
+  assert.throws(() => mesh.samples(1, 10), /integer of at least 2/);
+  assert.throws(() => mesh.sparkles({ ratio: 2 }), /between 0 and 1/);
 });
 
 test("lays out word clouds deterministically without overlapping labels", () => {
