@@ -31,6 +31,8 @@ interface WaveMeshConfig {
   pointSize: number;
   sparkleSize: number;
   sparkleRatio: number;
+  farFade: number;
+  glowVariation: number;
   palette: WaveMeshPalette;
   profile: WaveMeshProfile;
 }
@@ -40,8 +42,12 @@ interface WaveMeshRuntime {
   colors: Float32Array;
   positionAttribute: THREE.BufferAttribute;
   colorAttribute: THREE.BufferAttribute;
+  alphas: Float32Array;
+  alphaAttribute: THREE.BufferAttribute;
   sparklePositions: Float32Array;
   sparkleAttribute: THREE.BufferAttribute;
+  sparkleAlphas: Float32Array;
+  sparkleAlphaAttribute: THREE.BufferAttribute;
   sparkleIndices: readonly number[];
 }
 
@@ -65,6 +71,8 @@ const DEFAULT_CONFIG: WaveMeshConfig = {
   pointSize: 0.035,
   sparkleSize: 0.075,
   sparkleRatio: 0.035,
+  farFade: 0.42,
+  glowVariation: 0.2,
   palette: DEFAULT_PALETTE,
   profile: defaultWaveMeshProfile,
 };
@@ -139,6 +147,18 @@ export class WaveMeshTattva extends ThreeTattva<WaveMeshState> {
     return this;
   }
 
+  /** Fraction of the terrain depth used to fade the far edge from transparent to solid. */
+  farFade(value: number): this {
+    this.waveConfig.farFade = unit(value, "WaveMesh far fade");
+    return this;
+  }
+
+  /** Strength of the slow brightness shimmer across the terrain. */
+  glowVariation(value: number): this {
+    this.waveConfig.glowVariation = unit(value, "WaveMesh glow variation");
+    return this;
+  }
+
   profile(value: WaveMeshProfile): this {
     this.waveConfig.profile = value;
     return this;
@@ -169,10 +189,13 @@ export function WaveMesh(): WaveMeshTattva {
 export function defaultWaveMeshProfile(x: number, z: number, phase: number): number {
   const turn = phase * Math.PI * 2;
   return (
-    Math.sin(x * 0.88 + turn) * 0.38
-    + Math.cos(z * 1.17 - turn) * 0.24
-    + Math.sin(x * 0.42 + z * 0.73 + turn * 2) * 0.2
+    Math.sin(x * 0.88 + turn) * 0.29
+    + Math.cos(z * 1.17 - turn) * 0.19
+    + Math.sin(x * 0.42 + z * 0.73 + turn * 2) * 0.16
     + Math.cos(x * 1.31 - z * 0.37 - turn) * 0.1
+    + Math.sin(x * 1.72 + z * 0.52 + turn * 3) * 0.11
+    + Math.cos(x * 0.26 - z * 1.85 + turn * 2) * 0.09
+    + Math.sin(x * 2.2 - z * 0.85 - turn) * 0.06
   );
 }
 
@@ -209,49 +232,45 @@ function createWaveMeshRuntime(scene: THREE.Scene, config: WaveMeshConfig): Wave
   const count = config.columns * config.rows;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
+  const alphas = new Float32Array(count);
   const positionAttribute = new THREE.BufferAttribute(positions, 3);
   positionAttribute.setUsage(THREE.DynamicDrawUsage);
   const colorAttribute = new THREE.BufferAttribute(colors, 3);
   colorAttribute.setUsage(THREE.DynamicDrawUsage);
+  const alphaAttribute = new THREE.BufferAttribute(alphas, 1);
+  alphaAttribute.setUsage(THREE.DynamicDrawUsage);
 
   const surfaceGeometry = new THREE.BufferGeometry();
   surfaceGeometry.setAttribute("position", positionAttribute);
   surfaceGeometry.setAttribute("color", colorAttribute);
+  surfaceGeometry.setAttribute("waveAlpha", alphaAttribute);
   surfaceGeometry.setIndex(triangleIndices(config.columns, config.rows));
-  const surface = new THREE.Mesh(surfaceGeometry, new THREE.MeshBasicMaterial({
-    color: config.palette.fill,
-    vertexColors: true,
-    transparent: true,
+  const surface = new THREE.Mesh(surfaceGeometry, waveMaterial({
+    tint: config.palette.fill,
     opacity: config.fillOpacity,
     side: THREE.DoubleSide,
-    depthWrite: false,
   }));
   surface.renderOrder = 0;
 
   const wireGeometry = new THREE.BufferGeometry();
   wireGeometry.setAttribute("position", positionAttribute);
   wireGeometry.setAttribute("color", colorAttribute);
+  wireGeometry.setAttribute("waveAlpha", alphaAttribute);
   wireGeometry.setIndex(edgeIndices(config.columns, config.rows));
-  const wire = new THREE.LineSegments(wireGeometry, new THREE.LineBasicMaterial({
-    vertexColors: true,
-    transparent: true,
+  const wire = new THREE.LineSegments(wireGeometry, waveMaterial({
     opacity: config.lineOpacity,
     blending: THREE.AdditiveBlending,
-    depthWrite: false,
   }));
   wire.renderOrder = 1;
 
   const nodesGeometry = new THREE.BufferGeometry();
   nodesGeometry.setAttribute("position", positionAttribute);
   nodesGeometry.setAttribute("color", colorAttribute);
-  const nodes = new THREE.Points(nodesGeometry, new THREE.PointsMaterial({
-    vertexColors: true,
-    size: config.pointSize,
-    sizeAttenuation: true,
-    transparent: true,
+  nodesGeometry.setAttribute("waveAlpha", alphaAttribute);
+  const nodes = new THREE.Points(nodesGeometry, waveMaterial({
     opacity: config.pointOpacity,
     blending: THREE.AdditiveBlending,
-    depthWrite: false,
+    pointSize: config.pointSize,
   }));
   nodes.renderOrder = 2;
 
@@ -260,16 +279,18 @@ function createWaveMeshRuntime(scene: THREE.Scene, config: WaveMeshConfig): Wave
   const sparklePositions = new Float32Array(sparkleIndices.length * 3);
   const sparkleAttribute = new THREE.BufferAttribute(sparklePositions, 3);
   sparkleAttribute.setUsage(THREE.DynamicDrawUsage);
+  const sparkleAlphas = new Float32Array(sparkleIndices.length);
+  const sparkleAlphaAttribute = new THREE.BufferAttribute(sparkleAlphas, 1);
+  sparkleAlphaAttribute.setUsage(THREE.DynamicDrawUsage);
   const sparkleGeometry = new THREE.BufferGeometry();
   sparkleGeometry.setAttribute("position", sparkleAttribute);
-  const sparkles = new THREE.Points(sparkleGeometry, new THREE.PointsMaterial({
-    color: config.palette.sparkle,
-    size: config.sparkleSize,
-    sizeAttenuation: true,
-    transparent: true,
+  sparkleGeometry.setAttribute("waveAlpha", sparkleAlphaAttribute);
+  const sparkles = new THREE.Points(sparkleGeometry, waveMaterial({
+    tint: config.palette.sparkle,
+    pointSize: config.sparkleSize,
     opacity: 0.92,
     blending: THREE.AdditiveBlending,
-    depthWrite: false,
+    vertexColors: false,
   }));
   sparkles.renderOrder = 3;
 
@@ -279,8 +300,12 @@ function createWaveMeshRuntime(scene: THREE.Scene, config: WaveMeshConfig): Wave
     colors,
     positionAttribute,
     colorAttribute,
+    alphas,
+    alphaAttribute,
     sparklePositions,
     sparkleAttribute,
+    sparkleAlphas,
+    sparkleAlphaAttribute,
     sparkleIndices,
   };
   updateWaveMesh(runtime, config, 0, 1);
@@ -313,13 +338,17 @@ function updateWaveMesh(
     runtime.positions[offset + 1] = y;
     runtime.positions[offset + 2] = z;
     const nearness = Math.max(0, Math.min(1, z / config.depth + 0.5));
+    const fade = config.farFade === 0 ? 1 : smoothstep(0, config.farFade, nearness);
+    const shimmer = 1 - config.glowVariation / 2
+      + config.glowVariation / 2 * (1 + Math.sin(phase * Math.PI * 2 + x * 0.72 - z * 0.31));
     const peakness = config.amplitude === 0
       ? 0
       : Math.max(0, Math.min(1, y / (config.amplitude * Math.max(energy, 0.001))));
     mixed.lerpColors(far, near, 0.2 + nearness * 0.8).lerp(peak, peakness * 0.42);
-    runtime.colors[offset] = mixed.r;
-    runtime.colors[offset + 1] = mixed.g;
-    runtime.colors[offset + 2] = mixed.b;
+    runtime.colors[offset] = mixed.r * shimmer;
+    runtime.colors[offset + 1] = mixed.g * shimmer;
+    runtime.colors[offset + 2] = mixed.b * shimmer;
+    runtime.alphas[index] = fade;
   });
   runtime.sparkleIndices.forEach((pointIndex, sparkleIndex) => {
     const source = pointIndex * 3;
@@ -327,10 +356,69 @@ function updateWaveMesh(
     runtime.sparklePositions[target] = runtime.positions[source] ?? 0;
     runtime.sparklePositions[target + 1] = (runtime.positions[source + 1] ?? 0) + 0.018;
     runtime.sparklePositions[target + 2] = runtime.positions[source + 2] ?? 0;
+    const twinkle = 0.58 + 0.42 * (1 + Math.sin(
+      phase * Math.PI * 4 + pointIndex * 1.618,
+    )) / 2;
+    runtime.sparkleAlphas[sparkleIndex] = (runtime.alphas[pointIndex] ?? 0) * twinkle;
   });
   runtime.positionAttribute.needsUpdate = true;
   runtime.colorAttribute.needsUpdate = true;
+  runtime.alphaAttribute.needsUpdate = true;
   runtime.sparkleAttribute.needsUpdate = true;
+  runtime.sparkleAlphaAttribute.needsUpdate = true;
+}
+
+function waveMaterial(options: {
+  opacity: number;
+  tint?: string;
+  blending?: THREE.Blending;
+  side?: THREE.Side;
+  pointSize?: number;
+  vertexColors?: boolean;
+}): THREE.ShaderMaterial {
+  const points = options.pointSize !== undefined;
+  const vertexColors = options.vertexColors ?? true;
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      opacity: { value: options.opacity },
+      tint: { value: new THREE.Color(options.tint ?? "#ffffff") },
+      pointSize: { value: options.pointSize ?? 1 },
+    },
+    vertexShader: `
+      attribute float waveAlpha;
+      uniform float pointSize;
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main() {
+        vColor = ${vertexColors ? "color" : "vec3(1.0)"};
+        vAlpha = waveAlpha;
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * viewPosition;
+        ${points ? "gl_PointSize = pointSize * (300.0 / max(0.001, -viewPosition.z));" : ""}
+      }
+    `,
+    fragmentShader: `
+      uniform float opacity;
+      uniform vec3 tint;
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main() {
+        ${points ? "float radius = length(gl_PointCoord - vec2(0.5)); if (radius > 0.5) discard;" : ""}
+        gl_FragColor = vec4(vColor * tint, opacity * vAlpha);
+      }
+    `,
+    vertexColors,
+    transparent: true,
+    depthWrite: false,
+    blending: options.blending ?? THREE.NormalBlending,
+    side: options.side ?? THREE.FrontSide,
+  });
+}
+
+function smoothstep(edge0: number, edge1: number, value: number): number {
+  if (edge0 === edge1) return value < edge0 ? 0 : 1;
+  const normalized = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+  return normalized * normalized * (3 - 2 * normalized);
 }
 
 function triangleIndices(columns: number, rows: number): number[] {
@@ -396,4 +484,3 @@ function integerAtLeast(value: number, minimum: number, label: string): number {
   }
   return value;
 }
-

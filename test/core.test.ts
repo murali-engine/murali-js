@@ -1345,12 +1345,21 @@ test("samples a reusable WaveMesh deterministically with seamless phase cycles",
   assert.notDeepEqual(first.map((point) => point[1]), moving.map((point) => point[1]));
   assert.ok(Math.abs(defaultWaveMeshProfile(1.2, -0.7, 0) - defaultWaveMeshProfile(1.2, -0.7, 1)) < 1e-10);
 
-  const mesh = WaveMesh().size(12, 5).amplitude(0.8).samples(31, 15).phase(0.5).energy(0.7);
+  const mesh = WaveMesh()
+    .size(12, 5)
+    .amplitude(0.8)
+    .samples(31, 15)
+    .farFade(0.55)
+    .glowVariation(0.3)
+    .phase(0.5)
+    .energy(0.7);
   assert.equal(mesh.initialState.phase, 0.5);
   assert.equal(mesh.initialState.energy, 0.7);
   assert.deepEqual(mesh.worldSize, { width: 12, height: 1.6 });
   assert.throws(() => mesh.samples(1, 10), /integer of at least 2/);
   assert.throws(() => mesh.sparkles({ ratio: 2 }), /between 0 and 1/);
+  assert.throws(() => mesh.farFade(-0.1), /between 0 and 1/);
+  assert.throws(() => mesh.glowVariation(1.1), /between 0 and 1/);
 });
 
 test("lays out word clouds deterministically without overlapping labels", () => {

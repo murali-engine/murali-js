@@ -8,15 +8,16 @@ class WaveMeshBackground extends Scene {
 
   override construct(): void {
     this.camera
-      .perspective({ fov: 46, near: 0.1, far: 100 })
-      .position([0, 3.7, 8.6])
-      .lookAt([0, -1.15, -0.8]);
+      .perspective({ fov: 44, near: 0.1, far: 100 })
+      .position([0, 9.5, 10.5])
+      .lookAt([0, 4, -3.5]);
 
     const terrain = this.add(
       WaveMesh()
-        .size(18, 8)
-        .amplitude(1.15)
-        .samples(61, 27)
+        // Overscan keeps the left, right, and front edges outside the frame.
+        .size(32, 18)
+        .amplitude(1.3)
+        .samples(81, 45)
         .palette({
           near: "#f0a9ff",
           far: "#2637d4",
@@ -27,8 +28,10 @@ class WaveMeshBackground extends Scene {
         .lineOpacity(0.9)
         .fillOpacity(0.11)
         .nodes({ size: 0.032, opacity: 0.75 })
-        .sparkles({ size: 0.085, ratio: 0.028 }),
-      { at: [0, -2.05, 0] },
+        .sparkles({ size: 0.085, ratio: 0.025 })
+        .farFade(0.68)
+        .glowVariation(0.28),
+      { at: [0, -2.35, -5] },
     );
 
     const title = this.add(

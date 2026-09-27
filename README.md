@@ -123,14 +123,16 @@ const mesh = this.add(
     .size(18, 8)
     .amplitude(1.1)
     .samples(61, 27)
-    .palette({ near: "#f0a9ff", far: "#2637d4" }),
+    .palette({ near: "#f0a9ff", far: "#2637d4" })
+    .farFade(0.45)
+    .glowVariation(0.25),
   { at: [0, -2, 0] },
 );
 
 timeline.animate(mesh).duration(10).ease("linear").to({ phase: 2 });
 ```
 
-The grid density, surface fill, nodes, sparkles, colors, and wave profile are configurable. See [`examples/wave-mesh-background.ts`](./examples/wave-mesh-background.ts).
+The grid density, surface fill, nodes, sparkles, colors, far-depth fade, glow variation, and wave profile are configurable. Oversize and reposition the mesh to keep its side and front edges beyond the camera frustum. See [`examples/wave-mesh-background.ts`](./examples/wave-mesh-background.ts).
 
 Animate an ordered collection with the same builder grammar and stagger their starts without manual timestamp arithmetic:
 
