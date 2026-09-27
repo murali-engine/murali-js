@@ -72,6 +72,31 @@ Run it with `npx tsx hello.ts`. `import.meta.url` identifies the current source 
 
 Murali JS displays frame progress by default while rendering. Disable it for scripts or CI with `render(import.meta.url, HelloScene, { progress: false })`, or provide `onProgress(completed, total)` for custom reporting.
 
+### Looping audio
+
+Pass an audio path to loop it for the entire exported video and preview:
+
+```ts
+render(import.meta.url, HelloScene, {
+  audio: "./assets/music.mp3",
+});
+```
+
+Use the object form to control its active interval in scene seconds. With only `start`, it loops from that point until the video ends; with both values, it loops only inside that interval:
+
+```ts
+render(import.meta.url, HelloScene, {
+  audio: {
+    source: "./assets/music.mp3",
+    start: 2.5,
+    end: 11,
+    volume: 0.35,
+  },
+});
+```
+
+`volume` is linear from `0` (silent) to `1` (the source level) and defaults to `1`. The audio is repeated and trimmed to the exact interval; it never changes the video duration. Relative paths resolve from the working directory. If the file is missing, Murali renders or previews the scene silently instead of failing. The CLI equivalents are `--audio`, `--audio-start`, `--audio-end`, and `--audio-volume`.
+
 ### Shared render configuration
 
 Murali JS reads `murali.json` and `.env` from the working directory. Explicit options passed to `render()` have the highest priority, followed by environment settings, followed by `murali.json`.

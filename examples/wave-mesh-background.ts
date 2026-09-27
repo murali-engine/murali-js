@@ -57,4 +57,10 @@ class WaveMeshBackground extends Scene {
   }
 }
 
-render(import.meta.url, WaveMeshBackground, { fps: 30 });
+render(import.meta.url, WaveMeshBackground, {
+  fps: 30,
+  audio: {
+    source: "/Users/ravishankar/personal-work/animation/murali-js/examples/assets/audio/Raag Pahadi - Sandeep Das, Mayank Raina, Bivakar Chaudhuri.mp3",
+    volume: 0.02,
+  },
+});

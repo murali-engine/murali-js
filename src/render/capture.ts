@@ -5,6 +5,7 @@ import { bundleScene } from "./bundle.ts";
 import { createEncoder } from "./encode.ts";
 import { frameCount } from "./frames.ts";
 import { createProgressReporter } from "./progress.ts";
+import { resolveAudioTrack, type AudioTrack } from "./audio.ts";
 
 export interface RenderOptions {
   output: string;
@@ -19,6 +20,8 @@ export interface RenderOptions {
   at?: number;
   /** Values exposed to the scene as `globalThis.__muraliArgs` before it loads. */
   args?: Record<string, string>;
+  /** Loop an audio file across the full video or a scene-time interval. */
+  audio?: AudioTrack;
 }
 
 export async function renderScene(scenePath: string, options: RenderOptions): Promise<{ frames: number; duration: number }> {
@@ -36,6 +39,7 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
     await page.setViewportSize({ width: metadata.width, height: metadata.height });
     const format = options.format ?? (options.output.toLowerCase().endsWith(".png") ? "png" : "mp4");
     if (format === "png") {
+      if (options.audio !== undefined) throw new Error("Audio is supported only for video output.");
       const time = options.at ?? 0;
       await page.evaluate((sampled) => window.__murali?.renderFrame(sampled), time);
       const png = await page.locator("#stage").screenshot({
@@ -48,7 +52,11 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
     }
     const fps = options.fps ?? metadata.fps;
     const frames = frameCount(metadata.duration, fps);
-    const encoder = await createEncoder(resolve(options.output), fps);
+    const audio = await resolveAudioTrack(options.audio, metadata.duration);
+    const encoder = await createEncoder(resolve(options.output), fps, {
+      duration: Math.max(metadata.duration, 1 / fps),
+      audio,
+    });
     const reportProgress = options.onProgress
       ?? (options.progress === false ? undefined : createProgressReporter());
     for (let frame = 0; frame < frames; frame += 1) {

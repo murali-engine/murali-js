@@ -1,7 +1,9 @@
-import { basename } from "node:path";
+import { readFile } from "node:fs/promises";
+import { basename, extname } from "node:path";
 import { chromium, type Page } from "playwright-core";
 import { bundleScene } from "./bundle.ts";
 import { frameCount } from "./frames.ts";
+import { resolveAudioTrack, type AudioTrack } from "./audio.ts";
 
 export interface PreviewOptions {
   headless?: boolean;
@@ -9,6 +11,8 @@ export interface PreviewOptions {
   args?: Record<string, string>;
   /** Runs after the window is showing the scene. The window closes when this returns. */
   ready?: (page: Page) => Promise<void>;
+  /** Loop an audio file across the full preview or a scene-time interval. */
+  audio?: AudioTrack;
 }
 
 interface SceneMetadata {
@@ -23,7 +27,10 @@ export async function previewScene(
   options: PreviewOptions = {},
 ): Promise<{ duration: number }> {
   const bundle = await bundleScene(scenePath);
-  const browser = await chromium.launch({ headless: options.headless ?? false });
+  const browser = await chromium.launch({
+    headless: options.headless ?? false,
+    args: ["--autoplay-policy=no-user-gesture-required"],
+  });
   try {
     const page = await browser.newPage({
       viewport: { width: 1280, height: 800 },
@@ -44,11 +51,13 @@ export async function previewScene(
     if (!metadata) throw new Error("Scene runtime did not expose metadata.");
 
     const fps = metadata.fps;
+    const audio = await previewAudio(options.audio, metadata.duration);
     await page.addScriptTag({
       content: playerScript({
         ...metadata,
         fps,
         frames: frameCount(metadata.duration, fps),
+        audio,
       }),
     });
 
@@ -102,7 +111,44 @@ function previewDocument(title: string): string {
 </html>`;
 }
 
-function playerScript(input: SceneMetadata & { frames: number }): string {
+interface PreviewAudio {
+  url: string;
+  start: number;
+  end: number;
+  volume: number;
+}
+
+async function previewAudio(
+  authored: AudioTrack | undefined,
+  duration: number,
+): Promise<PreviewAudio | undefined> {
+  const audio = await resolveAudioTrack(authored, duration);
+  if (!audio) return undefined;
+  const bytes = await readFile(audio.source);
+  const mime = audioMimeType(extname(audio.source));
+  return {
+    url: `data:${mime};base64,${bytes.toString("base64")}`,
+    start: audio.start,
+    end: audio.end,
+    volume: audio.volume,
+  };
+}
+
+function audioMimeType(extension: string): string {
+  switch (extension.toLowerCase()) {
+    case ".mp3": return "audio/mpeg";
+    case ".m4a":
+    case ".mp4": return "audio/mp4";
+    case ".ogg":
+    case ".oga": return "audio/ogg";
+    case ".wav": return "audio/wav";
+    case ".flac": return "audio/flac";
+    case ".aac": return "audio/aac";
+    default: return "application/octet-stream";
+  }
+}
+
+function playerScript(input: SceneMetadata & { frames: number; audio?: PreviewAudio }): string {
   return `(() => {
   const input = ${JSON.stringify(input)};
   const api = window.__murali;
@@ -122,8 +168,35 @@ function playerScript(input: SceneMetadata & { frames: number }): string {
   let frame = 0;
   let playing = duration > 0;
   let lastTick = performance.now();
+  const audio = input.audio ? new Audio(input.audio.url) : null;
+  if (audio) {
+    audio.id = "murali-audio";
+    audio.loop = true;
+    audio.volume = input.audio.volume;
+    audio.preload = "auto";
+    audio.dataset.start = String(input.audio.start);
+    audio.dataset.end = String(input.audio.end);
+    audio.dataset.volume = String(input.audio.volume);
+    document.body.appendChild(audio);
+  }
 
-  const show = (nextTime, nextFrame = Math.round(nextTime * fps)) => {
+  const syncAudio = (seek = false) => {
+    if (!audio || !input.audio) return;
+    const active = time >= input.audio.start && time < input.audio.end;
+    if (!active || !playing) {
+      audio.pause();
+      return;
+    }
+    if (seek || audio.paused) {
+      const elapsed = Math.max(0, time - input.audio.start);
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime = elapsed % audio.duration;
+      }
+    }
+    if (audio.paused) void audio.play().catch(() => undefined);
+  };
+
+  const show = (nextTime, nextFrame = Math.round(nextTime * fps), seekAudio = false) => {
     time = Math.min(Math.max(nextTime, 0), duration);
     frame = Math.min(frames - 1, Math.max(0, nextFrame));
     api.renderFrame(time);
@@ -131,6 +204,7 @@ function playerScript(input: SceneMetadata & { frames: number }): string {
     scrub.value = String(time);
     playButton.textContent = playing ? "Pause" : "Play";
     readout.textContent = time.toFixed(2) + "s / " + duration.toFixed(2) + "s  ·  frame " + (frame + 1) + "/" + frames;
+    syncAudio(seekAudio);
   };
 
   const fit = () => {
@@ -145,18 +219,18 @@ function playerScript(input: SceneMetadata & { frames: number }): string {
   const step = (delta) => {
     playing = false;
     const nextFrame = Math.min(frames - 1, Math.max(0, frame + delta));
-    show(nextFrame / fps, nextFrame);
+    show(nextFrame / fps, nextFrame, true);
   };
 
   playButton.addEventListener("click", () => {
     if (playing) {
       playing = false;
     } else {
-      if (time >= duration) show(0, 0);
+      if (time >= duration) show(0, 0, true);
       playing = duration > 0;
       lastTick = performance.now();
     }
-    show(time, frame);
+    show(time, frame, false);
   });
   const previous = document.querySelector("#murali-prev");
   const next = document.querySelector("#murali-next");
@@ -164,7 +238,7 @@ function playerScript(input: SceneMetadata & { frames: number }): string {
   if (next) next.addEventListener("click", () => step(1));
   scrub.addEventListener("input", () => {
     playing = false;
-    show(Number(scrub.value));
+    show(Number(scrub.value), undefined, true);
   });
   window.addEventListener("keydown", (event) => {
     if (event.code === "Space") {
@@ -194,7 +268,7 @@ function playerScript(input: SceneMetadata & { frames: number }): string {
   };
 
   fit();
-  show(0, 0);
+  show(0, 0, true);
   requestAnimationFrame(tick);
 })();`;
 }

@@ -2,12 +2,14 @@ import { readFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { RenderOptions } from "./capture.ts";
+import type { AudioTrack } from "./audio.ts";
 
 interface FileRenderConfig {
   output?: string;
   outputDir?: string;
   fps?: number;
   progress?: boolean;
+  audio?: AudioTrack;
 }
 
 interface MuraliConfig {
@@ -80,6 +82,9 @@ export async function resolveRenderOptions(
     ?? parseBoolean(env.MURALI_PROGRESS)
     ?? renderConfig.progress
     ?? true;
+  const audio = overrides.audio
+    ?? env.MURALI_AUDIO
+    ?? renderConfig.audio;
 
   return {
     sourcePath,
@@ -92,6 +97,7 @@ export async function resolveRenderOptions(
       transparent: overrides.transparent,
       at: overrides.at,
       args: overrides.args,
+      audio,
     },
   };
 }

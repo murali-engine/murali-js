@@ -32,3 +32,4 @@ export * from "./tattvas/word-cloud.ts";
 export * from "./tattvas/wave-mesh.ts";
 export * from "./render/render.ts";
 export type { RenderOverrides } from "./render/config.ts";
+export type { AudioTrack, AudioTrackOptions } from "./render/audio.ts";

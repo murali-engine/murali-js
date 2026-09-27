@@ -16,7 +16,10 @@ export async function render(
 ): Promise<{ frames: number; duration: number }> {
   const resolved = await resolveRenderOptions(source, overrides);
   if (previewRequested(process.argv, overrides.preview)) {
-    const preview = await previewScene(resolved.sourcePath, { args: resolved.options.args });
+    const preview = await previewScene(resolved.sourcePath, {
+      args: resolved.options.args,
+      audio: resolved.options.audio,
+    });
     return { frames: 0, duration: preview.duration };
   }
   return renderScene(resolved.sourcePath, resolved.options);
