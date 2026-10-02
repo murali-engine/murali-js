@@ -1,11 +1,10 @@
 import { useLocation } from "@docusaurus/router";
 import type { Props as NavbarItemConfig } from "@theme/NavbarItem";
 
-export type NavbarContext = "landing" | "javascript";
+export type NavbarContext = "landing" | "docs";
 
-type EditionNavbar = {
+type PortalNavbar = {
   context: NavbarContext;
-  editionLabel?: string;
   items: NavbarItemConfig[];
 };
 
@@ -35,7 +34,7 @@ const landingItems: NavbarItemConfig[] = [
   },
 ];
 
-const javascriptItems: NavbarItemConfig[] = [
+const docsItems: NavbarItemConfig[] = [
   { to: "/docs/", label: "Documentation", position: "left" },
   { to: "/docs/getting-started/", label: "Getting started", position: "left" },
   { to: "/docs/api-overview/", label: "API areas", position: "left" },
@@ -60,14 +59,13 @@ const javascriptItems: NavbarItemConfig[] = [
   },
 ];
 
-export function useEditionNavbar(): EditionNavbar {
+export function usePortalNavbar(): PortalNavbar {
   const { pathname } = useLocation();
 
   if (pathname.startsWith("/docs/")) {
     return {
-      context: "javascript",
-      editionLabel: "JavaScript",
-      items: javascriptItems,
+      context: "docs",
+      items: docsItems,
     };
   }
 

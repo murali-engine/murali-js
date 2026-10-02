@@ -6,7 +6,7 @@ import { translate } from "@docusaurus/Translate";
 import NavbarMobileSidebar from "@theme/Navbar/MobileSidebar";
 import type { Props } from "@theme/Navbar/Layout";
 
-import { useEditionNavbar } from "../navItems";
+import { usePortalNavbar } from "../navItems";
 import styles from "./styles.module.css";
 
 function NavbarBackdrop(props: ComponentProps<"div">): ReactNode {
@@ -19,7 +19,7 @@ export default function NavbarLayout({ children }: Props): ReactNode {
   } = useThemeConfig();
   const mobileSidebar = useNavbarMobileSidebar();
   const { navbarRef, isNavbarVisible } = useHideableNavbar(hideOnScroll);
-  const { context } = useEditionNavbar();
+  const { context } = usePortalNavbar();
 
   return (
     <nav

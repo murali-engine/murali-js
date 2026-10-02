@@ -2,11 +2,11 @@ import React, { type ReactNode } from "react";
 import { useNavbarMobileSidebar } from "@docusaurus/theme-common/internal";
 import NavbarItem, { type Props as NavbarItemConfig } from "@theme/NavbarItem";
 
-import { useEditionNavbar } from "../../navItems";
+import { usePortalNavbar } from "../../navItems";
 
 export default function NavbarMobilePrimaryMenu(): ReactNode {
   const mobileSidebar = useNavbarMobileSidebar();
-  const { items } = useEditionNavbar();
+  const { items } = usePortalNavbar();
 
   return (
     <ul className="menu__list">

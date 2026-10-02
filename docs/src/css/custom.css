@@ -46,8 +46,7 @@
   letter-spacing: 0.02em;
 }
 
-.navbar[data-navbar-context="javascript"],
-.navbar[data-navbar-context="rust"] {
+.navbar[data-navbar-context="docs"] {
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
   box-shadow: none;
 }

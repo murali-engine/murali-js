@@ -9,7 +9,7 @@ import NavbarMobileSidebarToggle from "@theme/Navbar/MobileSidebar/Toggle";
 import NavbarLogo from "@theme/Navbar/Logo";
 import NavbarSearch from "@theme/Navbar/Search";
 
-import { useEditionNavbar } from "../navItems";
+import { usePortalNavbar } from "../navItems";
 import styles from "./styles.module.css";
 
 function NavbarItems({ items }: { items: NavbarItemConfig[] }): ReactNode {
@@ -34,7 +34,7 @@ function NavbarItems({ items }: { items: NavbarItemConfig[] }): ReactNode {
 
 export default function NavbarContent(): ReactNode {
   const mobileSidebar = useNavbarMobileSidebar();
-  const { context, editionLabel, items } = useEditionNavbar();
+  const { context, items } = usePortalNavbar();
   const [leftItems, rightItems] = splitNavbarItems(items);
 
   return (
@@ -42,7 +42,6 @@ export default function NavbarContent(): ReactNode {
       <div className={clsx(ThemeClassNames.layout.navbar.containerLeft, "navbar__items")}>
         {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
         <NavbarLogo />
-        {editionLabel ? <span className={styles.editionLabel}>{editionLabel}</span> : null}
         <NavbarItems items={leftItems} />
       </div>
       <div

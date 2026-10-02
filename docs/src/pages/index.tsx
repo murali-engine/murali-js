@@ -48,7 +48,7 @@ const learningPaths = [
   {
     label: "Reference",
     title: "Enter the documentation",
-    body: "Follow the JavaScript documentation track and its release history.",
+    body: "Follow the documentation and its release history.",
     to: "/docs/",
   },
 ] as const;
@@ -89,12 +89,12 @@ export default function Home(): ReactNode {
   return (
     <Layout
       title="Mathematics, beautifully in motion"
-      description="Murali is a code-first JavaScript animation engine for mathematical and visual storytelling."
+      description="Murali is a code-first animation engine for mathematical and visual storytelling."
     >
       <main className={styles.home}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <span className={styles.eyebrow}>JavaScript animation engine</span>
+            <span className={styles.eyebrow}>Code-first animation engine</span>
             <Heading as="h1">
               Mathematics, beautifully <em>in motion.</em>
             </Heading>
@@ -184,7 +184,7 @@ export default function Home(): ReactNode {
           <SectionHeading
             eyebrow="Learning paths"
             title="Begin with a scene, then grow from there."
-            body="The JavaScript documentation is the natural path into Murali—from the first preview to reusable components and deeper API areas."
+            body="The documentation is the natural path into Murali—from the first preview to reusable components and deeper API areas."
           />
           <div className={styles.pathGrid}>
             {learningPaths.map((path) => (
@@ -207,12 +207,12 @@ export default function Home(): ReactNode {
           <div>
             <span className={styles.eyebrow}>For specialised workloads</span>
             <Heading as="h2" id="rust-engine-title">
-              Need to go beyond the JavaScript engine?
+              Need a native engine?
             </Heading>
             <p>
-              Murali JavaScript is the main path for creating visual stories. For projects that
-              need lower-level control or outgrow its current limits, Murali also has a Rust-based
-              engine with its own documentation.
+              Murali is the main path for creating visual stories. For specialised projects that
+              need lower-level native control, a Rust implementation and its documentation remain
+              available on GitHub.
             </p>
           </div>
           <Link
@@ -226,7 +226,7 @@ export default function Home(): ReactNode {
         <section className={styles.closingCta}>
           <span className={styles.eyebrow}>Ready when the idea is</span>
           <Heading as="h2">Make the difficult thing visible.</Heading>
-          <p>Start with the JavaScript guide and build the first version of your scene.</p>
+          <p>Start with the guide and build the first version of your scene.</p>
           <Link className={styles.lightAction} to="/docs/getting-started/">
             Create a scene
           </Link>
