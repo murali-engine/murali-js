@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
         "tattvas/text-and-formulae",
         "tattvas/morphing",
         "tattvas/maths",
+        "tattvas/fractals",
         "tattvas/ai",
         "tattvas/storytelling-and-composites",
       ],

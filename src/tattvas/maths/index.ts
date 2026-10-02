@@ -2,6 +2,7 @@ export * from "./graph.ts";
 export * from "./linear-algebra.ts";
 export * from "./linear-algebra-animated.ts";
 export * from "./fourier.ts";
+export * from "./fractals.ts";
 export * from "./space.ts";
 export * from "./map.ts";
 export * from "./word-cloud.ts";

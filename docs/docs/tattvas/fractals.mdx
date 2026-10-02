@@ -1,0 +1,65 @@
+---
+title: Fractals
+description: Deterministic recursive line geometry for illustrations, teaching scenes, and animated backgrounds.
+---
+
+# Fractals
+
+Murali represents a line fractal as one batched `FractalPathTattva`. It does not create a DOM element for every segment. Each recursion stage is generated once, and a fractional `iteration` cross-fades the two neighbouring stages during animation.
+
+```ts
+import { KochSnowflake } from "murali-js/maths";
+
+const snowflake = this.add(
+  KochSnowflake({ iterations: 6, radius: 2.4 })
+    .iteration(0)
+    .stroke({ color: "#58c4dd", width: 0.03 }),
+);
+
+this.play(timeline((t) => {
+  t.animate(snowflake)
+    .duration(5)
+    .ease("inOutCubic")
+    .to(snowflake.iterationState(snowflake.maxIteration));
+}));
+```
+
+## Built-in generators
+
+- `KochSnowflake()` produces the classic four-segment replacement curve on an equilateral triangle.
+- `SierpinskiTriangle()` recursively retains three corner triangles.
+- `FractalTree()` exposes branch angle, length, and scale.
+
+Their lower-level generators—`kochSnowflakeSegments`, `sierpinskiTriangleSegments`, and `fractalTreeSegments`—are exported when segment data is useful outside the standard Tattva.
+
+## Custom fractals
+
+`FractalPath(generator, options)` is the generic foundation. A generator receives an integer iteration and returns line segments.
+
+```ts
+const rays = FractalPath(
+  (iteration) => Array.from({ length: 2 ** iteration }, (_, index) => {
+    const angle = index * Math.PI * 2 / 2 ** iteration;
+    return { from: [0, 0], to: [Math.cos(angle) * 2, Math.sin(angle) * 2] };
+  }),
+  { iterations: 8 },
+);
+```
+
+Generators must be deterministic: the same iteration should always return the same segments. Built-in safety limits prevent an accidental recursion depth from freezing a render.
+
+## Background use
+
+A fractal is an ordinary Tattva. Use `.opacity()`, `.layer()`, `.scale()`, `.rotate()`, `.depthMode("overlay")`, theme colors, and CSS glow without a special background API.
+
+```ts
+const texture = this.add(
+  SierpinskiTriangle({ iterations: 7 })
+    .stroke({ color: themeColor("accent"), width: 0.02 })
+    .opacity(0.12)
+    .scale(2.4)
+    .layer(-20),
+);
+```
+
+See `examples/fractals/01-recursive-growth.ts` and `examples/fractals/02-fractal-background.ts`.
