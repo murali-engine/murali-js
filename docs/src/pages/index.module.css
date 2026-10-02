@@ -86,16 +86,27 @@
 .constructs span { padding: 0.4rem 0.68rem; color: #d8e5e8; border: 1px solid rgb(255 255 255 / 20%); border-radius: 999px; font-family: var(--ifm-font-family-monospace); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
 
 .markStage { position: relative; display: grid; width: min(38rem, 44vw); aspect-ratio: 1; place-items: center; justify-self: center; }
-.mark { position: relative; z-index: 2; width: 72%; filter: drop-shadow(0 2rem 3.5rem rgb(0 0 0 / 28%)); }
-.orbit, .axisX, .axisY { position: absolute; opacity: 0.28; }
-.orbit { inset: 5%; border: 1px solid white; border-radius: 50%; }
-.axisX { right: 0; left: 0; height: 1px; background: white; }
-.axisY { top: 0; bottom: 0; width: 1px; background: white; }
-.pointOne, .pointTwo, .pointThree { position: absolute; width: 0.55rem; height: 0.55rem; background: #f2c963; border-radius: 50%; box-shadow: 0 0 0 0.4rem rgb(242 201 99 / 13%); }
-.pointOne { top: 13%; left: 48%; }
-.pointTwo { right: 10%; bottom: 31%; }
-.pointThree { bottom: 9%; left: 24%; }
+.mark {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2rem 3.5rem rgb(0 0 0 / 28%));
+  pointer-events: none;
+}
+.markStill { display: none; }
 
+@media (prefers-reduced-motion: reduce) {
+  .mark { display: none; }
+  .markStill {
+    display: block;
+    position: relative;
+    z-index: 2;
+    width: 72%;
+    filter: drop-shadow(0 2rem 3.5rem rgb(0 0 0 / 28%));
+  }
+}
 .foundationStrip { display: grid; grid-template-columns: repeat(3, 1fr); padding: 0 clamp(1.5rem, 7vw, 7rem); background: white; border-bottom: 1px solid #e6e0d5; }
 .foundationStrip article { display: grid; grid-template-columns: auto 1fr; gap: 1.2rem; padding: 2.1rem clamp(1.25rem, 3vw, 2.5rem); border-right: 1px solid #e6e0d5; }
 .foundationStrip article:last-child { border-right: 0; }

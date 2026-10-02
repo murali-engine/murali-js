@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3.12 1.64" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2.88 1.64" role="img" aria-labelledby="title description">
   <title id="title">Murali</title>
   <desc id="description">Three touching blue, violet, and coral ovals.</desc>
-  <ellipse cx=".52" cy=".82" rx=".52" ry=".82" fill="#2563eb"/>
-  <ellipse cx="1.56" cy=".82" rx=".52" ry=".82" fill="#7c3aed"/>
-  <ellipse cx="2.6" cy=".82" rx=".52" ry=".82" fill="#ff6b5f"/>
+  <ellipse cx=".48" cy=".82" rx=".48" ry=".82" fill="#2563eb"/>
+  <ellipse cx="1.44" cy=".82" rx=".48" ry=".82" fill="#7c3aed"/>
+  <ellipse cx="2.4" cy=".82" rx=".48" ry=".82" fill="#ff6b5f"/>
 </svg>

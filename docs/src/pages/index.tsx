@@ -56,13 +56,16 @@ const learningPaths = [
 function MuraliMark(): ReactNode {
   return (
     <div className={styles.markStage} aria-hidden="true">
-      <div className={styles.orbit} />
-      <img className={styles.mark} src="/img/murali-mark.svg" alt="" />
-      <span className={styles.axisX} />
-      <span className={styles.axisY} />
-      <span className={styles.pointOne} />
-      <span className={styles.pointTwo} />
-      <span className={styles.pointThree} />
+      <video
+        className={styles.mark}
+        src="/img/murali-logo-animation.webm"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+      />
+      <img className={styles.markStill} src="/img/murali-mark.svg" alt="" />
     </div>
   );
 }

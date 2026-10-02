@@ -176,7 +176,9 @@ const mark = this.add(MuraliLogoMark({ width: 6.6 }));
 this.play(MuraliLogoSequence(mark));
 ```
 
-The default duration is 6.4 seconds. Pass `{ duration: 4 }` to retime the whole gesture without changing its relative choreography. [`examples/murali-logo-animation.ts`](./examples/murali-logo-animation.ts) is the standalone reference render and exports `murali-logo-animation.webm` with VP9 alpha; the same sequence is intended for reusable placements such as the documentation landing page.
+The default duration is 6.4 seconds. Pass `{ duration: 4 }` to retime the whole gesture without changing its relative choreography.
+
+`MuraliLogoSwell` keeps the settled mark and lets one phrase disturb it. Each oval grows from the shared baseline, narrows by `1 / sqrt(height)` so it stays plump, and springs back past rest. Left takes the low swell, the middle a smaller nudge, and the right a short transient. [`examples/murali-logo-animation.ts`](./examples/murali-logo-animation.ts) renders that phrase to `murali-logo-animation.webm` with VP9 alpha.
 
 ### Themes and the system palette
 

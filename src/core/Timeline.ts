@@ -1,11 +1,17 @@
 import type { Easing } from "./easing.ts";
 import {
+  easeInBack,
   easeInCubic,
+  easeInQuad,
+  easeInSine,
+  easeInOutBack,
   easeInOutCubic,
   easeInOutQuad,
-  easeInQuad,
+  easeInOutSine,
+  easeOutBack,
   easeOutCubic,
   easeOutQuad,
+  easeOutSine,
   linear,
 } from "./easing.ts";
 import type { Point, Tattva, TattvaState, Vec3 } from "./Tattva.ts";
@@ -20,9 +26,27 @@ export type EaseName =
   | "inOutQuad"
   | "inCubic"
   | "outCubic"
-  | "inOutCubic";
+  | "inOutCubic"
+  | "inSine"
+  | "outSine"
+  | "inOutSine"
+  | "inBack"
+  | "outBack"
+  | "inOutBack"
+  | "easeInQuad"
+  | "easeOutQuad"
+  | "easeInOutQuad"
+  | "easeInCubic"
+  | "easeOutCubic"
+  | "easeInOutCubic"
+  | "easeInSine"
+  | "easeOutSine"
+  | "easeInOutSine"
+  | "easeInBack"
+  | "easeOutBack"
+  | "easeInOutBack";
 
-const easings: Record<EaseName, Easing> = {
+const easings: Record<string, Easing> = {
   linear,
   inQuad: easeInQuad,
   outQuad: easeOutQuad,
@@ -30,7 +54,34 @@ const easings: Record<EaseName, Easing> = {
   inCubic: easeInCubic,
   outCubic: easeOutCubic,
   inOutCubic: easeInOutCubic,
+  inSine: easeInSine,
+  outSine: easeOutSine,
+  inOutSine: easeInOutSine,
+  inBack: easeInBack,
+  outBack: easeOutBack,
+  inOutBack: easeInOutBack,
+
+  easeInQuad,
+  easeOutQuad,
+  easeInOutQuad,
+  easeInCubic,
+  easeOutCubic,
+  easeInOutCubic,
+  easeInSine,
+  easeOutSine,
+  easeInOutSine,
+  easeInBack,
+  easeOutBack,
+  easeInOutBack,
 };
+
+export function resolveEasing(ease: EaseName | Easing | string): Easing {
+  if (typeof ease === "function") {
+    return ease;
+  }
+  return easings[ease] ?? easeInOutCubic;
+}
+
 
 export interface ScheduledAnimation<State extends TattvaState = TattvaState> {
   tattva: Tattva<State>;
@@ -286,7 +337,7 @@ export class AnimationBuilder<
   }
 
   ease(ease: EaseName | Easing): this {
-    this.easing = typeof ease === "function" ? ease : easings[ease];
+    this.easing = resolveEasing(ease);
     return this;
   }
 

@@ -33,7 +33,7 @@ Capabilities exercised: timeline, layout, shapes, labels, lines, arrows, paths, 
 | | `portrait_video` | Scene script now follows Murali on the 9:16 frame. Not checked until the rendered frames are compared. |
 | | `style_and_paths` | Scene script follows Murali, including fills, strokes, dashes, arrows, and a world-space path. It also replaces the earlier smaller `text-and-paths` demo. Not checked until the rendered frames are compared. |
 | | `text_animation` | Scene script now follows Murali, including typewriter, centered reveal, indicate, and undraw. Not checked until the rendered frames are compared. |
-| intentional difference | `murali-logo-animation` | The earlier Rust/Lissajous logo has been retired. Murali JS now owns a reusable three-oval brand mark and a deterministic one-to-three-to-one animation sequence. |
+| intentional difference | `murali-logo-animation` | The earlier Rust/Lissajous logo has been retired. The example plays `MuraliLogoSwell`: the settled three-oval mark springs up from its baseline with the phrase. `MuraliLogoSequence` remains the one-to-three-to-one brand gesture. |
 
 Shared capabilities exercised by this group:
 

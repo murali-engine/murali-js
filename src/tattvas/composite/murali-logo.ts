@@ -1,5 +1,6 @@
 import type { ColorInput } from "../../core/theme.ts";
 import { Timeline } from "../../core/Timeline.ts";
+import type { Tattva, TattvaState } from "../../core/Tattva.ts";
 import { GroupTattva } from "../layout/Group.ts";
 import { Ellipse, type EllipseTattva } from "../primitives/shapes.ts";
 
@@ -36,7 +37,18 @@ export interface MuraliLogoSequenceOptions {
   readonly duration?: number;
 }
 
-const OVAL_RADIUS_X = 0.52;
+export interface MuraliLogoSwellOptions {
+  /** Length of one rest, swell, and settle phrase. Defaults to 6 seconds. */
+  readonly duration?: number;
+}
+
+/** A seek-safe updater. The pose is a function of scene time, not of earlier samples. */
+export interface MuraliLogoSwellMotion {
+  readonly duration: number;
+  readonly update: (time: number, states: Map<Tattva<any>, TattvaState>) => void;
+}
+
+const OVAL_RADIUS_X = 0.48;
 const OVAL_RADIUS_Y = 0.82;
 
 /** Murali's canonical three-touching-oval logo mark. */
@@ -157,6 +169,247 @@ export function MuraliLogoSequence(
     .scale3DTo([1, 1, 1]);
 
   return timeline;
+}
+
+/**
+ * Disturb the settled three-oval mark, then let it spring back.
+ *
+ * Left follows a low swell, the middle a smaller later nudge, and the right a
+ * short transient. Height grows from the shared baseline. Width becomes
+ * `1 / sqrt(height)` and the centers close so the ovals stay tangent instead
+ * of turning into separated needles. Each height chases its target with an
+ * underdamped spring, so the way down passes rest before it settles. A shared
+ * lean of less than two degrees follows the swell. Quiet time keeps a 2.5%
+ * breath at a different phase on each oval.
+ */
+export function MuraliLogoSwell(
+  mark: MuraliLogoMarkTattva,
+  options: MuraliLogoSwellOptions = {},
+): MuraliLogoSwellMotion {
+  const duration = positive(options.duration ?? SWELL_DURATION, "MuraliLogoSwell duration");
+  const track = swellTrack();
+  const halves = mark.ovals.map((oval) => ovalHalfExtents(oval)) as [
+    OvalHalfExtents,
+    OvalHalfExtents,
+    OvalHalfExtents,
+  ];
+  const restLean = mark.initialState.rotationZ;
+
+  return {
+    duration,
+    update(time, states) {
+      const pose = poseAt(track, time, duration);
+      const scaleX = pose.height.map((height, index) => halves[index].restScaleX / Math.sqrt(height)) as [
+        number,
+        number,
+        number,
+      ];
+      const centers = tangentCenters(halves.map((half) => half.width) as [number, number, number], scaleX);
+
+      mark.ovals.forEach((oval, index) => {
+        const state = states.get(oval);
+        if (!state) return;
+        const height = pose.height[index];
+        state.scaleY = halves[index].restScaleY * height;
+        state.scaleX = scaleX[index];
+        // Scale is about the oval center. Shift the center up by the growth
+        // below it so the baseline stays pinned.
+        state.y = halves[index].restY + halves[index].height * (state.scaleY - halves[index].restScaleY);
+        state.x = centers[index];
+      });
+
+      const markState = states.get(mark);
+      if (markState) markState.rotationZ = restLean + pose.lean;
+    },
+  };
+}
+
+/** Reference phrase length. Other durations play this same shape faster or slower. */
+const SWELL_DURATION = 6;
+const SWELL_STEP = 1 / 240;
+/** Breath-only lead-in so the loop starts and ends on the same settled breath. */
+const SWELL_LEAD = 4;
+const BREATH_AMPLITUDE = 0.025;
+const BREATH_PERIOD = 3;
+const HEIGHT_OMEGA = 16;
+const HEIGHT_ZETA = 0.48;
+const LEAN_OMEGA = 5.4;
+const LEAN_ZETA = 0.8;
+const LEAN_DEGREES = 1.45;
+
+interface BandPhrase {
+  /** Reference time when the rise finishes and any hold begins. */
+  readonly riseEnd: number;
+  readonly attack: number;
+  /** Time spent near full height before the release. Zero is a transient. */
+  readonly hold: number;
+  readonly release: number;
+  /** Height added at full drive, before the spring. 1 is rest height. */
+  readonly amplitude: number;
+  readonly breathPhase: number;
+}
+
+/** Left is the low swell, middle the mid nudge, right the high transient. */
+const SWELL_BANDS = [
+  { riseEnd: 1.7, attack: 0.28, hold: 0.75, release: 0.22, amplitude: 0.24, breathPhase: 0.4 },
+  { riseEnd: 1.95, attack: 0.26, hold: 0.35, release: 0.14, amplitude: 0.12, breathPhase: 2.4 },
+  { riseEnd: 1.5, attack: 0.08, hold: 0, release: 0.14, amplitude: 0.2, breathPhase: 4.5 },
+] as const satisfies readonly BandPhrase[];
+
+interface OvalHalfExtents {
+  readonly width: number;
+  readonly height: number;
+  readonly restY: number;
+  readonly restScaleX: number;
+  readonly restScaleY: number;
+}
+
+interface SpringState {
+  value: number;
+  velocity: number;
+}
+
+interface SwellTrack {
+  readonly step: number;
+  readonly height: readonly [Float64Array, Float64Array, Float64Array];
+  readonly lean: Float64Array;
+}
+
+interface SwellPose {
+  readonly height: readonly [number, number, number];
+  readonly lean: number;
+}
+
+function ovalHalfExtents(oval: EllipseTattva): OvalHalfExtents {
+  return {
+    width: (oval.worldSize?.width ?? 0) / 2,
+    height: (oval.worldSize?.height ?? 0) / 2,
+    restY: oval.initialState.y,
+    restScaleX: oval.initialState.scaleX,
+    restScaleY: oval.initialState.scaleY,
+  };
+}
+
+let cachedSwellTrack: SwellTrack | undefined;
+
+function swellTrack(): SwellTrack {
+  if (cachedSwellTrack) return cachedSwellTrack;
+  const count = Math.round(SWELL_DURATION / SWELL_STEP);
+  const height = [0, 1, 2].map(() => new Float64Array(count + 1)) as [
+    Float64Array,
+    Float64Array,
+    Float64Array,
+  ];
+  const lean = new Float64Array(count + 1);
+  const bands = SWELL_BANDS.map((band) => ({
+    value: bandTarget(band, -SWELL_LEAD),
+    velocity: 0,
+  }));
+  let leanState: SpringState = { value: leanTarget(-SWELL_LEAD), velocity: 0 };
+  const leadSteps = Math.round(SWELL_LEAD / SWELL_STEP);
+
+  for (let step = 0; step < leadSteps; step += 1) {
+    advancePhrase(bands, leanState, -SWELL_LEAD + step * SWELL_STEP);
+  }
+
+  for (let index = 0; index <= count; index += 1) {
+    height.forEach((channel, band) => {
+      channel[index] = bands[band].value;
+    });
+    lean[index] = leanState.value;
+    if (index === count) break;
+    advancePhrase(bands, leanState, index * SWELL_STEP);
+  }
+
+  cachedSwellTrack = { step: SWELL_STEP, height, lean };
+  return cachedSwellTrack;
+}
+
+function advancePhrase(bands: readonly SpringState[], leanState: SpringState, time: number): void {
+  bands.forEach((state, index) => {
+    const band = SWELL_BANDS[index];
+    if (!band) return;
+    stepSpring(state, bandTarget(band, time), HEIGHT_OMEGA, HEIGHT_ZETA);
+  });
+  stepSpring(leanState, leanTarget(time), LEAN_OMEGA, LEAN_ZETA);
+}
+
+function poseAt(track: SwellTrack, time: number, duration: number): SwellPose {
+  const referenceTime = (Math.min(duration, Math.max(0, time)) / duration) * SWELL_DURATION;
+  return {
+    height: track.height.map((channel) => sampleTrack(channel, referenceTime, track.step)) as [
+      number,
+      number,
+      number,
+    ],
+    lean: sampleTrack(track.lean, referenceTime, track.step),
+  };
+}
+
+function sampleTrack(channel: Float64Array, time: number, step: number): number {
+  const last = channel.length - 1;
+  const position = Math.min(last, Math.max(0, time / step));
+  const index = Math.floor(position);
+  const next = Math.min(last, index + 1);
+  const mix = position - index;
+  return channel[index] * (1 - mix) + channel[next] * mix;
+}
+
+function bandTarget(band: BandPhrase, time: number): number {
+  return 1
+    + breath(time, band.breathPhase)
+    + band.amplitude * held(time, band.riseEnd, band.attack, band.hold, band.release);
+}
+
+function leanTarget(time: number): number {
+  // Wider than the low swell, so the lean reads as one slow move rather than a twitch.
+  return LEAN_DEGREES * lobe(time, 2.15, 0.75, 1.2);
+}
+
+function breath(time: number, phase: number): number {
+  return BREATH_AMPLITUDE * Math.sin((Math.PI * 2 * time) / BREATH_PERIOD + phase);
+}
+
+/** Smooth bump that leaves zero with a flat derivative. */
+function lobe(time: number, peak: number, attack: number, release: number): number {
+  return held(time, peak, attack, 0, release);
+}
+
+/** Rise, optional hold, then release. Endpoints have a flat derivative. */
+function held(time: number, riseEnd: number, attack: number, hold: number, release: number): number {
+  const start = riseEnd - attack;
+  const fallStart = riseEnd + hold;
+  const end = fallStart + release;
+  if (time <= start || time >= end) return 0;
+  if (time < riseEnd) {
+    const rise = Math.sin(((time - start) / attack) * Math.PI / 2);
+    return rise * rise;
+  }
+  if (time < fallStart) return 1;
+  const fall = Math.cos(((time - fallStart) / release) * Math.PI / 2);
+  return fall * fall;
+}
+
+function stepSpring(state: SpringState, target: number, omega: number, zeta: number): void {
+  const acceleration = -omega * omega * (state.value - target) - 2 * zeta * omega * state.velocity;
+  state.velocity += acceleration * SWELL_STEP;
+  state.value += state.velocity * SWELL_STEP;
+}
+
+/**
+ * Centers of three ovals that stay tangent and centered as their widths change.
+ * `halves` are the unscaled half-widths and `scaleX` is the current width scale.
+ */
+function tangentCenters(
+  halves: readonly [number, number, number],
+  scaleX: readonly [number, number, number],
+): [number, number, number] {
+  const extents = halves.map((half, index) => half * scaleX[index]) as [number, number, number];
+  const total = (extents[0] + extents[1] + extents[2]) * 2;
+  const left = -total / 2 + extents[0];
+  const middle = left + extents[0] + extents[1];
+  const right = middle + extents[1] + extents[2];
+  return [left, middle, right];
 }
 
 function positive(value: number, label: string): number {
