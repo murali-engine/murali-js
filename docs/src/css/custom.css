@@ -73,3 +73,10 @@
   height: 100% !important;
   border: 0;
 }
+
+.logoMark {
+  display: block;
+  width: min(100%, 280px);
+  height: auto;
+  margin: 0.25rem 0 1.5rem;
+}

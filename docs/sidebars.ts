@@ -55,6 +55,7 @@ const sidebars: SidebarsConfig = {
       label: "Architecture",
       items: ["architecture/determinism-and-rendering"],
     },
+    "logo",
   ],
 };
 

@@ -5,7 +5,8 @@ import { Scene } from "murali-js/core";
 /**
  * The settled mark rides one musical phrase.
  * Blue lifts from the baseline on the low swell, violet nudges after it,
- * and coral flicks on the transient. All three spring past rest and settle.
+ * and coral swells ahead of them. The rise and the return both ease,
+ * and the phrase closes on the same breath it opens on.
  */
 class MuraliLogoAnimation extends Scene {
   constructor() {

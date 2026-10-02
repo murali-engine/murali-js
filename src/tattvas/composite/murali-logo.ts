@@ -172,15 +172,16 @@ export function MuraliLogoSequence(
 }
 
 /**
- * Disturb the settled three-oval mark, then let it spring back.
+ * Disturb the settled three-oval mark, then let it ease home.
  *
- * Left follows a low swell, the middle a smaller later nudge, and the right a
- * short transient. Height grows from the shared baseline. Width becomes
+ * Left follows a low swell, the middle a smaller later nudge, and the right
+ * an earlier swell. Height grows from the shared baseline. Width becomes
  * `1 / sqrt(height)` and the centers close so the ovals stay tangent instead
- * of turning into separated needles. Each height chases its target with an
- * underdamped spring, so the way down passes rest before it settles. A shared
- * lean of less than two degrees follows the swell. Quiet time keeps a 2.5%
- * breath at a different phase on each oval.
+ * of turning into separated needles. Each height eases in and out, then
+ * chases that curve with an underdamped spring, so the way down passes rest
+ * before it settles. A shared lean of less than two degrees follows the
+ * swell. Quiet time keeps a 2.5% breath at a different phase on each oval.
+ * The phrase starts and ends on that breath, so a loop has no seam.
  */
 export function MuraliLogoSwell(
   mark: MuraliLogoMarkTattva,
@@ -227,15 +228,15 @@ export function MuraliLogoSwell(
 /** Reference phrase length. Other durations play this same shape faster or slower. */
 const SWELL_DURATION = 6;
 const SWELL_STEP = 1 / 240;
-/** Breath-only lead-in so the loop starts and ends on the same settled breath. */
-const SWELL_LEAD = 4;
+/** Two breath periods, so the recorded cycle opens on the same state it closes on. */
+const SWELL_LEAD = 6;
 const BREATH_AMPLITUDE = 0.025;
 const BREATH_PERIOD = 3;
-const HEIGHT_OMEGA = 16;
-const HEIGHT_ZETA = 0.48;
-const LEAN_OMEGA = 5.4;
-const LEAN_ZETA = 0.8;
-const LEAN_DEGREES = 1.45;
+const HEIGHT_OMEGA = 11;
+const HEIGHT_ZETA = 0.42;
+const LEAN_OMEGA = 7;
+const LEAN_ZETA = 0.9;
+const LEAN_DEGREES = 1.35;
 
 interface BandPhrase {
   /** Reference time when the rise finishes and any hold begins. */
@@ -249,11 +250,11 @@ interface BandPhrase {
   readonly breathPhase: number;
 }
 
-/** Left is the low swell, middle the mid nudge, right the high transient. */
+/** Left is the low swell, middle the later nudge, right the earlier swell. */
 const SWELL_BANDS = [
-  { riseEnd: 1.7, attack: 0.28, hold: 0.75, release: 0.22, amplitude: 0.24, breathPhase: 0.4 },
-  { riseEnd: 1.95, attack: 0.26, hold: 0.35, release: 0.14, amplitude: 0.12, breathPhase: 2.4 },
-  { riseEnd: 1.5, attack: 0.08, hold: 0, release: 0.14, amplitude: 0.2, breathPhase: 4.5 },
+  { riseEnd: 2.2, attack: 0.85, hold: 0.4, release: 0.62, amplitude: 0.25, breathPhase: 0.4 },
+  { riseEnd: 2.82, attack: 0.55, hold: 0.12, release: 0.48, amplitude: 0.115, breathPhase: 2.4 },
+  { riseEnd: 1.7, attack: 0.62, hold: 0.05, release: 0.5, amplitude: 0.16, breathPhase: 4.5 },
 ] as const satisfies readonly BandPhrase[];
 
 interface OvalHalfExtents {
@@ -363,31 +364,31 @@ function bandTarget(band: BandPhrase, time: number): number {
 
 function leanTarget(time: number): number {
   // Wider than the low swell, so the lean reads as one slow move rather than a twitch.
-  return LEAN_DEGREES * lobe(time, 2.15, 0.75, 1.2);
+  return LEAN_DEGREES * held(time, 2.3, 1.1, 0.15, 1.05);
 }
 
 function breath(time: number, phase: number): number {
   return BREATH_AMPLITUDE * Math.sin((Math.PI * 2 * time) / BREATH_PERIOD + phase);
 }
 
-/** Smooth bump that leaves zero with a flat derivative. */
-function lobe(time: number, peak: number, attack: number, release: number): number {
-  return held(time, peak, attack, 0, release);
+/**
+ * Quintic smootherstep. Value, slope, and acceleration are zero at both ends,
+ * so a hold can begin and end without a corner.
+ */
+function smootherstep(progress: number): number {
+  const u = Math.min(1, Math.max(0, progress));
+  return u * u * u * (u * (u * 6 - 15) + 10);
 }
 
-/** Rise, optional hold, then release. Endpoints have a flat derivative. */
+/** Rise, optional hold, then release. Every joint is smooth through acceleration. */
 function held(time: number, riseEnd: number, attack: number, hold: number, release: number): number {
   const start = riseEnd - attack;
   const fallStart = riseEnd + hold;
   const end = fallStart + release;
   if (time <= start || time >= end) return 0;
-  if (time < riseEnd) {
-    const rise = Math.sin(((time - start) / attack) * Math.PI / 2);
-    return rise * rise;
-  }
+  if (time < riseEnd) return smootherstep((time - start) / attack);
   if (time < fallStart) return 1;
-  const fall = Math.cos(((time - fallStart) / release) * Math.PI / 2);
-  return fall * fall;
+  return 1 - smootherstep((time - fallStart) / release);
 }
 
 function stepSpring(state: SpringState, target: number, omega: number, zeta: number): void {

@@ -77,6 +77,7 @@ const config: Config = {
           title: "Documentation",
           items: [
             { label: "Documentation", to: "/docs/" },
+            { label: "The logo", to: "/docs/logo/" },
             { label: "Rust Murali documentation", href: rustDocsUrl },
           ],
         },

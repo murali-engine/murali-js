@@ -133,11 +133,18 @@ test("springs the settled logo up from the baseline and back past rest", () => {
   let leanMax = 0;
   let quietMin = Infinity;
   let quietMax = -Infinity;
+  let maxStep = 0;
+  let previousScales: readonly number[] | undefined;
 
   for (let step = 0; step <= 360; step += 1) {
     const time = scene.duration * step / 360;
     const sampled = scene.sampleAt(time);
     const scales = ovals.map((oval) => sampled.get(oval)?.scaleY ?? 0);
+    if (previousScales) {
+      const stepSize = Math.max(...scales.map((scale, index) => Math.abs(scale - (previousScales?.[index] ?? scale))));
+      if (stepSize > maxStep) maxStep = stepSize;
+    }
+    previousScales = scales;
     const widths = ovals.map((oval) => sampled.get(oval)?.scaleX ?? 0);
     const centers = ovals.map((oval) => sampled.get(oval)?.x ?? 0);
 
@@ -188,7 +195,8 @@ test("springs the settled logo up from the baseline and back past rest", () => {
   const duringNudge = scene.sampleAt(violetMaxAt);
   assert.ok((duringNudge.get(left)?.scaleY ?? 0) > 1.15);
   assert.ok((duringNudge.get(right)?.scaleY ?? 0) < 1.08);
-  assert.ok(blueMinAfter < 0.98, `blue should spring past rest, lowest ${blueMinAfter}`);
+  assert.ok(blueMinAfter < 0.997, `blue should ease through rest, lowest ${blueMinAfter}`);
+  assert.ok(maxStep < 0.02, `a frame should not jump, largest step ${maxStep}`);
   assert.equal(recovered, true);
   assert.ok(leanMax > 1 && leanMax < 2, `shared lean ${leanMax}`);
   assert.ok(quietMax - quietMin > 0.02 && quietMax < 1.04 && quietMin > 0.96);
