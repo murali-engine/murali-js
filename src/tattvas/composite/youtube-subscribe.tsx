@@ -2,7 +2,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { ReactTattva } from "../../core/ReactTattva.ts";
 import type { TattvaState } from "../../core/Tattva.ts";
 import { Timeline } from "../../core/Timeline.ts";
-import { resolveColorInput, themeColor, type ColorInput, type Theme } from "../../core/theme.ts";
+import { resolveImageSource, type ImageFileAsset } from "../../core/image.ts";
+import { resolveColorInput, type ColorInput, type Theme } from "../../core/theme.ts";
 
 export type YouTubeSubscribeLayout = "wide" | "compact";
 
@@ -11,6 +12,8 @@ export interface YouTubeSubscribeOptions {
   message?: string;
   layout?: YouTubeSubscribeLayout;
   accent?: ColorInput;
+  /** Channel photo. A string is used as the image URL. `imageFile()` is embedded at render time. */
+  avatar?: string | ImageFileAsset;
   showBell?: boolean;
   size?: readonly [number, number];
 }
@@ -26,16 +29,25 @@ interface SubscribeConfig {
   message: string;
   layout: YouTubeSubscribeLayout;
   accent: ColorInput;
+  avatar?: string | ImageFileAsset;
   showBell: boolean;
   customSize: boolean;
 }
 
+const YOUTUBE_RED = "#ff0000";
+
 const DEFAULT_SIZE: Record<YouTubeSubscribeLayout, readonly [number, number]> = {
-  wide: [7.2, 1.35],
-  compact: [3.8, 2.65],
+  wide: [7.4, 1.62],
+  compact: [5.1, 3.6],
 };
 
-/** A responsive YouTube subscribe CTA for landscape videos and portrait Shorts. */
+/** Share of the card height used as the root font size, so type matches the card at any resolution. */
+const FONT_FRACTION: Record<YouTubeSubscribeLayout, number> = {
+  wide: 0.17,
+  compact: 0.08,
+};
+
+/** A subscribe end card for landscape videos and portrait Shorts. */
 export class YouTubeSubscribeTattva extends ReactTattva<YouTubeSubscribeState> {
   private readonly subscribeConfig: SubscribeConfig;
 
@@ -47,10 +59,11 @@ export class YouTubeSubscribeTattva extends ReactTattva<YouTubeSubscribeState> {
       handle: options.handle?.trim() ?? "",
       message: options.message?.trim() ?? "Subscribe for more",
       layout,
-      accent: options.accent ?? themeColor("negative"),
+      accent: options.accent ?? YOUTUBE_RED,
       showBell: options.showBell ?? true,
       customSize: options.size !== undefined,
     };
+    if (options.avatar !== undefined) config.avatar = cleanAvatar(options.avatar);
     super((state, context) => renderSubscribe(config, state, context.theme), {
       state: { subscribeProgress: 0, bellProgress: 0 },
     });
@@ -64,6 +77,7 @@ export class YouTubeSubscribeTattva extends ReactTattva<YouTubeSubscribeState> {
   layout(value: YouTubeSubscribeLayout): this {
     this.subscribeConfig.layout = value;
     if (!this.subscribeConfig.customSize) this.applySize(DEFAULT_SIZE[value]);
+    else this.syncFont();
     return this;
   }
 
@@ -83,6 +97,11 @@ export class YouTubeSubscribeTattva extends ReactTattva<YouTubeSubscribeState> {
   accent(value: ColorInput): this {
     if (typeof value === "string") requiredText(value, "YouTube subscribe accent");
     this.subscribeConfig.accent = value;
+    return this;
+  }
+
+  avatar(value: string | ImageFileAsset): this {
+    this.subscribeConfig.avatar = cleanAvatar(value);
     return this;
   }
 
@@ -114,7 +133,13 @@ export class YouTubeSubscribeTattva extends ReactTattva<YouTubeSubscribeState> {
       width: positive(width, "YouTube subscribe width"),
       height: positive(height, "YouTube subscribe height"),
     };
+    this.syncFont();
     return this;
+  }
+
+  private syncFont(): void {
+    const height = this.worldSize?.height ?? DEFAULT_SIZE[this.subscribeConfig.layout][1];
+    this.worldFontSize = height * FONT_FRACTION[this.subscribeConfig.layout];
   }
 }
 
@@ -154,10 +179,16 @@ function renderSubscribe(
   theme: Theme,
 ): ReactNode {
   const compact = config.layout === "compact";
-  const subscribed = state.subscribeProgress >= 0.55;
-  const subscribePulse = 1 + Math.sin(Math.min(1, state.subscribeProgress) * Math.PI) * 0.09;
-  const bellProgress = Math.min(1, Math.max(0, state.bellProgress));
-  const bellRotation = Math.sin(bellProgress * Math.PI * 4) * (1 - bellProgress) * 24;
+  const subscribeProgress = clamp01(state.subscribeProgress);
+  const bellProgress = clamp01(state.bellProgress);
+  const leave = smoothstep(0, 0.38, subscribeProgress);
+  const fill = smoothstep(0.08, 0.55, subscribeProgress);
+  const arrive = smoothstep(0.42, 0.8, subscribeProgress);
+  const press = Math.sin(subscribeProgress * Math.PI) * 0.045;
+  const bellGate = config.showBell
+    ? Math.max(smoothstep(0.72, 1, subscribeProgress), smoothstep(0, 0.4, bellProgress))
+    : 0;
+  const bellRotation = Math.sin(bellProgress * Math.PI * 4) * (1 - bellProgress) * 16;
   const initials = config.channel
     .split(/\s+/)
     .filter(Boolean)
@@ -165,22 +196,26 @@ function renderSubscribe(
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
   const accent = resolveColorInput(config.accent, theme);
+  const avatarUrl = config.avatar ? resolveImageSource(config.avatar) : undefined;
+  const neutralFill = `color-mix(in srgb, ${theme.colors.stroke} 12%, transparent)`;
   const root: CSSProperties = {
+    boxSizing: "border-box",
     width: "100%",
     height: "100%",
     display: "flex",
     flexDirection: compact ? "column" : "row",
-    alignItems: "center",
-    justifyContent: compact ? "center" : "space-between",
-    gap: compact ? "6%" : "3%",
-    padding: compact ? "9% 8%" : "10% 3%",
-    border: `1px solid color-mix(in srgb, ${theme.colors.stroke} 16%, transparent)`,
-    borderRadius: compact ? "12%" : "999px",
-    background: `linear-gradient(145deg, ${theme.colors.surfaceElevated}, ${theme.colors.surface})`,
-    boxShadow: `0 12px 42px rgba(0,0,0,${theme.effects.shadowOpacity}), inset 0 1px color-mix(in srgb, ${theme.colors.stroke} 8%, transparent)`,
+    alignItems: compact ? "stretch" : "center",
+    justifyContent: "center",
+    gap: compact ? "0.7em" : "0.8em",
+    padding: compact ? "0.75em 0.8em" : "0.42em 0.7em",
+    border: `0.055em solid color-mix(in srgb, ${theme.colors.stroke} 22%, transparent)`,
+    borderRadius: compact ? "0.9em" : "0.72em",
+    background: theme.colors.surface,
+    boxShadow: `0 0.35em 1.05em rgb(0 0 0 / ${theme.effects.shadowOpacity})`,
     color: theme.colors.textPrimary,
     fontFamily: theme.typography.bodyFamily,
-    fontSize: compact ? "clamp(14px, 2vw, 30px)" : "clamp(12px, 1.25vw, 24px)",
+    fontSize: `${FONT_FRACTION[config.layout] * 100}cqh`,
+    lineHeight: 1.15,
     overflow: "hidden",
   };
   const identity: CSSProperties = {
@@ -188,113 +223,231 @@ function renderSubscribe(
     alignItems: "center",
     flexDirection: compact ? "column" : "row",
     textAlign: compact ? "center" : "left",
-    gap: compact ? ".45em" : ".75em",
+    gap: compact ? "0.45em" : "0.7em",
     minWidth: 0,
+    width: compact ? "100%" : "auto",
     flex: compact ? "0 0 auto" : "1 1 auto",
   };
-  const actions: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: ".55em",
-    flex: "0 0 auto",
-  };
   return (
-    <section style={root} aria-label={`Subscribe to ${config.channel}`}>
-      <div style={identity}>
-        <div style={{
-          width: compact ? "3em" : "3.2em",
-          height: compact ? "3em" : "3.2em",
-          flex: "0 0 auto",
-          display: "grid",
-          placeItems: "center",
-          borderRadius: "50%",
-          background: `linear-gradient(145deg, ${accent}, color-mix(in srgb, ${accent} 55%, ${theme.colors.surface}))`,
-          boxShadow: `0 0 1.5em color-mix(in srgb, ${accent} 45%, transparent)`,
-          fontWeight: 850,
-          fontSize: "1.2em",
-          letterSpacing: "-.04em",
-        }}>{initials || "▶"}</div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: compact ? "center" : "flex-start",
-            gap: ".35em",
-            fontSize: compact ? "1.12em" : "1.2em",
-            fontWeight: 780,
-            lineHeight: 1.05,
-            letterSpacing: "-.035em",
-            whiteSpace: "nowrap",
-          }}>
-            <YouTubeMark color={accent} compact={compact} />
-            {config.channel}
+    <div style={{ width: "100%", height: "100%", containerType: "size" }}>
+      <section style={root} aria-label={`Subscribe to ${config.channel}`}>
+        <div style={identity}>
+          <Avatar
+            initials={initials || "▶"}
+            imageUrl={avatarUrl}
+            accent={accent}
+            theme={theme}
+            compact={compact}
+          />
+          <div style={{ minWidth: 0, width: compact ? "100%" : "auto", flex: compact ? "0 1 auto" : "1 1 auto" }}>
+            <div style={titleStyle}>{config.channel}</div>
+            {config.handle && <div style={handleStyle(theme)}>{config.handle}</div>}
+            {config.message && <div style={messageStyle(theme)}>{config.message}</div>}
           </div>
-          {(config.handle || config.message) && <div style={{
-            marginTop: ".38em",
-            color: theme.colors.textMuted,
-            fontSize: ".65em",
-            fontWeight: 520,
-            whiteSpace: "nowrap",
+        </div>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          width: compact ? "100%" : "auto",
+          flex: "0 0 auto",
+        }}>
+          <div style={{
+            boxSizing: "border-box",
+            minWidth: compact ? 0 : "8.6em",
+            flex: compact ? "1 1 auto" : "0 0 auto",
+            height: compact ? "2.55em" : "2.35em",
+            padding: "0 1.05em",
+            display: "grid",
+            placeItems: "center",
+            borderRadius: "999px",
+            border: `0.07em solid color-mix(in srgb, ${theme.colors.textSecondary} ${fill * 100}%, transparent)`,
+            background: `color-mix(in srgb, ${accent} ${(1 - fill) * 100}%, ${neutralFill} ${fill * 100}%)`,
+            boxShadow: fill > 0.98
+              ? "none"
+              : `0 0.22em 0.7em color-mix(in srgb, ${accent} ${(1 - fill) * 38}%, transparent)`,
+            fontSize: "0.92em",
+            fontWeight: theme.typography.headingWeight,
+            lineHeight: 1,
+            transform: `scale(${1 - press})`,
           }}>
-            {[config.handle, config.message].filter(Boolean).join("  ·  ")}
+            <span style={{ gridArea: "1 / 1", opacity: 1 - leave, color: theme.colors.textOnAccent, whiteSpace: "nowrap" }}>
+              Subscribe
+            </span>
+            <span style={{
+              gridArea: "1 / 1",
+              opacity: arrive,
+              color: theme.colors.textPrimary,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35em",
+              whiteSpace: "nowrap",
+            }}>
+              <CheckIcon progress={arrive} />
+              Subscribed
+            </span>
+          </div>
+          {config.showBell && <div style={{
+            width: `${2.35 * bellGate}em`,
+            marginLeft: `${0.45 * bellGate}em`,
+            opacity: bellGate,
+            overflow: "hidden",
+            flex: "0 0 auto",
+          }}>
+            <div style={{
+              width: "2.35em",
+              height: "2.35em",
+              display: "grid",
+              placeItems: "center",
+              borderRadius: "50%",
+              color: theme.colors.textPrimary,
+              background: `color-mix(in srgb, ${theme.colors.stroke} 10%, transparent)`,
+            }}>
+              <BellIcon rotation={bellRotation} filled={bellProgress} />
+            </div>
           </div>}
         </div>
-      </div>
-      <div style={actions}>
-        <div style={{
-          minWidth: compact ? "7.8em" : "7.35em",
-          height: compact ? "2.4em" : "2.7em",
-          padding: compact ? "0 1.15em" : "0 1.3em",
-          display: "grid",
-          placeItems: "center",
-          borderRadius: "999px",
-          background: subscribed ? theme.colors.surfaceElevated : accent,
-          color: subscribed ? theme.colors.textPrimary : theme.colors.textOnAccent,
-          boxShadow: subscribed
-            ? "0 .25em .8em rgba(0,0,0,.22)"
-            : `0 .25em 1em color-mix(in srgb, ${accent} 36%, transparent)`,
-          fontSize: compact ? ".86em" : ".94em",
-          fontWeight: 760,
-          lineHeight: 1,
-          transform: `scale(${subscribePulse})`,
-        }}>
-          {subscribed ? "Subscribed" : "Subscribe"}
-        </div>
-        {config.showBell && <div style={{
-          width: compact ? "2.4em" : "2.7em",
-          height: compact ? "2.4em" : "2.7em",
-          display: "grid",
-          placeItems: "center",
-          borderRadius: "50%",
-          color: bellProgress > 0.65 ? theme.colors.warning : theme.colors.textSecondary,
-          background: `color-mix(in srgb, ${theme.colors.stroke} 9%, transparent)`,
-          transform: `rotate(${bellRotation}deg)`,
-          boxShadow: bellProgress > 0.1 ? `0 0 ${bellProgress}em color-mix(in srgb, ${theme.colors.warning} 30%, transparent)` : "none",
-        }}>
-          <BellIcon />
-        </div>}
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
-function YouTubeMark({ color, compact }: { color: string; compact: boolean }): ReactNode {
+function Avatar({
+  initials,
+  imageUrl,
+  accent,
+  theme,
+  compact,
+}: {
+  initials: string;
+  imageUrl: string | undefined;
+  accent: string;
+  theme: Theme;
+  compact: boolean;
+}): ReactNode {
+  const size = compact ? "2.7em" : "2.35em";
   return (
-    <svg width={compact ? "1.15em" : "1.2em"} height={compact ? ".78em" : ".8em"} viewBox="0 0 48 32" aria-hidden="true">
-      <rect width="48" height="32" rx="8" fill={color} />
-      <path d="M20 9.5 32 16 20 22.5Z" fill="white" />
+    <div style={{ position: "relative", width: size, height: size, flex: "0 0 auto" }}>
+      <div style={{
+        width: "100%",
+        height: "100%",
+        display: "grid",
+        placeItems: "center",
+        overflow: "hidden",
+        borderRadius: "50%",
+        border: `0.06em solid color-mix(in srgb, ${theme.colors.stroke} 30%, transparent)`,
+        background: `color-mix(in srgb, ${theme.colors.stroke} 16%, ${theme.colors.surfaceElevated})`,
+        color: theme.colors.textPrimary,
+        fontWeight: theme.typography.headingWeight,
+        fontSize: "0.68em",
+        letterSpacing: "-0.04em",
+      }}>
+        {imageUrl
+          ? <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          : initials}
+      </div>
+      <div style={{
+        position: "absolute",
+        right: "8%",
+        bottom: "18%",
+        width: "32%",
+        height: "23%",
+      }}>
+        <YouTubeMark color={accent} />
+      </div>
+    </div>
+  );
+}
+
+const titleStyle: CSSProperties = {
+  overflow: "hidden",
+  fontSize: "1.02em",
+  fontWeight: 700,
+  letterSpacing: "-0.03em",
+  lineHeight: 1.12,
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+};
+
+function handleStyle(theme: Theme): CSSProperties {
+  return {
+    marginTop: "0.14em",
+    overflow: "hidden",
+    color: theme.colors.textMuted,
+    fontSize: "0.72em",
+    fontWeight: 500,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+  };
+}
+
+function messageStyle(theme: Theme): CSSProperties {
+  return {
+    marginTop: "0.18em",
+    overflow: "hidden",
+    color: theme.colors.textSecondary,
+    fontSize: "0.74em",
+    fontWeight: 500,
+    lineHeight: 1.28,
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+  };
+}
+
+function YouTubeMark({ color }: { color: string }): ReactNode {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 24 17" aria-hidden="true">
+      <path
+        fill={color}
+        d="M23.2 3.15A2.8 2.8 0 0 0 21.2 1.2C19.4.72 12 .72 12 .72S4.6.72 2.8 1.2A2.8 2.8 0 0 0 .8 3.15C.32 4.9.32 8.5.32 8.5s0 3.6.48 5.35a2.8 2.8 0 0 0 2 1.95c1.8.48 9.2.48 9.2.48s7.4 0 9.2-.48a2.8 2.8 0 0 0 2-1.95c.48-1.75.48-5.35.48-5.35s0-3.6-.48-5.35z"
+      />
+      <path fill="#ffffff" d="M9.7 12.05V4.95L15.85 8.5 9.7 12.05z" />
     </svg>
   );
 }
 
-function BellIcon(): ReactNode {
+function CheckIcon({ progress }: { progress: number }): ReactNode {
+  const length = 14;
   return (
-    <svg width="58%" height="58%" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <svg width="0.95em" height="0.95em" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M3.2 8.3 6.5 11.5 12.8 4.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={length}
+        strokeDashoffset={length * (1 - progress)}
+      />
+    </svg>
+  );
+}
+
+function BellIcon({ rotation, filled }: { rotation: number; filled: number }): ReactNode {
+  const body = "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z";
+  return (
+    <svg
+      width="58%"
+      height="58%"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      style={{ transformOrigin: "50% 16%", transform: `rotate(${rotation}deg)` }}
+    >
+      <path d={body} fill="currentColor" opacity={filled} />
+      <path d={body} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" opacity={1 - filled} />
       <path d="M10 21h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
+}
+
+function cleanAvatar(value: string | ImageFileAsset): string | ImageFileAsset {
+  if (typeof value === "string") return requiredText(value, "YouTube subscribe avatar");
+  if (value?.kind !== "file" || value.source.trim().length === 0) {
+    throw new Error("YouTube subscribe avatar file must not be empty.");
+  }
+  return value;
 }
 
 function requiredText(value: string, label: string): string {
@@ -322,4 +475,15 @@ function unit(value: number, label: string): number {
     throw new Error(`${label} must be between 0 and 1; received ${value}.`);
   }
   return value;
+}
+
+function clamp01(value: number): number {
+  return Math.min(1, Math.max(0, value));
+}
+
+function smoothstep(edge0: number, edge1: number, value: number): number {
+  const span = edge1 - edge0;
+  if (span <= 0) return value >= edge1 ? 1 : 0;
+  const t = clamp01((value - edge0) / span);
+  return t * t * (3 - 2 * t);
 }

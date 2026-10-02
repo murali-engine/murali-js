@@ -1852,9 +1852,11 @@ test("samples a reusable WaveMesh deterministically with seamless phase cycles",
 test("builds responsive YouTube subscribe CTAs and a deterministic action sequence", () => {
   const subscribe = YouTubeSubscribe("Kavriq", { handle: "@kavriq" });
   assert.equal(subscribe.depthModeValue, "overlay");
-  assert.deepEqual(subscribe.worldSize, { width: 7.2, height: 1.35 });
+  assert.deepEqual(subscribe.worldSize, { width: 7.4, height: 1.62 });
+  assert.equal(subscribe.worldFontSize, 1.62 * 0.17);
   subscribe.compact();
-  assert.deepEqual(subscribe.worldSize, { width: 3.8, height: 2.65 });
+  assert.deepEqual(subscribe.worldSize, { width: 5.1, height: 3.6 });
+  assert.equal(subscribe.worldFontSize, 3.6 * 0.08);
   subscribe.subscribed(0.4).bell(0.25);
   assert.equal(subscribe.initialState.subscribeProgress, 0.4);
   assert.equal(subscribe.initialState.bellProgress, 0.25);
@@ -1865,7 +1867,9 @@ test("builds responsive YouTube subscribe CTAs and a deterministic action sequen
 
   const custom = YouTubeSubscribe("Channel", { size: [5, 2] }).compact();
   assert.deepEqual(custom.worldSize, { width: 5, height: 2 });
+  assert.equal(custom.worldFontSize, 2 * 0.08);
   assert.throws(() => YouTubeSubscribe("  "), /must not be empty/);
+  assert.throws(() => subscribe.avatar("  "), /must not be empty/);
   assert.throws(() => subscribe.subscribed(2), /between 0 and 1/);
 });
 
