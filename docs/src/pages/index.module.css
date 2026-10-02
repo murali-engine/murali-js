@@ -222,7 +222,7 @@
 
 @media (max-width: 996px) {
   .hero { grid-template-columns: 1fr; min-height: auto; }
-  .markStage { width: min(28rem, 80vw); }
+  .markStage { display: none; }
   .foundationStrip, .capabilityGrid, .showcaseGrid { grid-template-columns: 1fr; }
   .foundationStrip article, .foundationStrip article:last-child { border-right: 0; border-bottom: 1px solid #e6e0d5; }
   .rustNote { grid-template-columns: 1fr; align-items: start; }
@@ -231,7 +231,6 @@
 
 @media (max-width: 650px) {
   .hero h1 { font-size: 3.15rem; }
-  .markStage { width: 86vw; }
   .foundationStrip { padding: 0; }
   .pathGrid { grid-template-columns: 1fr; }
   .capabilityCard { min-height: 250px; }

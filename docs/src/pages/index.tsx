@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "@docusaurus/Link";
 import Layout from "@theme/Layout";
 import Heading from "@theme/Heading";
 
 import styles from "./index.module.css";
+
+const MARK_MEDIA = "(min-width: 997px) and (prefers-reduced-motion: no-preference)";
 
 const foundations = [
   ["01", "Compose", "Build scenes from focused, reusable tattvas."],
@@ -54,17 +56,37 @@ const learningPaths = [
 ] as const;
 
 function MuraliMark(): ReactNode {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const query = window.matchMedia(MARK_MEDIA);
+
+    const sync = () => {
+      if (!query.matches) {
+        video.pause();
+        return;
+      }
+      if (
+        video.networkState === HTMLMediaElement.NETWORK_EMPTY ||
+        video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE
+      ) {
+        video.load();
+      }
+      void video.play().catch(() => {});
+    };
+
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
   return (
     <div className={styles.markStage} aria-hidden="true">
-      <video
-        className={styles.mark}
-        src="/img/murali-logo-animation.webm"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-      />
+      <video ref={videoRef} className={styles.mark} autoPlay muted loop playsInline preload="auto">
+        <source src="/img/murali-logo-animation.webm" type="video/webm" media={MARK_MEDIA} />
+      </video>
       <img className={styles.markStill} src="/img/murali-mark.svg" alt="" />
     </div>
   );
