@@ -1,18 +1,9 @@
-import {
-  BLUE_B,
-  Circle,
-  GOLD_C,
-  GRAY_A,
-  GRAY_B,
-  Label,
-  PURPLE_B,
-  ParticleBelt,
-  Scene,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, ParticleBelt } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_B, GOLD_C, GRAY_A, GRAY_B, PURPLE_B, TEAL_C, WHITE } = palette;
 
 const evolveStart = 2.6;
 const evolveDuration = 5.6;

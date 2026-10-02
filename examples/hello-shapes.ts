@@ -1,20 +1,9 @@
-import {
-  BLUE_D,
-  Circle,
-  GRAY_A,
-  GRAY_B,
-  GOLD_C,
-  GREEN_D,
-  Label,
-  Polygon,
-  RED_B,
-  Rectangle,
-  Scene,
-  Square,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, Polygon, Rectangle, Square } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_D, GRAY_A, GRAY_B, GOLD_C, GREEN_D, RED_B, WHITE } = palette;
 
 /** Port of Murali `examples/hello_shapes.rs`. */
 class HelloShapes extends Scene {

@@ -1,12 +1,8 @@
-import {
-  Group,
-  Label,
-  Rectangle,
-  Scene,
-  clip,
-  render,
-  timeline,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, clip, timeline } from "murali-js/core";
+import { Group } from "murali-js/layout";
+import { Rectangle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
 
 class CSS3DTransforms extends Scene {
   constructor() {

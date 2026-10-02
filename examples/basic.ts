@@ -1,4 +1,7 @@
-import { Circle, Label, Scene, Timeline, render } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { Circle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
 
 class BasicScene extends Scene {
   constructor() {

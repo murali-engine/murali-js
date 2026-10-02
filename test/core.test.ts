@@ -7,12 +7,12 @@ import trace from "../examples/data/self_attention_trace.json" with { type: "jso
 import {
   Circle,
   Arrow,
-  RED_B,
   resolveColor,
   HStack,
   Axes,
   AngleArc,
   BasisGrid,
+  BasisExplorer2D,
   BasisVectors,
   basisCoordinates,
   ColumnCombination,
@@ -21,8 +21,10 @@ import {
   DimensionBadge,
   LinearCombination,
   MatrixDisplay,
+  Matrix,
   MatrixTransformPanel,
   MatrixVectorFlow,
+  LinearMap2D,
   SpanRegion,
   TransformableGrid,
   formatMatrixEntry,
@@ -35,9 +37,23 @@ import {
   cosineSimilarity,
   formatValue,
   projectOnto,
+  ProjectionDiagram2D,
   sampleRange,
   Rectangle,
+  Ellipse,
+  FormulaOutline,
+  FormulaMorph,
+  fontFamily,
+  fontFile,
+  Latex,
+  LatexMorph,
+  type LabelState,
+  installLatexResources,
+  Polygon,
   Scene,
+  ShapeMorph,
+  VectorShape,
+  TextMorph,
   Square,
   Tattva,
   Timeline,
@@ -74,7 +90,11 @@ import {
   mapPoint,
   mathml,
   networkDiagram,
+  neuralNetwork,
+  NeuralNetwork,
+  networkEdges,
   networkPaths,
+  networkRoutes,
   signalPoint,
   stageFocusAt,
   tensorSemanticsFrame,
@@ -120,7 +140,18 @@ import {
   WaveMesh,
   defaultWaveMeshProfile,
   sampleWaveMesh,
+  YouTubeSubscribe,
+  YouTubeSubscribeSequence,
+  Fireworks,
+  Group,
+  createTheme,
+  themes,
+  themeColor,
+  themeCSSVariables,
+  palette,
 } from "../src/index.ts";
+import { extractLatexSources, parseDvisvgm } from "../src/render/latex.ts";
+const { RED_B } = palette;
 import type { Camera3DState, TattvaState } from "../src/index.ts";
 
 class TestScene extends Scene {
@@ -162,6 +193,220 @@ test("uses logical frame coordinates independently of output resolution", () => 
   assert.equal(scene.viewHeight, 9);
   scene.toEdge(scene.dot, "up", { margin: 1 });
   assert.equal(scene.dot.initialState.y, 3);
+});
+
+test("uses a symmetric nine-by-nine logical world for square frames", () => {
+  class SquareScene extends Scene {
+    override construct(): void {}
+  }
+
+  const scene = new SquareScene({ frame: "square" });
+  assert.equal(scene.width, 1080);
+  assert.equal(scene.height, 1080);
+  assert.equal(scene.viewWidth, 9);
+  assert.equal(scene.viewHeight, 9);
+  assert.deepEqual(scene.camera.frameBoundsAtZ(0), {
+    min: [-4.5, -4.5],
+    max: [4.5, 4.5],
+    width: 9,
+    height: 9,
+    center: [0, 0],
+  });
+});
+
+test("sorts authored screenshot markers and expands inclusive GIF ranges", () => {
+  class CaptureScene extends Scene {
+    override construct(): void {
+      this.wait(2);
+      this.captureScreenshotsNamed([[1.5, "later.png"], [0.25, "earlier.png"]]);
+      this.captureScreenshots([1]);
+      this.captureGifRange("pulse", { from: 0.5, to: 1.5, fps: 2 });
+    }
+  }
+  const scene = new CaptureScene().prepare();
+  assert.deepEqual(scene.screenshotCaptures, [
+    { time: 0.25, name: "earlier.png" },
+    { time: 1.5, name: "later.png" },
+    { time: 1 },
+  ]);
+  assert.deepEqual(scene.gifCaptures, [{ name: "pulse", times: [0.5, 1, 1.5], fps: 2 }]);
+  assert.throws(() => scene.captureGif("empty", []), /at least one/);
+  assert.throws(() => scene.captureGifRange("backward", { from: 2, to: 1 }), /at or after/);
+});
+
+test("morphs normalized closed-shape contours deterministically across keyframes", () => {
+  const morph = ShapeMorph(
+    Circle().radius(1).fill("#ff0000").stroke({ color: "#ffffff", width: 0.04 }),
+    Rectangle().size([3, 2]).cornerRadius(0.32).fill("#0000ff").stroke({ color: "#00ff00", width: 0.08 }),
+    Polygon.regular(5).radius(1.25).fill("#ffcc00").stroke({ color: "#ffffff", width: 0.03 }),
+  ).samples(48);
+
+  assert.deepEqual(morph.worldSize, { width: 3, height: 2.5 });
+  assert.equal(morph.morphStageCount, 3);
+  const start = morph.contentHTML(0, { ...morph.initialState, morphProgress: 0 });
+  const middle = morph.contentHTML(0, { ...morph.initialState, morphProgress: 0.5 });
+  const target = morph.contentHTML(0, { ...morph.initialState, morphProgress: 1 });
+  assert.match(start, /fill="#ff0000"/);
+  assert.match(middle, /fill="#800080"/);
+  assert.match(target, /fill="#0000ff"/);
+  assert.equal((middle.match(/\bC\b/g) ?? []).length, 48);
+  assert.notEqual(start, middle);
+  assert.notEqual(middle, target);
+
+  class MorphScene extends Scene {
+    readonly shape = morph;
+
+    override construct(): void {
+      this.add(this.shape);
+      this.play(timeline((local) => local.animate(this.shape).duration(1).ease("linear").morphTo(1)));
+      this.play(timeline((local) => local.animate(this.shape).duration(1).ease("linear").morphTo(2)));
+    }
+  }
+
+  const scene = new MorphScene().prepare();
+  assert.equal(scene.sampleAt(0.5).get(morph)?.morphProgress, 0.5);
+  assert.equal(scene.sampleAt(1.5).get(morph)?.morphProgress, 1.5);
+  assert.equal(scene.sampleAt(2).get(morph)?.morphProgress, 2);
+  assert.deepEqual(scene.sampleAt(0.5), scene.sampleAt(0.5));
+  assert.throws(() => timeline().animate(morph).morphTo(3), /integer from 0 to 2/);
+  assert.throws(() => timeline().animate(Circle()).morphTo(1), /morph-capable/);
+  assert.throws(() => ShapeMorph(Circle()), /at least two/);
+  assert.throws(() => ShapeMorph(Circle(), Square()).samples(8), /at least 12/);
+});
+
+test("morphs arbitrary compound SVG shapes with cubic curves and holes", () => {
+  const ring = VectorShape(
+    "M -2 -2 H 2 V 2 H -2 Z M -0.8 -0.8 V 0.8 H 0.8 V -0.8 Z",
+    { viewBox: { x: -2.5, y: -2.5, width: 5, height: 5 } },
+  ).fill("#22d3ee");
+  const drop = VectorShape(
+    "M 0 -2 C 1.6 -0.6 2 0.4 2 1 A 2 2 0 1 1 -2 1 C -2 0.4 -1.6 -0.6 0 -2 Z",
+    { viewBox: { x: -2.5, y: -2.5, width: 5, height: 5 } },
+  ).fill("#f59e0b");
+  const morph = ShapeMorph(ring, drop).samples(24);
+  const middle = morph.contentHTML(0, { ...morph.initialState, morphProgress: 0.5 });
+  assert.match(middle, /fill-rule="evenodd"/);
+  assert.ok((middle.match(/\bM\b/g) ?? []).length >= 2);
+  assert.ok((middle.match(/\bC\b/g) ?? []).length >= 24);
+  assert.match(ring.contentHTML(), /data-murali-vector-shape/);
+  assert.deepEqual(ring.worldSize, { width: 5, height: 5 });
+  assert.throws(() => VectorShape("M 0 0 L 1 1"), /closed SVG path contours/);
+});
+
+test("builds ellipses as dedicated morphable shapes", () => {
+  const ellipse = Ellipse().radii([1.8, 0.7]);
+  assert.deepEqual(ellipse.worldSize, { width: 3.6, height: 1.4 });
+  assert.equal(ellipse.morphContour(32).length, 32);
+  assert.throws(() => Ellipse().radii([0, 1]), /positive finite/);
+});
+
+test("matches persistent text tokens while unequal text enters and leaves", () => {
+  const morph = TextMorph("CAT", "COAST", "A COAST")
+    .matchBy("grapheme")
+    .height(0.8)
+    .unmatched("scale");
+  assert.equal(morph.morphStageCount, 3);
+  const start = morph.contentHTML(0, { ...morph.initialState, morphProgress: 0 });
+  const middle = morph.contentHTML(0, { ...morph.initialState, morphProgress: 0.5 });
+  const target = morph.contentHTML(0, { ...morph.initialState, morphProgress: 1 });
+  assert.match(start, /data-murali-matching-morph="text"/);
+  assert.match(middle, /data-murali-morph-role="matched"/);
+  assert.match(middle, /data-murali-morph-role="arriving"/);
+  assert.match(target, />O<\/text>/);
+  assert.deepEqual(morph.matchingKeys(0), ["grapheme:C", "grapheme:A", "grapheme:T"]);
+  assert.equal(middle, morph.contentHTML(4, { ...morph.initialState, morphProgress: 0.5 }));
+  assert.throws(() => TextMorph("only one"), /at least two stages/);
+  assert.throws(() => morph.stage(3), /integer from 0 to 2/);
+});
+
+test("morphs structured formula tokens through powers radicals and fractions", () => {
+  const morph = FormulaMorph(
+    String.raw`a^2 + b^2 = c^2`,
+    String.raw`c = \sqrt{a^2 + b^2}`,
+    String.raw`\frac{a}{b} = c`,
+  ).height(0.9);
+  assert.equal(morph.morphStageCount, 3);
+  const radical = morph.contentHTML(0, { ...morph.initialState, morphProgress: 1 });
+  const fraction = morph.contentHTML(0, { ...morph.initialState, morphProgress: 2 });
+  assert.match(radical, /data-murali-matching-morph="formula"/);
+  assert.match(radical, /<path[^>]+data-murali-morph-role="departing"/);
+  assert.match(radical, /data-murali-morph-role="arriving"/);
+  assert.match(fraction, /<line[^>]+data-murali-morph-role/);
+  assert.ok(morph.matchingKeys(1).includes("radical"));
+  assert.ok((morph.worldSize?.height ?? 0) > 0.9);
+
+  class FormulaScene extends Scene {
+    override construct(): void {
+      this.add(morph);
+      this.play(timeline((local) => local.animate(morph).duration(1).ease("linear").morphTo(1)));
+    }
+  }
+  assert.equal(new FormulaScene().prepare().sampleAt(0.5).get(morph)?.morphProgress, 0.5);
+});
+
+test("extracts literal LaTeX stages and parses dvisvgm vector output", () => {
+  assert.deepEqual(
+    extractLatexSources("const staticFormula = Latex('E=mc^2'); const formula = LatexMorph(String.raw`a^2 + b^2`, 'c^2', dynamicFormula); const outline = FormulaOutline(String.raw`\\pi`);"),
+    ["E=mc^2", "a^2 + b^2", "c^2", "\\pi"],
+  );
+  const resource = parseDvisvgm(`
+    <svg viewBox="0 0 20 10" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <defs><path id="g0" d="M0 0C2 0 4 2 4 4Z"/></defs>
+      <use x="2" y="3" xlink:href="#g0"/>
+      <rect x="8" y="4" width="10" height="1"/>
+    </svg>
+  `, "a=b");
+  assert.deepEqual(resource.viewBox, [0, 0, 20, 10]);
+  assert.equal(resource.elements.length, 2);
+  assert.equal(resource.elements[0]?.kind, "glyph");
+  assert.equal(resource.elements[1]?.kind, "rule");
+});
+
+test("interpolates actual LaTeX glyph outlines as normalized cubic Beziers", () => {
+  installLatexResources({
+    alpha: {
+      source: "alpha",
+      viewBox: [0, 0, 12, 12],
+      elements: [{
+        key: "glyph:alpha",
+        kind: "glyph",
+        path: "M1 10L6 1L11 10Z",
+        x: 0,
+        y: 0,
+      }],
+    },
+    beta: {
+      source: "beta",
+      viewBox: [0, 0, 12, 12],
+      elements: [{
+        key: "glyph:beta",
+        kind: "glyph",
+        path: "M1 1C11 1 11 11 1 11Z",
+        x: 0,
+        y: 0,
+      }],
+    },
+  });
+  const morph = LatexMorph("alpha", "beta").height(1.2).shapeMismatches(true);
+  const formula = Latex("alpha").height(0.8);
+  const outline = FormulaOutline("alpha").height(1.2).samplePoints(64);
+  const start = morph.contentHTML(0, { ...morph.initialState, morphProgress: 0 });
+  const middle = morph.contentHTML(99, { ...morph.initialState, morphProgress: 0.5 });
+  const target = morph.contentHTML(0, { ...morph.initialState, morphProgress: 1 });
+  assert.equal(morph.morphStageCount, 2);
+  assert.equal(morph.glyphCount(0), 1);
+  assert.equal(outline.length, 64);
+  assert.ok(Math.max(...outline.map((point) => point[1])) > 0);
+  assert.ok(Math.min(...outline.map((point) => point[1])) < 0);
+  assert.match(formula.contentHTML(), /data-murali-latex="true"/);
+  assert.match(middle, /data-murali-matching-morph="latex"/);
+  assert.match(middle, /data-murali-morph-role="matched"/);
+  assert.match(middle, /\bC[-\d]/);
+  assert.doesNotMatch(middle, /data-murali-morph-role="(?:departing|arriving)"/);
+  assert.notEqual(start, middle);
+  assert.notEqual(middle, target);
+  assert.equal(middle, morph.contentHTML(0, { ...morph.initialState, morphProgress: 0.5 }));
+  assert.throws(() => LatexMorph("alpha"), /at least two stages/);
 });
 
 test("lays out stacks in world coordinates and preserves their hierarchy", () => {
@@ -684,6 +929,43 @@ test("reports the signed area of a transformed unit square", () => {
   assert.equal(arrow.children.find((child) => child.text?.startsWith("BAx"))?.text, "BAx (2.10, 1)");
 });
 
+test("derives animated linear-algebra diagrams from sampled mathematical state", () => {
+  const basis = BasisExplorer2D([1, 0], [0, 1]).fixedVector([2, 1], "x");
+  assert.match(basis.contentHTML(), /x stays fixed\s+\[2, 1\] in this basis/);
+  assert.match(
+    basis.contentHTML(0, { ...basis.initialState, ...basis.basisState([2, 0], [0, 0.5]) }),
+    /x stays fixed\s+\[1, 2\] in this basis/,
+  );
+
+  const projection = ProjectionDiagram2D([1, 0], [0, 1]);
+  const projectionMarkup = projection.contentHTML();
+  assert.match(projectionMarkup, /a · b = 0\s+•\s+cos θ = 0\s+•\s+θ = 90°/);
+  assert.match(projectionMarkup, /rgba\(220,232,247,.48\)/);
+  assert.match(projectionMarkup, /data-murali-right-angle="true"/);
+
+  class AnimatedMapScene extends Scene {
+    readonly map = LinearMap2D().unitSquare().vector([1, 1]).columnDecomposition();
+
+    override construct(): void {
+      this.add(this.map);
+      const movement = new Timeline();
+      movement.animate(this.map).duration(2).ease("linear").to(
+        this.map.matrixState([2, 0], [0, 0.5]),
+      );
+      this.play(movement);
+    }
+  }
+
+  const scene = new AnimatedMapScene().prepare();
+  const middle = scene.sampleAt(1).get(scene.map) as Readonly<typeof scene.map.initialState> | undefined;
+  assert.ok(middle);
+  assert.equal(middle?.iX, 1.5);
+  assert.equal(middle?.jY, 0.75);
+  assert.match(scene.map.contentHTML(1, middle), /det\(A\) = 1.13/);
+  assert.match(scene.map.contentHTML(1, middle), /A = \[ 1.50\s+0 ;\s+0\s+0.75 \]/);
+  assert.match(scene.map.contentHTML(1, middle), /Ax = 1Ae₁ \+ 1Ae₂/);
+});
+
 function collectText(tattva: Tattva): string[] {
   const own = tattva.text ? [tattva.text] : [];
   return [...own, ...tattva.children.flatMap((child) => collectText(child))];
@@ -735,6 +1017,50 @@ test("samples an updater and a traced path from scene time alone", () => {
   assert.ok((field.arrowsAt(0)[0]?.vector[1] ?? 0) > 0);
 });
 
+test("runs typed targeted updaters in a deterministic range and supports removal", () => {
+  class CoordinateScene extends Scene {
+    readonly ball = Circle().radius(0.1).at([-1, 0, 0]);
+    readonly readout = Label("pending").reserveText("x=-0.00");
+    readonly handle;
+
+    constructor() {
+      super();
+      this.add(this.ball, this.readout);
+      this.handle = this.addUpdater(this.ball, ({ state, stateOf }) => {
+        const label = stateOf(this.readout);
+        if (!label) return;
+        label.x = state.x;
+        label.text = `x=${state.x.toFixed(2)}`;
+      }, { from: 0.5, until: 1.5 });
+    }
+
+    override construct(): void {
+      this.play(timeline((local) => local.animate(this.ball).duration(2).ease("linear").moveTo([1, 0, 0])));
+    }
+  }
+
+  const scene = new CoordinateScene().prepare();
+  assert.equal((scene.sampleAt(0.25).get(scene.readout) as LabelState).text, "pending");
+  assert.equal((scene.sampleAt(0.5).get(scene.readout) as LabelState).text, "x=-0.50");
+  assert.equal((scene.sampleAt(1.5).get(scene.readout) as LabelState).text, "x=0.50");
+  assert.equal((scene.sampleAt(2).get(scene.readout) as LabelState).text, "pending");
+  assert.equal(scene.removeUpdater(scene.handle), true);
+  assert.equal(scene.removeUpdater(scene.handle), false);
+  assert.equal((scene.sampleAt(1).get(scene.readout) as LabelState).text, "pending");
+
+  const first = scene.addUpdater(scene.ball, () => undefined);
+  scene.addUpdater(scene.ball, () => undefined);
+  scene.updater(() => undefined);
+  assert.equal(scene.removeUpdatersFor(scene.ball), 2);
+  assert.equal(scene.removeUpdater(first), false);
+  assert.equal(scene.clearUpdaters(), 1);
+  assert.equal(scene.clearUpdaters(), 0);
+  assert.throws(
+    () => scene.addUpdater(scene.ball, () => undefined, { from: 2, until: 1 }),
+    /at or after/,
+  );
+});
+
 test("writes a table, colors code, and lays out math from scene data", () => {
   const table = Table([
     ["Alice", "28", "NYC"],
@@ -770,6 +1096,28 @@ test("writes a table, colors code, and lays out math from scene data", () => {
   assert.equal(xTerm?.x, source.terms[0]?.center[0]);
   const minus = start.find((term) => term.tattva === target.terms[1]?.tattva);
   assert.equal(minus?.opacity, 0);
+  const arcSource = Equation([
+    { text: "a", key: "a", color: "#ffffff" },
+    { text: "b", key: "b", color: "#ffffff" },
+  ]);
+  const arcTarget = Equation([
+    { text: "b", key: "b", color: "#ffffff" },
+    { text: "a", key: "a", color: "#ffffff" },
+  ]);
+  const arcMiddle = continuityPlacement(arcSource.terms, arcTarget.terms, 0.5, {
+    path: "arc",
+    arcHeight: 0.4,
+  });
+  const movingA = arcMiddle.find((term) => term.tattva === arcTarget.terms[1]?.tattva);
+  const movingB = arcMiddle.find((term) => term.tattva === arcTarget.terms[0]?.tattva);
+  assert.equal(movingA?.y, 0.4);
+  assert.equal(movingB?.y, -0.4);
+  assert.equal(continuityPlacement(arcSource.terms, arcTarget.terms, 0, { path: "arc" })[0]?.y, 0);
+  assert.ok(Math.abs(continuityPlacement(arcSource.terms, arcTarget.terms, 1, { path: "arc" })[0]?.y ?? 1) < 1e-12);
+  assert.throws(
+    () => continuityPlacement(arcSource.terms, arcTarget.terms, 0.5, { path: "arc", arcHeight: Number.NaN }),
+    /finite/,
+  );
   assert.equal(NumberLine([-3, 6]).step(1).build().children.length > 2, true);
 
   const focus = matrixMarkup([["2", "-1"], ["-1", "2"]], 0.44, {
@@ -782,9 +1130,90 @@ test("writes a table, colors code, and lays out math from scene data", () => {
 
   const outline = piOutline(32, 2.65);
   assert.equal(outline.length, 32);
+  const outlineArea = outline.reduce((sum, point, index) => {
+    const next = outline[(index + 1) % outline.length] ?? point;
+    return sum + point[0] * next[1] - next[0] * point[1];
+  }, 0) / 2;
+  assert.ok(Math.abs(outlineArea) > 2.5, "π should be a closed silhouette, not disconnected strokes");
   const terms = fourierTerms(outline, 2);
   assert.equal(terms[0]?.frequency, 0);
   assert.notDeepEqual(epicycleTip(terms, 0), epicycleTip(terms, 0.5));
+});
+
+test("selects and smoothly refocuses semantic matrix cells", () => {
+  const matrix = Matrix([
+    ["2", "-1", "0"],
+    ["-1", "2", "-1"],
+    ["0", "-1", "2"],
+  ]).cellHeight(0.44);
+  assert.deepEqual(matrix.row(1).coordinates, [[1, 0], [1, 1], [1, 2]]);
+  assert.deepEqual(matrix.column(1).coordinates, [[0, 1], [1, 1], [2, 1]]);
+  assert.deepEqual(matrix.diagonal().coordinates, [[0, 0], [1, 1], [2, 2]]);
+  assert.deepEqual(matrix.antiDiagonal().coordinates, [[0, 2], [1, 1], [2, 0]]);
+  assert.deepEqual(
+    matrix.row(1).intersect(matrix.column(1)).coordinates,
+    [[1, 1]],
+  );
+  assert.deepEqual(
+    matrix.diagonal().union(matrix.antiDiagonal()).coordinates,
+    [[0, 0], [1, 1], [2, 2], [0, 2], [2, 0]],
+  );
+  assert.deepEqual(
+    matrix.where(({ value }) => value.startsWith("-")).coordinates,
+    [[0, 1], [1, 0], [1, 2], [2, 1]],
+  );
+  assert.throws(() => matrix.row(3), /between 0 and 2/);
+  assert.throws(() => matrix.row(0).union(Matrix([["1"]]).row(0)), /different matrices/);
+  assert.throws(() => matrix.createFocusAnimation(matrix.row(0), { dim: 2 }), /between 0 and 1/);
+  if (false) {
+    // @ts-expect-error clearFocus is available only on semantic focus targets
+    new Timeline().animate(Circle()).clearFocus();
+    // @ts-expect-error Matrix focus requires a MatrixSelection
+    new Timeline().animate(matrix).focus("row 1");
+  }
+
+  class MatrixFocusScene extends Scene {
+    readonly matrix = matrix;
+
+    override construct(): void {
+      this.add(this.matrix);
+      const timeline = new Timeline();
+      timeline.animate(this.matrix).at(0).duration(1).ease("linear").focus(this.matrix.row(1), {
+        color: "#5cd0b3",
+        dim: 0.28,
+      });
+      timeline.animate(this.matrix).at(1).duration(1).ease("linear").focus(this.matrix.column(1), {
+        color: "#9cdceb",
+        dim: 0.24,
+      });
+      timeline.animate(this.matrix).at(2).duration(1).ease("linear").clearFocus();
+      this.play(timeline);
+    }
+  }
+
+  const scene = new MatrixFocusScene();
+  const markupAt = (time: number) => matrix.contentHTML(
+    time,
+    scene.sampleAt(time).get(matrix) as typeof matrix.initialState,
+  );
+  const opacityAt = (markup: string, row: number, column: number) => {
+    const match = new RegExp(
+      `data-matrix-row="${row}" data-matrix-column="${column}" data-matrix-opacity="([^"]+)"`,
+    ).exec(markup);
+    return Number(match?.[1]);
+  };
+
+  const rowFocused = markupAt(1);
+  assert.equal(opacityAt(rowFocused, 1, 0), 1);
+  assert.equal(opacityAt(rowFocused, 0, 0), 0.28);
+  const crossfade = markupAt(1.5);
+  assert.equal(opacityAt(crossfade, 1, 1), 1);
+  assert.ok(Math.abs(opacityAt(crossfade, 1, 0) - 0.62) < 1e-9);
+  assert.ok(Math.abs(opacityAt(crossfade, 0, 1) - 0.64) < 1e-9);
+  assert.ok(opacityAt(crossfade, 0, 0) < 0.3);
+  const cleared = markupAt(3);
+  assert.equal(opacityAt(cleared, 0, 0), 1);
+  assert.equal(opacityAt(cleared, 1, 1), 1);
 });
 
 test("samples a space curve and writes a parametric surface by row", () => {
@@ -1014,6 +1443,64 @@ test("routes a network around inactive nodes and counts a context budget", () =>
   ], 8192);
   assert.equal(contextUsedTokens(window), 6340);
   assert.throws(() => contextWindow([{ label: "too big", role: "user", tokens: 10 }], 4));
+});
+
+test("models weighted and sparse neural networks with stable semantic identities", () => {
+  const weighted = neuralNetwork([
+    { id: "input", nodes: ["x", "y"] },
+    { id: "hidden", nodes: 2, activation: "relu" },
+    { id: "output", nodes: ["score"] },
+  ], {
+    weights: [
+      [[1, -0.5], [0.25, 0.75]],
+      [[1.2, -0.8]],
+    ],
+  });
+  assert.equal(weighted.nodes[0]?.id, "input:x");
+  assert.equal(weighted.layerSpecs[1]?.activation, "relu");
+  assert.equal(networkEdges(weighted).length, 6);
+  assert.equal(weighted.edges.find((edge) => edge.from === "input:y" && edge.to === "hidden:0")?.weight, -0.5);
+
+  const sparse = neuralNetwork([
+    { id: "input", nodes: ["x", "y"] },
+    { id: "hidden", nodes: ["h"] },
+    { id: "output", nodes: ["score"] },
+  ], {
+    connections: [
+      { from: "input:x", to: "hidden:h" },
+      { from: "hidden:h", to: "output:score" },
+      { id: "residual", from: "input:y", to: "output:score" },
+    ],
+  });
+  assert.equal(networkEdges(sparse).length, 3);
+  assert.deepEqual(networkRoutes(sparse), [
+    ["input:x", "hidden:h", "output:score"],
+    ["input:y", "output:score"],
+  ]);
+  assert.equal(networkRoutes(weighted, { maxPaths: 3 }).length, 3);
+});
+
+test("interpolates cumulative neural-network snapshots and flows over unique edges", () => {
+  const model = neuralNetwork([
+    { id: "input", nodes: ["x", "y"] },
+    { id: "hidden", nodes: ["h₁", "h₂"] },
+    { id: "output", nodes: ["ŷ"] },
+  ]);
+  const view = NeuralNetwork(model)
+    .snapshot({ name: "input", nodes: { "input:x": { value: 0.8, activation: 0.8 } } })
+    .snapshot({ name: "hidden", nodes: { "hidden:h₁": { value: 0.6, activation: 0.6 } } });
+  view.resolveTheme(createTheme(themes.dark, { colors: { accent: "#123456", warning: "#fedcba" } }));
+  assert.equal(view.snapshotIndex("hidden"), 2);
+  const html = view.contentHTML(0, {
+    ...view.initialState,
+    morphProgress: 2,
+    flowProgress: 0.5,
+  });
+  assert.match(html, /#123456/);
+  assert.match(html, />0\.8<\/text>/);
+  assert.match(html, />0\.6<\/text>/);
+  assert.equal([...html.matchAll(/data-network-edge=/g)].length, model.edges.length);
+  assert.equal([...html.matchAll(/data-network-flow=/g)].length, 4);
 });
 
 test("focuses one transformer stage at a time and then clears it", () => {
@@ -1362,6 +1849,174 @@ test("samples a reusable WaveMesh deterministically with seamless phase cycles",
   assert.throws(() => mesh.glowVariation(1.1), /between 0 and 1/);
 });
 
+test("builds responsive YouTube subscribe CTAs and a deterministic action sequence", () => {
+  const subscribe = YouTubeSubscribe("Kavriq", { handle: "@kavriq" });
+  assert.equal(subscribe.depthModeValue, "overlay");
+  assert.deepEqual(subscribe.worldSize, { width: 7.2, height: 1.35 });
+  subscribe.compact();
+  assert.deepEqual(subscribe.worldSize, { width: 3.8, height: 2.65 });
+  subscribe.subscribed(0.4).bell(0.25);
+  assert.equal(subscribe.initialState.subscribeProgress, 0.4);
+  assert.equal(subscribe.initialState.bellProgress, 0.25);
+
+  const sequence = YouTubeSubscribeSequence(subscribe);
+  assert.equal(sequence.animations.length, 3);
+  assert.equal(sequence.duration, 1.67);
+
+  const custom = YouTubeSubscribe("Channel", { size: [5, 2] }).compact();
+  assert.deepEqual(custom.worldSize, { width: 5, height: 2 });
+  assert.throws(() => YouTubeSubscribe("  "), /must not be empty/);
+  assert.throws(() => subscribe.subscribed(2), /between 0 and 1/);
+});
+
+test("builds deterministic looping fireworks with configurable celebration styling", () => {
+  const fireworks = Fireworks()
+    .size([9, 16])
+    .burstCount(5)
+    .particlesPerBurst(20)
+    .cycleDuration(4)
+    .spread(1.8)
+    .gravity(1.2)
+    .trail(0.16)
+    .glow(0.9)
+    .seed(8)
+    .palette(["#ffcc33", "#52d8ff"]);
+
+  assert.equal(fireworks.depthModeValue, "overlay");
+  assert.deepEqual(fireworks.worldSize, { width: 9, height: 16 });
+  assert.deepEqual(fireworks.frameAt(1.4), fireworks.frameAt(1.4));
+  assert.notDeepEqual(fireworks.frameAt(1.4), fireworks.frameAt(1.8));
+  assert.ok(fireworks.frameAt(1.4).sparks.length > 0);
+  assert.throws(() => fireworks.burstCount(0), /integer of at least 1/);
+  assert.throws(() => fireworks.particlesPerBurst(2), /integer of at least 3/);
+  assert.throws(() => fireworks.palette([]), /cannot be empty/);
+  assert.throws(() => fireworks.glow(1.1), /between 0 and 1/);
+
+  const landscape = Fireworks({ layout: "landscape" });
+  const portrait = Fireworks({ layout: "portrait" });
+  const square = Fireworks().square();
+  assert.deepEqual(landscape.worldSize, { width: 16, height: 9 });
+  assert.deepEqual(portrait.worldSize, { width: 9, height: 16 });
+  assert.deepEqual(square.worldSize, { width: 9, height: 9 });
+  assert.deepEqual(Fireworks().fit({ viewWidth: 7, viewHeight: 12 }).worldSize, {
+    width: 7,
+    height: 12,
+  });
+
+  const ignition = Fireworks().burstCount(1).cycleDuration(4).seed(3);
+  const justBeforeBurst = ignition.frameAt(4 * 0.28 - 0.001);
+  const justAfterBurst = ignition.frameAt(4 * 0.28 + 0.001);
+  assert.equal(justBeforeBurst.rockets.length, 1);
+  assert.equal(justAfterBurst.rockets.length, 1);
+  assert.ok(justAfterBurst.rockets[0]!.opacity > 0.99);
+  assert.ok(justAfterBurst.sparks.length > 0);
+  assert.ok(justAfterBurst.flashes.length > 0);
+  const afterIgnition = ignition.frameAt(1.34);
+  assert.equal(afterIgnition.rockets.length, 0);
+  assert.equal(afterIgnition.flashes.length, 0);
+  assert.ok(afterIgnition.sparks.length > 0);
+  assert.match(ignition.contentHTML(4 * 0.28 + 0.001), /radialGradient/);
+  assert.doesNotMatch(ignition.contentHTML(4 * 0.28 + 0.001), /fill="none"/);
+});
+
+test("resolves scene, scoped, semantic, and explicit theme styles predictably", () => {
+  const brand = createTheme(themes.dark, {
+    name: "test-brand",
+    colors: {
+      background: "#10131f",
+      textPrimary: "#fef6df",
+      accent: "#21c7a8",
+      accentAlt: "#745cff",
+    },
+    typography: {
+      headingFamily: "Test Sans, sans-serif",
+      headingWeight: 640,
+    },
+  });
+
+  class ThemeScene extends Scene {
+    readonly inheritedLabel = Label("Inherited");
+    readonly inheritedCircle = Circle();
+    readonly semanticCircle = Circle().fill(themeColor("positive"));
+    readonly explicitLabel = Label("Explicit").color("#abcdef");
+    readonly explicitCSSLabel = Label("CSS explicit").css({ color: "#123456" });
+    readonly explicitCSSCircle = Circle().css({ background: "#654321" });
+    readonly scopedLabel = Label("Scoped");
+    readonly scopedCircle = Circle();
+
+    constructor() {
+      super({ theme: brand });
+    }
+
+    override construct(): void {
+      this.add(
+        this.inheritedLabel,
+        this.inheritedCircle,
+        this.semanticCircle,
+        this.explicitLabel,
+        this.explicitCSSLabel,
+        this.explicitCSSCircle,
+        Group([this.scopedLabel, this.scopedCircle]).theme({
+          colors: { textPrimary: "#ffeeaa", accent: "#ff3366" },
+        }),
+      );
+    }
+  }
+
+  const scene = new ThemeScene().prepare();
+  assert.equal(scene.background, "#10131f");
+  assert.equal(scene.inheritedLabel.initialState.color, "#fef6df");
+  assert.equal(scene.inheritedLabel.initialStyle.fontFamily, "Test Sans, sans-serif");
+  assert.equal(scene.inheritedLabel.initialStyle.fontWeight, "640");
+  assert.equal(scene.inheritedCircle.initialState.background, "#21c7a8");
+  assert.equal(scene.semanticCircle.initialState.background, brand.colors.positive);
+  assert.equal(scene.explicitLabel.initialState.color, "#abcdef");
+  assert.equal(scene.explicitCSSLabel.initialState.color, "#123456");
+  assert.equal(scene.explicitCSSCircle.initialState.background, "#654321");
+  assert.equal(scene.scopedLabel.initialState.color, "#ffeeaa");
+  assert.equal(scene.scopedCircle.initialState.background, "#ff3366");
+  assert.equal(scene.scopedLabel.resolvedTheme.colors.accentAlt, "#745cff");
+
+  const variables = themeCSSVariables(brand);
+  assert.equal(variables["--murali-color-text-primary"], "#fef6df");
+  assert.equal(variables["--murali-typography-heading-family"], "Test Sans, sans-serif");
+  assert.equal(palette.TEAL_C, "#5cd0b3");
+  assert.throws(() => createTheme({ name: "" }), /cannot be empty/);
+  assert.throws(() => createTheme({ effects: { mutedOpacity: 2 } }), /between 0 and 1/);
+});
+
+test("registers selectable font faces and positions persistent branding in the overlay", () => {
+  const satoshi = fontFile("Satoshi", "../assets/fonts/private/Satoshi-Bold.ttf", {
+    weight: 700,
+  });
+
+  class BrandedScene extends Scene {
+    readonly brand = Label("KAVRIQ").height(0.4).font(satoshi, "Inter", "sans-serif");
+
+    override construct(): void {
+      this.registerFont(satoshi).registerFont(satoshi);
+      this.addBranding(this.brand, { position: "bottomRight", margin: 0.3 });
+      this.wait(3);
+    }
+  }
+
+  const scene = new BrandedScene().prepare();
+  assert.deepEqual(scene.fonts, [satoshi]);
+  assert.equal(scene.brand.initialStyle.fontFamily, fontFamily(satoshi, "Inter", "sans-serif"));
+  assert.equal(scene.brand.depthModeValue, "overlay");
+  assert.equal(scene.brand.renderLayer, 1_000_000);
+  assert.equal(scene.brand.initialState.x, scene.viewWidth / 2 - 0.3 - scene.brand.getLayoutSize().width / 2);
+  assert.equal(scene.brand.initialState.y, -4);
+  assert.equal(scene.sampleAt(0).get(scene.brand)?.opacity, 1);
+  assert.equal(scene.sampleAt(3).get(scene.brand)?.opacity, 1);
+  assert.throws(
+    () => scene.registerFont(fontFile("Satoshi", "different.ttf", { weight: 700 })),
+    /different source/,
+  );
+  assert.throws(() => fontFile("", "font.ttf"), /must not be empty/);
+  assert.throws(() => fontFile("Bad", "font.ttf", { weight: 1001 }), /between 1 and 1000/);
+});
+
 test("lays out word clouds deterministically without overlapping labels", () => {
   const entries = [
     { text: "Murali JS", weight: 10 },
@@ -1439,6 +2094,7 @@ test("resolves Murali palette names and draws solid shapes", () => {
   assert.equal(scene.sampleAt(0).get(scene.square)?.revealProgress, 0);
   assert.equal(scene.sampleAt(1).get(scene.square)?.revealProgress, 0.5);
   assert.match(scene.square.contentHTML() ?? "", /data-murali-shape/);
+  assert.match(scene.square.contentHTML() ?? "", /data-murali-reveal-fill/);
 });
 
 test("configures and deterministically animates the scene-owned perspective camera", () => {

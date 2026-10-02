@@ -1,5 +1,6 @@
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
+import { createElement } from "react";
 import {
   Euler,
   Matrix4,
@@ -11,14 +12,35 @@ import {
   WebGLRenderer,
 } from "three";
 import type { Camera } from "three";
-import type { ReactTattva } from "../core/ReactTattva.ts";
+import { MuraliThemeContext, type ReactTattva } from "../core/ReactTattva.ts";
 import type { Scene } from "../core/Scene.ts";
-import type { Tattva, TattvaState } from "../core/Tattva.ts";
+import type { Tattva, TattvaState, Vec2 } from "../core/Tattva.ts";
 import type { ThreeContext, ThreeTattva } from "../core/ThreeTattva.ts";
 import type { CSSStyles } from "../core/css.ts";
 import { splitGraphemes } from "../core/text.ts";
 import type { Camera3DState } from "../core/Camera3D.ts";
 import type { SceneViewTattva } from "../core/SceneView.ts";
+import { themeCSSVariables } from "../core/theme.ts";
+import { loadFontFaces } from "../core/font.ts";
+import { parseSvgCubicPath, type CubicCurve } from "../core/vector-path.ts";
+
+interface RevealContour {
+  points: Vec2[];
+  cumulativeLengths: number[];
+  length: number;
+}
+
+interface MountedPath {
+  element: SVGPathElement;
+  length: number;
+  revealFill?: {
+    element: SVGPathElement;
+    source: SVGPathElement;
+    contours: RevealContour[];
+    length: number;
+    authoredFill: string;
+  };
+}
 
 interface MountedObject {
   tattva: Tattva<any>;
@@ -26,8 +48,7 @@ interface MountedObject {
   content: HTMLElement;
   reactRoot?: Root;
   three?: ThreeContext;
-  graphemes?: string[];
-  paths?: Array<{ element: SVGPathElement; length: number }>;
+  paths?: MountedPath[];
   arrowheads?: SVGPathElement[];
   nested?: { host: HTMLElement; renderAt: (time: number) => void };
 }
@@ -39,15 +60,18 @@ declare global {
       height: number;
       duration: number;
       fps: number;
+      screenshotCaptures: Scene["screenshotCaptures"];
+      gifCaptures: Scene["gifCaptures"];
       renderFrame: (time: number) => void;
     };
     __muraliReady?: boolean;
+    __muraliPreviewFinished?: boolean;
     __muraliSceneClass?: new () => Scene;
   }
 }
 
 function applyCSS(element: HTMLElement, styles: CSSStyles): void {
-  const shape = element.querySelector("[data-murali-shape]");
+  const shape = element.querySelector("[data-murali-shape], [data-murali-vector-shape]");
   for (const [property, value] of Object.entries(styles)) {
     if (property === "background" && shape) {
       if (typeof value === "string") shape.setAttribute("fill", value);
@@ -60,6 +84,12 @@ function applyCSS(element: HTMLElement, styles: CSSStyles): void {
     } else {
       (element.style as unknown as Record<string, string>)[property] = String(value);
     }
+  }
+}
+
+function applyThemeVariables(element: HTMLElement, theme: Tattva["resolvedTheme"]): void {
+  for (const [property, value] of Object.entries(themeCSSVariables(theme))) {
+    element.style.setProperty(property, value);
   }
 }
 
@@ -177,7 +207,7 @@ function applyPaint(content: HTMLElement, state: TattvaState): void {
     content.style.color = state.indicate ? indicateColor(state.color, state.indicate) : state.color;
   }
   if (typeof state.background !== "string") return;
-  const shape = content.querySelector("[data-murali-shape]");
+  const shape = content.querySelector("[data-murali-shape], [data-murali-vector-shape]");
   if (shape) shape.setAttribute("fill", state.background);
   else content.style.background = state.background;
 }
@@ -208,13 +238,16 @@ function clean(value: number): number {
 
 function applyReveal(item: MountedObject, state: TattvaState): void {
   const progress = Math.min(1, Math.max(0, state.revealProgress ?? 1));
-  if (item.tattva.revealKind === "text" && item.graphemes) {
-    const visible = Math.floor(item.graphemes.length * progress);
-    item.content.textContent = item.graphemes.slice(0, visible).join("");
+  if (item.tattva.revealKind === "text") {
+    const sampledText = (state as TattvaState & { text?: unknown }).text;
+    const graphemes = splitGraphemes(typeof sampledText === "string" ? sampledText : item.tattva.text ?? "");
+    const visible = Math.floor(graphemes.length * progress);
+    item.content.textContent = graphemes.slice(0, visible).join("");
     item.content.style.textAlign = item.tattva.textReveal === "typewriter" ? "left" : "center";
   }
   if (item.tattva.revealKind === "path") {
-    for (const { element, length } of item.paths ?? []) {
+    for (const path of item.paths ?? []) {
+      const { element, length } = path;
       const authoredDash = element.getAttribute("data-murali-dash");
       const clip = element.ownerSVGElement?.querySelector("[data-murali-reveal-clip]");
       if (authoredDash && clip) {
@@ -226,13 +259,141 @@ function applyReveal(item: MountedObject, state: TattvaState): void {
         element.setAttribute("stroke-dasharray", `${length} ${length}`);
         element.setAttribute("stroke-dashoffset", String(length * (1 - progress)));
       }
-      element.style.fillOpacity = String(progress);
+      if (path.revealFill) {
+        applyShapeFillReveal(path.revealFill, state, progress);
+      } else {
+        element.style.fillOpacity = String(progress);
+      }
     }
     const arrowProgress = Math.min(1, Math.max(0, (progress - 0.85) / 0.15));
     for (const arrowhead of item.arrowheads ?? []) {
       arrowhead.style.opacity = String(arrowProgress);
     }
   }
+}
+
+function applyShapeFillReveal(
+  fill: NonNullable<MountedPath["revealFill"]>,
+  state: TattvaState,
+  progress: number,
+): void {
+  const presentedFill = fill.source.getAttribute("fill");
+  const color = presentedFill && presentedFill !== "none"
+    ? presentedFill
+    : typeof state.background === "string"
+      ? state.background
+      : fill.authoredFill;
+  fill.element.setAttribute("fill", color);
+  fill.element.style.fillOpacity = "1";
+  if (progress <= 0) {
+    fill.element.setAttribute("d", "");
+    fill.source.setAttribute("fill", "none");
+    return;
+  }
+  if (progress >= 1) {
+    fill.element.setAttribute("d", "");
+    fill.source.setAttribute("fill", color);
+    return;
+  }
+  fill.source.setAttribute("fill", "none");
+  fill.element.setAttribute("d", partialFillPath(fill.contours, fill.length * progress));
+}
+
+function partialFillPath(contours: readonly RevealContour[], targetLength: number): string {
+  let remaining = Math.max(0, targetLength);
+  const parts: string[] = [];
+  for (const contour of contours) {
+    if (remaining <= 0) break;
+    if (remaining >= contour.length - 1e-9) {
+      parts.push(pointsPath(contour.points));
+      remaining -= contour.length;
+      continue;
+    }
+    const points: Vec2[] = [contour.points[0]!];
+    for (let index = 1; index < contour.points.length; index += 1) {
+      const before = contour.cumulativeLengths[index - 1]!;
+      const after = contour.cumulativeLengths[index]!;
+      if (after <= remaining) {
+        points.push(contour.points[index]!);
+        continue;
+      }
+      const span = Math.max(after - before, 1e-9);
+      const amount = Math.min(1, Math.max(0, (remaining - before) / span));
+      const left = contour.points[index - 1]!;
+      const right = contour.points[index]!;
+      points.push([
+        left[0] + (right[0] - left[0]) * amount,
+        left[1] + (right[1] - left[1]) * amount,
+      ]);
+      break;
+    }
+    parts.push(pointsPath(points));
+    break;
+  }
+  return parts.join(" ");
+}
+
+function pointsPath(points: readonly Vec2[]): string {
+  if (points.length < 2) return "";
+  return `M ${points.map(([x, y]) => `${cleanPathNumber(x)} ${cleanPathNumber(y)}`).join(" L ")} Z`;
+}
+
+function cleanPathNumber(value: number): string {
+  return Number(value.toFixed(5)).toString();
+}
+
+function mountPath(element: SVGPathElement): MountedPath {
+  const length = Math.max(element.getTotalLength(), 0.001);
+  if (!element.hasAttribute("data-murali-reveal-fill")) return { element, length };
+  const contours = sampleRevealContours(element.getAttribute("d") ?? "");
+  const fillLength = contours.reduce((sum, contour) => sum + contour.length, 0);
+  const transient = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  transient.dataset.muraliTransientFill = "true";
+  transient.setAttribute("fill", element.getAttribute("fill") ?? "none");
+  transient.setAttribute("fill-rule", element.getAttribute("fill-rule") ?? "nonzero");
+  transient.setAttribute("stroke", "none");
+  transient.setAttribute("d", "");
+  element.parentNode?.insertBefore(transient, element);
+  return {
+    element,
+    length,
+    revealFill: {
+      element: transient,
+      source: element,
+      contours,
+      length: Math.max(fillLength, 0.001),
+      authoredFill: element.getAttribute("fill") ?? "none",
+    },
+  };
+}
+
+function sampleRevealContours(path: string): RevealContour[] {
+  return parseSvgCubicPath(path).map((contour) => {
+    const points: Vec2[] = [];
+    for (const curve of contour.curves) {
+      if (points.length === 0) points.push(curve.p0);
+      for (let index = 1; index <= 16; index += 1) points.push(cubicPoint(curve, index / 16));
+    }
+    const cumulativeLengths = [0];
+    for (let index = 1; index < points.length; index += 1) {
+      const left = points[index - 1]!;
+      const right = points[index]!;
+      cumulativeLengths.push(cumulativeLengths[index - 1]! + Math.hypot(right[0] - left[0], right[1] - left[1]));
+    }
+    return { points, cumulativeLengths, length: cumulativeLengths.at(-1) ?? 0 };
+  }).filter((contour) => contour.points.length >= 2 && contour.length > 1e-9);
+}
+
+function cubicPoint(curve: CubicCurve, amount: number): Vec2 {
+  const inverse = 1 - amount;
+  const a = inverse ** 3;
+  const b = 3 * inverse ** 2 * amount;
+  const c = 3 * inverse * amount ** 2;
+  const d = amount ** 3;
+  return [
+    curve.p0[0] * a + curve.c1[0] * b + curve.c2[0] * c + curve.p3[0] * d,
+    curve.p0[1] * a + curve.c1[1] * b + curve.c2[1] * c + curve.p3[1] * d,
+  ];
 }
 
 function createThreeCamera(state: Camera3DState, aspect: number) {
@@ -308,7 +469,7 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
   wrapper.dataset.tattvaId = tattva.id;
   wrapper.className = "murali-transform";
   content.className = ["murali-content", tattva.elementClassName].filter(Boolean).join(" ");
-  const html = tattva.contentHTML();
+  const html = tattva.contentHTML(0, tattva.initialState);
   if (html !== undefined) content.innerHTML = html;
   else if (tattva.text !== undefined) content.textContent = tattva.text;
   Object.assign(wrapper.style, {
@@ -338,12 +499,8 @@ function mountDom(tattva: Tattva<any>, container: HTMLElement, pixelsPerUnit: nu
     tattva,
     wrapper,
     content,
-    graphemes: tattva.revealKind === "text" ? splitGraphemes(tattva.text ?? "") : undefined,
     paths: tattva.revealKind === "path"
-      ? [...content.querySelectorAll<SVGPathElement>("[data-murali-path]")].map((element) => ({
-          element,
-          length: Math.max(element.getTotalLength(), 0.001),
-        }))
+      ? [...content.querySelectorAll<SVGPathElement>("[data-murali-path]")].map(mountPath)
       : undefined,
     arrowheads: tattva.revealKind === "path"
       ? [...content.querySelectorAll<SVGPathElement>("[data-murali-arrowhead]")]
@@ -371,6 +528,7 @@ function mountScene(
     height: `${height}px`,
     background: options.background ?? scene.background,
   });
+  applyThemeVariables(stage, scene.theme);
 
   const pixelsPerUnit = width / scene.viewWidth;
   const aspect = width / height;
@@ -408,6 +566,7 @@ function mountScene(
   const mounted: MountedObject[] = [];
   const mountTree = (tattva: Tattva<any>, container: HTMLElement): void => {
     const item = mountDom(tattva, container, pixelsPerUnit);
+    applyThemeVariables(item.wrapper, tattva.resolvedTheme);
     mounted.push(item);
     if (tattva.kind === "react") {
       item.reactRoot = createRoot(item.content);
@@ -419,7 +578,7 @@ function mountScene(
       item.content.style.height = `${height}px`;
       item.content.replaceChildren(renderer.domElement);
       const threeScene = new ThreeScene();
-      item.three = { scene: threeScene, camera: sceneCamera, renderer };
+      item.three = { scene: threeScene, camera: sceneCamera, renderer, theme: tattva.resolvedTheme };
       (tattva as ThreeTattva).hooks.setup(item.three);
     }
     if (isSceneView(tattva)) mountNestedScene(item, tattva, pixelsPerUnit);
@@ -446,7 +605,7 @@ function mountScene(
       const state = states.get(item.tattva);
       if (!state) continue;
       if (item.tattva.dynamicGeometry) {
-        const html = item.tattva.contentHTML(time);
+        const html = item.tattva.contentHTML(time, state);
         if (html !== undefined) item.content.innerHTML = html;
         if (item.tattva.worldSize) {
           item.content.style.width = `${item.tattva.worldSize.width * pixelsPerUnit}px`;
@@ -469,7 +628,12 @@ function mountScene(
       applyReveal(item, state);
       if (item.reactRoot) {
         const component = item.tattva as ReactTattva;
-        flushSync(() => item.reactRoot?.render(component.render(state)));
+        const content = component.render(state, { theme: item.tattva.resolvedTheme });
+        flushSync(() => item.reactRoot?.render(createElement(
+          MuraliThemeContext.Provider,
+          { value: item.tattva.resolvedTheme },
+          content,
+        )));
       }
       if (item.three) {
         const threeTattva = item.tattva as ThreeTattva;
@@ -531,8 +695,9 @@ function mountNestedScene(item: MountedObject, view: SceneViewTattva, pixelsPerU
   };
 }
 
-export function mountAndExpose(SceneClass: new () => Scene): void {
+export async function mountAndExpose(SceneClass: new () => Scene): Promise<void> {
   const scene = new SceneClass().prepare();
+  await loadFontFaces(scene.fonts);
   const stage = document.querySelector<HTMLElement>("#stage");
   if (!stage) throw new Error("Murali JS runtime requires a #stage element.");
   const mounted = mountScene(scene, stage);
@@ -541,6 +706,8 @@ export function mountAndExpose(SceneClass: new () => Scene): void {
     height: scene.height,
     duration: scene.duration,
     fps: scene.fps,
+    screenshotCaptures: scene.screenshotCaptures,
+    gifCaptures: scene.gifCaptures,
     renderFrame: mounted.renderAt,
   };
   mounted.renderAt(0);

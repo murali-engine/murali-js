@@ -1,0 +1,64 @@
+---
+sidebar_position: 3
+title: Your first scene
+description: Build, preview, and render a complete Murali JavaScript scene.
+---
+
+# Your first scene
+
+This example introduces the complete workflow: create a scene, add tattvas, arrange them, author a timeline, preview it, and export it.
+
+```ts title="first-scene.ts"
+import { render } from "murali-js";
+import { Scene, clip, timeline } from "murali-js/core";
+import { Circle, Square } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+
+class FirstScene extends Scene {
+  constructor() {
+    super({ frame: "landscape", width: 1920, height: 1080, background: "#070b14" });
+  }
+
+  override construct() {
+    const title = this.add(Label("My first Murali scene").height(0.58).color("#ffffff").typewriter());
+    this.toEdge(title, "up", { margin: 0.75 });
+
+    const square = this.add(Square().size(1.4).fill("#7c3aed"), { at: [-3.5, -0.4] });
+    const circle = this.add(Circle().radius(0.8).fill("#ff6b5f"), { at: [3.5, -0.4] });
+
+    const entrance = clip((local) => {
+      local.animate(title).duration(0.8).typewrite();
+      local.animate([square, circle]).at(0.25).stagger(0.18).duration(0.8).ease("outCubic").appear();
+    });
+
+    const exchange = clip((local) => {
+      local.animate(square).duration(1.4).ease("inOutCubic").moveTo([2, -0.4]);
+      local.animate(circle).duration(1.4).ease("inOutCubic").moveTo([-2, -0.4]);
+    });
+
+    this.play(timeline().then(entrance).then(exchange).wait(0.6));
+  }
+}
+
+render(import.meta.url, FirstScene, { output: "./output/first-scene.mp4" });
+```
+
+## Preview and export
+
+```bash
+npx tsx first-scene.ts --preview
+npx tsx first-scene.ts
+```
+
+Preview does not encode a file. It samples the same timeline as export and supports seeking and replay. The second command writes `output/first-scene.mp4`.
+
+## What happened?
+
+1. The constructor selected a logical `16 × 9` landscape frame and a pixel resolution.
+2. `construct()` created and added three tattvas.
+3. Scene layout helpers placed the title relative to the frame.
+4. Two clips authored reusable blocks of motion.
+5. The timeline composed those clips sequentially.
+6. `render(import.meta.url, ...)` bundled the source and ran it in Chromium.
+
+Next, read [Mental model](../mental-model) and [Animations and timelines](../core/animations-and-timelines).

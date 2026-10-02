@@ -1,18 +1,10 @@
-import {
-  BLUE_B,
-  Circle,
-  GOLD_C,
-  GRAY_A,
-  GRAY_B,
-  Label,
-  Line,
-  Scene,
-  TEAL_C,
-  Timeline,
-  TracedPath,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, Line } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+import { TracedPath } from "murali-js/utility";
+const { BLUE_B, GOLD_C, GRAY_A, GRAY_B, TEAL_C, WHITE } = palette;
 
 const groundY = -1.15;
 const radius = 0.55;

@@ -1,0 +1,38 @@
+---
+title: Audio
+description: Loop background audio across a full video or a scene-time interval.
+---
+
+# Audio
+
+Murali can loop one audio file across the full video or a selected scene-time interval.
+
+```ts
+render(import.meta.url, MyScene, {
+  output: "./output/story.mp4",
+  audio: {
+    source: "./assets/music/raag-pahadi.mp3",
+    start: 0,
+    end: 12,
+    volume: 0.4,
+  },
+});
+```
+
+Passing only a string plays from scene time zero through the video:
+
+```ts
+audio: "./assets/music/background.mp3"
+```
+
+## Rules
+
+- `start` defaults to `0`.
+- `end` defaults to the video duration.
+- The source loops for the requested interval.
+- `volume` is linear from `0` to `1` and defaults to `1`.
+- A missing file is ignored, allowing optional local/private music.
+- Audio is mixed during MP4 export and is not played in preview.
+- PNG output cannot include audio.
+
+Relative paths are resolved from the current working directory.

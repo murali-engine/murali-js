@@ -1,0 +1,47 @@
+---
+title: Common mistakes
+description: Diagnose import, asset, timeline, layout, preview, and export problems.
+---
+
+# Common mistakes
+
+## Importing assets as modules
+
+Node does not import `.jpg`, `.png`, font, audio, or model files as TypeScript modules. Pass a literal path to Murali's asset helper instead:
+
+```ts
+const earth = imageFile("./assets/textures/earthmap1k.jpg");
+surface.texture(earth);
+```
+
+## Using wall-clock time
+
+`Date.now()`, unseeded randomness, CSS animations, and `requestAnimationFrame` break deterministic export. Animate timeline state or derive custom state from sampled scene time.
+
+## Fill appears before a path is drawn
+
+Use a built-in shape, `VectorShape`, or a filled `Path`. These support transient geometry-aware fills during `draw()` and `undraw()`.
+
+## Text jumps when a readout changes
+
+Use `.reserveText()` with the widest expected value and update `state.text` through an updater.
+
+## Content overlaps titles
+
+Prefer `toEdge`, `nextTo`, `alignTo`, `Group`, `HStack`, and `VStack`. Reserve explicit screen bands for titles and captions instead of tuning everything around one screenshot.
+
+## 3D content ignores the camera
+
+DOM and React tattvas default to overlay behaviour. Use `.depthMode("world")` when they should participate in the 3D world.
+
+## Audio is silent in preview
+
+This is expected. Audio is mixed during video export. Missing audio files are intentionally ignored.
+
+## LaTeX fails during bundling
+
+Confirm a LaTeX distribution and `dvisvgm` are installed and visible on `PATH`. Use `MathText` or `FormulaMorph` if native LaTeX is not required.
+
+## Preview works but rendering fails
+
+Check the output path, available disk space, Playwright Chromium installation, and whether an unsupported option—such as transparent MP4 or audio with PNG—was requested.

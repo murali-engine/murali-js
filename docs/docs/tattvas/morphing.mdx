@@ -1,0 +1,51 @@
+---
+title: Shape, text, and formula morphing
+description: Geometry interpolation, semantic matching, and LaTeX glyph morphs.
+---
+
+# Shape, text, and formula morphing
+
+## Shape morphing
+
+```ts
+const morph = this.add(ShapeMorph(
+  Circle().radius(1).fill("#58c4dd"),
+  Square().size(2).fill("#7c3aed"),
+  Polygon.regular(5).radius(1.1).fill("#ff6b5f"),
+).samples(96));
+
+this.play(timeline((t) => {
+  t.animate(morph).duration(1.2).morphTo(1);
+  t.animate(morph).at(1.4).duration(1.2).morphTo(2);
+}));
+```
+
+Murali converts closed geometry to normalized cubic Bézier contours, matches contour direction and start points, and interpolates corresponding control points. `VectorShape` enables compound glyph-like paths and holes.
+
+## Text morphing
+
+```ts
+const words = TextMorph("CAT", "CREATE", "ART")
+  .matchBy("grapheme")
+  .unmatched("scale")
+  .height(0.9);
+```
+
+Text morphing matches graphemes or words. Shared units retain identity; unmatched units fade or scale in/out, so different character counts are supported.
+
+## Formula morphing
+
+`FormulaMorph` provides structural browser-based formula matching. `LatexMorph` provides full LaTeX typesetting plus cubic vector-outline interpolation:
+
+```ts
+const equation = LatexMorph(
+  String.raw`a^2+b^2=c^2`,
+  String.raw`c=\sqrt{a^2+b^2}`,
+).height(1.1).shapeMismatches();
+
+this.play(timeline((t) => t.animate(equation).duration(2).morphTo(1)));
+```
+
+When glyphs differ, `.shapeMismatches(false)` cross-fades leftovers instead of deforming their outlines. Use `.unmatched("fade" | "scale")` to choose unmatched behaviour.
+
+See `examples/shape-morphing.ts`, `examples/text-and-formula-morphing.ts`, and `examples/latex-vector-morphing.ts`.

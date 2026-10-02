@@ -13,6 +13,8 @@ export interface PreviewOptions {
   ready?: (page: Page) => Promise<void>;
   /** Loop an audio file across the full preview or a scene-time interval. */
   audio?: AudioTrack;
+  /** Close the preview this many seconds after its first playback completes. */
+  autoCloseAfter?: number;
 }
 
 interface SceneMetadata {
@@ -26,6 +28,9 @@ export async function previewScene(
   scenePath: string,
   options: PreviewOptions = {},
 ): Promise<{ duration: number }> {
+  if (options.autoCloseAfter !== undefined && (!Number.isFinite(options.autoCloseAfter) || options.autoCloseAfter < 0)) {
+    throw new Error(`Preview auto-close delay must be a non-negative finite number; received ${options.autoCloseAfter}.`);
+  }
   const bundle = await bundleScene(scenePath);
   const browser = await chromium.launch({
     headless: options.headless ?? false,
@@ -41,6 +46,9 @@ export async function previewScene(
     });
     await page.addInitScript(`globalThis.__muraliArgs = ${JSON.stringify(options.args ?? {})};`);
     await page.setContent(previewDocument(basename(scenePath)));
+    await page.evaluate((args) => {
+      (globalThis as typeof globalThis & { __muraliArgs?: Record<string, string> }).__muraliArgs = args;
+    }, options.args ?? {});
     await page.addScriptTag({ content: bundle, type: "module" });
     await page.waitForFunction(() => window.__muraliReady === true);
     const metadata = await page.evaluate((): SceneMetadata | null => {
@@ -61,11 +69,15 @@ export async function previewScene(
       }),
     });
 
-    if (options.headless !== true) {
-      process.stdout.write(`Previewing ${basename(scenePath)}. Close the window to exit.\n`);
-    }
+    if (options.headless !== true) process.stdout.write(
+      options.autoCloseAfter === undefined
+        ? `Previewing ${basename(scenePath)}. Close the window to exit.\n`
+        : `Previewing ${basename(scenePath)}. Auto-closing ${options.autoCloseAfter.toFixed(2)}s after playback.\n`,
+    );
     if (options.ready) {
       await options.ready(page);
+    } else if (options.autoCloseAfter !== undefined) {
+      await waitForPlaybackAndClose(page, options.autoCloseAfter);
     } else {
       await new Promise<void>((resolve, reject) => {
         browser.on("disconnected", () => resolve());
@@ -77,6 +89,19 @@ export async function previewScene(
   } finally {
     await browser.close().catch(() => undefined);
   }
+}
+
+async function waitForPlaybackAndClose(page: Page, delay: number): Promise<void> {
+  const manuallyClosed = new Promise<void>((resolve) => page.once("close", () => resolve()));
+  const completed = page
+    .waitForFunction(() => window.__muraliPreviewFinished === true, undefined, { timeout: 0 })
+    .then(async () => {
+      if (delay > 0 && !page.isClosed()) await page.waitForTimeout(delay * 1000);
+    })
+    .catch((error: unknown) => {
+      if (!page.isClosed()) throw error;
+    });
+  await Promise.race([manuallyClosed, completed]);
 }
 
 function previewDocument(title: string): string {
@@ -167,6 +192,7 @@ function playerScript(input: SceneMetadata & { frames: number; audio?: PreviewAu
   let time = 0;
   let frame = 0;
   let playing = duration > 0;
+  window.__muraliPreviewFinished = duration <= 0;
   let lastTick = performance.now();
   const audio = input.audio ? new Audio(input.audio.url) : null;
   if (audio) {
@@ -228,6 +254,7 @@ function playerScript(input: SceneMetadata & { frames: number; audio?: PreviewAu
     } else {
       if (time >= duration) show(0, 0, true);
       playing = duration > 0;
+      window.__muraliPreviewFinished = duration <= 0;
       lastTick = performance.now();
     }
     show(time, frame, false);
@@ -260,6 +287,7 @@ function playerScript(input: SceneMetadata & { frames: number; audio?: PreviewAu
       if (time >= duration) {
         time = duration;
         playing = false;
+        window.__muraliPreviewFinished = true;
       }
       show(time, Math.floor(time * fps));
     }

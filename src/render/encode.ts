@@ -47,6 +47,18 @@ export function createEncoderArguments(
   return args;
 }
 
+export function createGifEncoderArguments(output: string, fps: number): string[] {
+  return [
+    "-y",
+    "-f", "image2pipe",
+    "-framerate", String(fps),
+    "-i", "-",
+    "-vf", "split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse",
+    "-loop", "0",
+    output,
+  ];
+}
+
 export async function createEncoder(
   output: string,
   fps: number,
@@ -56,7 +68,18 @@ export async function createEncoder(
   const require = createRequire(import.meta.url);
   const ffmpegStatic = require("ffmpeg-static") as string | null;
   const binary = ffmpegStatic || "ffmpeg";
-  const child = spawn(binary, createEncoderArguments(output, fps, options), {
+  return createPipeEncoder(binary, createEncoderArguments(output, fps, options));
+}
+
+export async function createGifEncoder(output: string, fps: number): Promise<Encoder> {
+  await mkdir(dirname(output), { recursive: true });
+  const require = createRequire(import.meta.url);
+  const ffmpegStatic = require("ffmpeg-static") as string | null;
+  return createPipeEncoder(ffmpegStatic || "ffmpeg", createGifEncoderArguments(output, fps));
+}
+
+function createPipeEncoder(binary: string, args: readonly string[]): Encoder {
+  const child = spawn(binary, args, {
     stdio: ["pipe", "pipe", "pipe"],
   });
   let stderr = "";

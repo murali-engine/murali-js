@@ -1,0 +1,45 @@
+---
+title: Per-frame updaters
+description: Derive coordinates, labels, and related state at every sampled scene time.
+---
+
+# Per-frame updaters
+
+Use a targeted updater when a value is easier to express as a function of time or another tattva's sampled state.
+
+```ts
+const ball = this.add(Circle().radius(0.25));
+const readout = this.add(Label("x: 0.00, y: 0.00").height(0.24)
+  .reserveText("x: -00.00, y: -00.00"));
+
+this.addUpdater(readout, ({ time, state, stateOf }) => {
+  const ballState = stateOf(ball);
+  if (!ballState) return;
+  state.text = `x: ${ballState.x.toFixed(2)}, y: ${ballState.y.toFixed(2)}`;
+  state.x = ballState.x;
+  state.y = ballState.y + 0.7;
+}, { from: 0, until: 4 });
+```
+
+The callback receives the absolute scene `time`, the target's current sampled `state`, all sampled states, and a typed `stateOf()` helper.
+
+## Lifecycle
+
+```ts
+const handle = this.addUpdater(target, update);
+this.removeUpdater(handle);
+this.removeUpdatersFor(target);
+this.clearUpdaters();
+```
+
+Removal happens during authoring, before preview/export sampling. `from` and `until` define the active timeline interval.
+
+## Global updater
+
+`scene.updater((time, states) => { ... })` registers a global callback. Prefer `addUpdater()` when there is a clear target because its intent and cleanup are more explicit.
+
+:::warning Determinism
+
+Never accumulate from a previous invocation. A user can seek from 3 seconds back to 1 second, and export may sample in a different order. Compute the result from `time` and sampled state only.
+
+:::

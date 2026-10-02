@@ -1,20 +1,11 @@
-import {
-  BLUE_B,
-  Circle,
-  GOLD_C,
-  GRAY_B,
-  Group,
-  Label,
-  Line,
-  RED_B,
-  Scene,
-  TEAL_C,
-  Timeline,
-  VectorField,
-  WHITE,
-  render,
-} from "murali-js";
-import type { Vec2 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+import { VectorField } from "murali-js/maths";
+const { BLUE_B, GRAY_B, RED_B, TEAL_C, WHITE } = palette;
+import type { Vec2 } from "murali-js/core";
 
 /** Port of Murali `examples/force_fields.rs`. Charges and arrows are both functions of scene time. */
 class ForceFields extends Scene {
@@ -46,7 +37,6 @@ class ForceFields extends Scene {
     const minus = this.add(Label("-").height(0.18).color(WHITE).typewriter(), {
       at: [initial.negative[0], initial.negative[1] - 0.05, 0],
     });
-    const path = this.add(optimizationPath(), { at: [0, -0.05, 0] });
     const footer = this.add(Label(
       "This is the right mental model for force fields: charges move, and the arrows update with them.",
     ).height(0.17).color(GRAY_B).typewriter(), { at: [0, -3.1, 0] });
@@ -68,7 +58,6 @@ class ForceFields extends Scene {
     timeline.animate(negative).at(2.1).duration(0.5).ease("linear").appear();
     timeline.animate(plus).at(2.15).duration(0.4).ease("linear").typewrite();
     timeline.animate(minus).at(2.25).duration(0.4).ease("linear").typewrite();
-    timeline.animate(path).at(2.55).duration(0.6).ease("outCubic").appear();
     timeline.animate(footer).at(3).duration(1.8).ease("linear").typewrite();
     this.play(timeline);
   }
@@ -99,19 +88,6 @@ function force(point: Vec2, charge: Vec2, sign: number): Vec2 {
   const distance = Math.max(0.24, Math.hypot(offset[0], offset[1]));
   const scale = sign / (distance * distance * distance);
   return [offset[0] * scale, offset[1] * scale];
-}
-
-function optimizationPath() {
-  const points: Vec2[] = [[-2.7, -1.45], [-1.9, -1.15], [-1.2, -0.92], [-0.55, -0.78], [-0.05, -0.72]];
-  const segments = points.slice(0, -1).map((point, index) => Line()
-    .from(point)
-    .to(points[index + 1] ?? point)
-    .stroke({ color: GOLD_C, width: 0.025 }));
-  const marks = points.flatMap((point) => [
-    Line().from([point[0] - 0.07, point[1]]).to([point[0] + 0.07, point[1]]).stroke({ color: GOLD_C, width: 0.025 }),
-    Line().from([point[0], point[1] - 0.07]).to([point[0], point[1] + 0.07]).stroke({ color: GOLD_C, width: 0.025 }),
-  ]);
-  return Group([...segments, ...marks]);
 }
 
 render(import.meta.url, ForceFields);

@@ -1,0 +1,46 @@
+---
+title: Primitives and paths
+description: Shapes, vector paths, lines, arrows, and 3D props.
+---
+
+# Primitives and paths
+
+## Shapes
+
+```ts
+import { Circle, Ellipse, Polygon, Rectangle, Square } from "murali-js/primitives";
+
+Circle().radius(0.8).fill("#58c4dd").stroke({ color: "white", width: 0.04 });
+Rectangle().size([2.4, 1.2]).cornerRadius(0.18).fill("#7c3aed");
+Square().size(1.4).fill("#ff6b5f");
+Ellipse().radii([1.2, 0.65]).fill("#f0ac5f");
+Polygon.regular(6).radius(0.9).fill("#5cd0b3");
+```
+
+Filled shapes support geometry-aware `draw()` and `undraw()`: only the boundary portion written so far is closed and filled, rather than flashing the final fill early.
+
+## Lines, arrows, and paths
+
+```ts
+import { Arrow, Line, Path, worldPath } from "murali-js/primitives";
+
+Line().from([-2, 0]).to([2, 1]).color("#9cdceb");
+Arrow().from([0, 0]).to([3, 2]).color("#ff8080");
+
+const curve = worldPath()
+  .moveTo(-3, 0)
+  .cubicTo(-1, 3, 1, -3, 3, 0)
+  .stroke({ color: "#f0ac5f", width: 0.06 });
+```
+
+`worldPath()` supports line, quadratic Bézier, cubic Bézier, and close commands in world coordinates.
+
+## Vector shapes
+
+`VectorShape(svgPath, { viewBox })` supports compound paths and holes and can participate in true vector shape morphing.
+
+## 3D props
+
+`Prop3D(model)` displays parsed glTF/GLB geometry. Use `parseGlb(bytes)` or `parseGltf(json, buffers)` to create a model, and `modelCenter`/`modelDimensions` for framing helpers.
+
+See `examples/style-and-paths.ts`, `examples/prop3d-formats.ts`, and `examples/shape-morphing.ts`.

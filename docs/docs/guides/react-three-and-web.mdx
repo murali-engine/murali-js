@@ -1,0 +1,63 @@
+---
+title: React, Three.js, and web content
+description: Extend Murali with React, browser rendering, and custom Three.js objects.
+---
+
+# React, Three.js, and web content
+
+Murali's built-ins are conveniences. Custom content can use normal DOM/CSS, React, or Three.js as long as its picture is a deterministic function of sampled state and scene time.
+
+## React tattva
+
+```tsx
+import { ReactTattva, type TattvaState } from "murali-js/adapters";
+
+interface CardState extends TattvaState { progress: number }
+
+const card = new ReactTattva<CardState>(
+  (state, { theme }) => (
+    <div style={{
+      width: 420,
+      padding: 28,
+      borderRadius: theme.radii.large,
+      color: theme.colors.textPrimary,
+      background: theme.colors.surface,
+    }}>
+      Progress: {Math.round(state.progress * 100)}%
+    </div>
+  ),
+  { state: { progress: 0 } },
+);
+```
+
+Inside nested React components, `useMuraliTheme()` reads the resolved scene or group theme.
+
+## Three tattva
+
+```ts
+import { ThreeTattva } from "murali-js/adapters";
+import { Mesh, MeshStandardMaterial, SphereGeometry } from "three";
+
+const globe = new ThreeTattva({
+  setup({ scene }) {
+    scene.add(new Mesh(
+      new SphereGeometry(1, 48, 32),
+      new MeshStandardMaterial({ color: "#58c4dd" }),
+    ));
+  },
+  update({ scene }, state) {
+    scene.rotation.y = state.rotationY * Math.PI / 180;
+  },
+});
+```
+
+`setup` creates persistent Three.js resources. `update` applies sampled state for the exact frame.
+
+## Deterministic extension rules
+
+- Do not use `requestAnimationFrame`, `Date.now()`, or random values without a fixed seed.
+- Do not fetch changing remote content during render.
+- Derive visual state from the provided state, theme, and scene time.
+- Load required assets before the first frame through Murali's asset paths or deterministic setup.
+
+See `examples/react-card.tsx`, `examples/three-camera.ts`, and `examples/textured-surface.ts`.

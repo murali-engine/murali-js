@@ -1,0 +1,56 @@
+---
+sidebar_position: 4
+title: Mental model
+description: Understand scenes, tattvas, timelines, sampling, and rendering.
+---
+
+# Mental model
+
+Murali scenes are best understood as deterministic functions of time:
+
+```text
+source code → prepared scene → sample at time t → DOM/SVG/React/Three picture → artifact
+```
+
+## Scene
+
+`Scene` is the authoring boundary. It owns the frame, camera, theme, registered fonts, visual tree, scheduled timelines, updaters, and authored captures. Subclass it and implement `construct()`.
+
+## Tattva
+
+A tattva is a visual element with initial state and optional children. Common state includes position, 3D scale, rotation, opacity, color, reveal progress, and morph progress.
+
+```ts
+const mark = Circle().radius(0.7).fill("#58c4dd").at([2, 1, 0]).scale(1.2).layer(10);
+```
+
+Animation does not mutate this authored object frame by frame. The timeline samples a derived state for a requested time.
+
+## Timeline and clip
+
+`Timeline` schedules transitions. `Clip` is a reusable fragment with local time. A scene can play multiple timelines; each begins at the scene cursor, and `scene.wait()` advances that cursor.
+
+```ts
+const pulse = clip((local) => {
+  local.animate(mark).duration(0.35).scaleTo(1.2);
+  local.animate(mark).at(0.35).duration(0.35).scaleTo(1);
+});
+
+this.play(timeline().then(pulse).then(pulse));
+```
+
+## Absolute sampling
+
+For frame `n` at `fps`, export asks the scene for the state at `n / fps`. This makes replay, seeking, screenshots, and GIF capture predictable. Updaters must follow the same rule: derive output from `context.time` and sampled state, never from a previous frame or `Date.now()`.
+
+## Hybrid rendering
+
+- DOM/SVG tattvas handle text, shapes, paths, tables, and many diagrams.
+- `ReactTattva` hosts custom React-rendered components.
+- `ThreeTattva` hosts depth-tested 3D geometry, lights, materials, and cameras.
+
+`.depthMode("world")` places a DOM/React visual in the 3D world; `.depthMode("overlay")` keeps it camera-independent.
+
+## Composition versus resolution
+
+The logical frame determines layout. Pixel width and height determine output quality. A landscape scene remains `16 × 9` whether exported at 1280×720 or 3840×2160.

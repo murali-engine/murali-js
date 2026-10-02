@@ -1,4 +1,9 @@
-import { BLUE_D, Circle, GREEN_D, Label, Scene, Timeline, WHITE, render } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_D, GREEN_D, WHITE } = palette;
 
 /** Port of Murali `examples/portrait_video.rs`. */
 class PortraitVideo extends Scene {

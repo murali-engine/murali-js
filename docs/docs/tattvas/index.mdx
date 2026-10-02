@@ -1,0 +1,35 @@
+---
+title: Tattva catalog
+description: Choose the right Murali package and visual component family.
+---
+
+# Tattva catalog
+
+Murali's public API is divided by ownership so projects do not need one enormous top-level import.
+
+| Package | Main contents |
+| --- | --- |
+| `murali-js/core` | `Scene`, `Tattva`, timelines, clips, cameras, scene views, fonts, asset helpers |
+| `murali-js/style` | Themes, semantic colors, CSS types, and `palette` |
+| `murali-js/layout` | `Group`, `HStack`, and `VStack` |
+| `murali-js/primitives` | Shapes, paths, arrows, props, shape morphing |
+| `murali-js/text` | Labels, code, math text, LaTeX, text/formula morphing, 3D text |
+| `murali-js/maths` | Graphs, matrices, equations, fields, curves, surfaces, maps, Fourier helpers |
+| `murali-js/ai` | Tensors, neural networks, attention, transformers, context, sampling |
+| `murali-js/storytelling` | Stepwise diagrams, chat, openings, and fireworks |
+| `murali-js/composite` | Murali logo, wave mesh, and YouTube subscribe components |
+| `murali-js/table` | Focused `Table` entry point |
+| `murali-js/utility` | Traced paths and related utility motion |
+| `murali-js/adapters` | `ReactTattva` and `ThreeTattva` |
+| `murali-js/render` | Node-only rendering and capture pipeline |
+
+The package root remains a compatibility prelude, but category imports produce clearer ownership and autocomplete:
+
+```ts
+import { render } from "murali-js";
+import { Scene, timeline } from "murali-js/core";
+import { Circle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+```
+
+Builder functions generally return a configured tattva directly (`Circle()`) or a builder with `.build()` when construction spans several semantic choices (`NumberPlane(...).build()`).

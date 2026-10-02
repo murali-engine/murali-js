@@ -1,18 +1,9 @@
-import {
-  BLUE_D,
-  Circle,
-  GRAY_A,
-  GRAY_B,
-  GOLD_C,
-  Label,
-  RED_B,
-  Scene,
-  Square,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, Square } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_D, GRAY_A, GRAY_B, GOLD_C, RED_B, TEAL_C, WHITE } = palette;
 
 /** Port of Murali `examples/motion_basics.rs`. */
 class MotionBasics extends Scene {

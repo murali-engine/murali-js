@@ -1,13 +1,9 @@
-import {
-  GRAY_B,
-  Label,
-  Scene,
-  TEAL_C,
-  Table,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Label } from "murali-js/text";
+import { Table } from "murali-js/table";
+const { GRAY_B, TEAL_C, WHITE } = palette;
 
 /** Port of Murali `examples/tables.rs`. Rules draw first, then the cells type on, then the table unwrites. */
 class Tables extends Scene {

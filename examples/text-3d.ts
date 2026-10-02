@@ -1,4 +1,6 @@
-import { Scene, Text3D, timeline, render } from "murali-js";
+import { render } from "murali-js";
+import { Scene, timeline } from "murali-js/core";
+import { Text3D } from "murali-js/text";
 
 /** True vector-extruded text with deterministic XYZ animation. */
 class Text3DScene extends Scene {

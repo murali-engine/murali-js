@@ -1,13 +1,9 @@
-import { readdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { basename, extname, resolve } from "node:path";
+import { resolve } from "node:path";
+import { discoverExamples } from "./example-files.mjs";
 
 const examplesRoot = resolve("examples");
-const entries = await readdir(examplesRoot, { withFileTypes: true });
-const examples = new Map(entries
-  .filter((entry) => entry.isFile() && /\.(?:ts|tsx)$/.test(entry.name))
-  .map((entry) => [basename(entry.name, extname(entry.name)), entry.name])
-  .sort());
+const examples = await discoverExamples(examplesRoot);
 
 const args = process.argv.slice(2);
 if (args.includes("--list") || args.includes("-l")) {

@@ -1,14 +1,9 @@
-import {
-  BLUE_C,
-  ChatInput,
-  GRAY_A,
-  GRAY_B,
-  Label,
-  Scene,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Label } from "murali-js/text";
+import { ChatInput } from "murali-js/storytelling";
+const { BLUE_C, GRAY_A, GRAY_B, WHITE } = palette;
 
 const rgba = (red: number, green: number, blue: number, alpha: number) => {
   const channel = (value: number) => Math.round(value * 255);

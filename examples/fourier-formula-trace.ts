@@ -1,31 +1,20 @@
-import {
-  Circle,
-  GOLD_A,
-  Label,
-  Scene,
-  Tattva,
-  Timeline,
-  TracedPath,
-  WHITE,
-  easeInOutCubic,
-  epicycleLinks,
-  epicycleTip,
-  fourierTerms,
-  piOutline,
-  render,
-  worldPath,
-} from "murali-js";
-import type { TattvaState, Vec2 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Tattva, Timeline, easeInOutCubic } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, worldPath } from "murali-js/primitives";
+import { FormulaOutline, Label } from "murali-js/text";
+import { epicycleLinks, epicycleTip, fourierTerms } from "murali-js/maths";
+import { TracedPath } from "murali-js/utility";
+const { GOLD_A, WHITE } = palette;
+import type { TattvaState, Vec2 } from "murali-js/core";
 
 const traceStart = 1.1;
 const traceDuration = 30;
 const harmonics = 34;
-const outlinePoints = piOutline(760, 2.65);
-const terms = fourierTerms(outlinePoints, harmonics);
 
 /**
  * Port of Murali `examples/fourier_formula_trace.rs`.
- * The π outline is a geometric stand-in: Murali JS does not run Typst to extract a glyph.
+ * The π is sampled from its real typeset vector outline before applying the DFT.
  */
 class FourierFormulaTrace extends Scene {
   constructor() {
@@ -33,9 +22,12 @@ class FourierFormulaTrace extends Scene {
   }
 
   override construct(): void {
+    const outlinePoints = FormulaOutline(String.raw`\pi`).height(2.65).samplePoints(760);
+    const terms = fourierTerms(outlinePoints, harmonics);
+    const tipAt = (time: number): Vec2 => epicycleTip(terms, phaseAt(time));
     const title = this.add(Label("Fourier Transform Trace").height(0.3).color(WHITE).typewriter(), { at: [0, 2.86, 0] });
     const outline = this.add(outlinePath(outlinePoints));
-    this.add(new EpicycleChain());
+    this.add(new EpicycleChain(terms));
     const tip = this.add(Circle().radius(0.075).fill("rgba(255, 176, 79, 0.96)").stroke({ color: GOLD_A, width: 0.02 }));
     this.add(TracedPath((time) => tipAt(Math.min(time, traceStart + traceDuration))).minDistance(0.01).maxPoints(1520).color("rgba(255, 176, 79, 0.96)").width(0.045));
 
@@ -52,7 +44,7 @@ class FourierFormulaTrace extends Scene {
     timeline.animate(tip).at(0.7).duration(0.45).ease("outCubic").appear();
     timeline.animate(outline).at(traceStart + traceDuration * 0.82).duration(2.8).ease("inOutCubic").draw();
     timeline.animateCamera(this.camera).at(traceStart + 8).duration(3).ease("inOutCubic").zoomTo(4);
-    timeline.animateCamera(this.camera).at(traceStart + 17).duration(3).ease("inOutCubic").zoomTo(0.25);
+    timeline.animateCamera(this.camera).at(traceStart + 17).duration(3).ease("inOutCubic").zoomTo(1);
     this.play(timeline);
     if (this.duration < traceStart + traceDuration) this.wait(traceStart + traceDuration - this.duration);
   }
@@ -61,7 +53,7 @@ class FourierFormulaTrace extends Scene {
 class EpicycleChain extends Tattva {
   private markup = "";
 
-  constructor() {
+  constructor(private readonly terms: ReturnType<typeof fourierTerms>) {
     super();
     this.dynamicGeometry = true;
     this.revealKind = "none";
@@ -69,7 +61,7 @@ class EpicycleChain extends Tattva {
   }
 
   override influenceState(time: number, state: TattvaState): void {
-    const layout = epicycleMarkup(phaseAt(time));
+    const layout = epicycleMarkup(this.terms, phaseAt(time));
     state.x += layout.x;
     state.y += layout.y;
     this.worldSize = { width: layout.width, height: layout.height };
@@ -77,7 +69,7 @@ class EpicycleChain extends Tattva {
   }
 
   override contentHTML(time = 0): string {
-    return this.markup || epicycleMarkup(phaseAt(time)).html;
+    return this.markup || epicycleMarkup(this.terms, phaseAt(time)).html;
   }
 }
 
@@ -87,11 +79,10 @@ function phaseAt(time: number): number {
   return easeInOutCubic((time - traceStart) / traceDuration);
 }
 
-function tipAt(time: number): Vec2 {
-  return epicycleTip(terms, phaseAt(time));
-}
-
-function epicycleMarkup(phase: number): { html: string; x: number; y: number; width: number; height: number } {
+function epicycleMarkup(
+  terms: ReturnType<typeof fourierTerms>,
+  phase: number,
+): { html: string; x: number; y: number; width: number; height: number } {
   const links = epicycleLinks(terms, phase);
   const points = links.flatMap((link) => [link.center, link.next]);
   const xs = points.map((point) => point[0]);

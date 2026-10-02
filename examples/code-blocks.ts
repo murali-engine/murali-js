@@ -1,12 +1,8 @@
-import {
-  CodeBlock,
-  GRAY_B,
-  Label,
-  Scene,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { CodeBlock, Label } from "murali-js/text";
+const { GRAY_B, WHITE } = palette;
 
 const rustCode = `fn highlight(tokens: &[&str]) -> Vec<String> {
     tokens

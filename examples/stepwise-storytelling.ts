@@ -1,13 +1,9 @@
-import {
-  GRAY_B,
-  Label,
-  Scene,
-  Stepwise,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Label } from "murali-js/text";
+import { Stepwise } from "murali-js/storytelling";
+const { GRAY_B, TEAL_C, WHITE } = palette;
 
 /** Port of Murali `examples/stepwise_storytelling.rs`. The path reveals, then the signal replays it. */
 class StepwiseStory extends Scene {

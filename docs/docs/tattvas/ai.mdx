@@ -1,0 +1,44 @@
+---
+title: AI visualisation
+description: Semantic tensors, neural networks, attention, transformers, context, and sampling.
+---
+
+# AI visualisation
+
+Murali's AI components separate semantic models from their rendered views. IDs and named axes remain stable while values and focus change.
+
+## Neural networks
+
+```ts
+const model = neuralNetwork([
+  { id: "input", label: "Input", nodes: ["x₁", "x₂", "x₃", "x₄"] },
+  { id: "hidden", label: "Hidden", nodes: ["h₁", "h₂", "h₃"] },
+  { id: "output", label: "Output", nodes: ["ŷ₁", "ŷ₂"] },
+]);
+
+const network = NeuralNetwork(model);
+this.add(network);
+```
+
+Networks support named layers, stable node/edge IDs, dense weights, explicit sparse or skip connections, activation snapshots, and signal flow over unique edges.
+
+## Semantic tensors
+
+`tensorAxis` and `tensorSnapshot` attach meaning to each dimension and element. Operations preserve or transform that meaning:
+
+- `tensorAdd`, `tensorSplit`, `tensorMerge`, `tensorReshape`
+- `tensorProject2d`, `tensorTranspose2d`, `tensorMatmul`
+- `tensorScale`, `tensorCausalMask`, `tensorSoftmax`
+- `tensorSampleCategorical`
+
+`TensorView` renders a chosen 2D projection while fixed named axes select the remaining slice.
+
+## Attention and transformers
+
+`TokenRow`, `AttentionMatrix`, and `TransformerBlock` provide reusable teaching views. `attentionMatrices()` computes Q/K products, scaling, masking, and softmax for a complete small example rather than displaying arbitrary numbers.
+
+## Context and generation
+
+`ContextWindow` visualises token-budget composition. `KvCache`, `NormalizationPanel`, `NextTokenBoard`, and `EntropyBar` cover common LLM mechanics and sampling stories.
+
+See the focused examples under `examples/ai/`, especially `self-attention-lesson.ts`, `tensor-semantics.ts`, `neural-networks.ts`, and `context-window.ts`.

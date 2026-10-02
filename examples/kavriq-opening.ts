@@ -1,6 +1,10 @@
-import { Opening, Scene, Timeline, render } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { fontFamily, fontFile } from "murali-js/style";
+import { Opening } from "murali-js/storytelling";
 
 const PARTICLE_PALETTE = ["#2ed1c7", "#5294ff", "#eb6190", "#ffb838", "#7adc61", "#ff6666"];
+const SATOSHI = fontFile("Satoshi", "../assets/fonts/private/Satoshi-Bold.ttf", { weight: 700 });
 
 /** Port of Murali `examples/kavriq_opening.rs`. */
 class KavriqOpening extends Scene {
@@ -9,6 +13,7 @@ class KavriqOpening extends Scene {
   }
 
   override construct(): void {
+    this.registerFont(SATOSHI);
     this.camera
       .perspective({ fov: 43, near: 0.1, far: 80 })
       .position([0, 2.15, 10.8])
@@ -16,7 +21,7 @@ class KavriqOpening extends Scene {
 
     const opening = Opening("KAVRIQ", "The Science Behind AI")
       .texture("whiteMarble")
-      .fontFamily("Satoshi, Inter, ui-sans-serif, system-ui, sans-serif")
+      .fontFamily(fontFamily(SATOSHI, "Inter", "ui-sans-serif", "system-ui", "sans-serif"))
       .style({
         letterHeight: 2.4,
         letterDepth: 0.95,

@@ -6,16 +6,16 @@ import { test } from "node:test";
 import { inflateSync } from "node:zlib";
 import { renderScene } from "../src/render/capture.ts";
 
-test("writes a transparent PNG of one sampled frame", { timeout: 60_000 }, async () => {
+test("writes a transparent PNG of one sampled frame and overrides the scene background", { timeout: 60_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "murali-png-"));
   const output = join(directory, "logo.png");
   try {
-    const result = await renderScene(resolve("examples/murali-logo-transparent.ts"), {
+    const result = await renderScene(resolve("examples/murali-logo-image.ts"), {
       output,
       transparent: true,
       at: 0,
       progress: false,
-      args: { logo: "dark" },
+      args: { background: "#f7f4ed" },
     });
     const png = await readFile(output);
     assert.equal(result.frames, 1);

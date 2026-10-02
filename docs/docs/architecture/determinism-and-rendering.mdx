@@ -1,0 +1,46 @@
+---
+title: Determinism and rendering architecture
+description: How source becomes sampled state, hybrid visual trees, and encoded output.
+---
+
+# Determinism and rendering architecture
+
+## End-to-end flow
+
+```text
+TypeScript scene
+  → esbuild bundle and discovered assets
+  → Chromium runtime
+  → Scene.prepare()
+  → sample state/styles at time t
+  → DOM/SVG + React + Three.js composition
+  → PNG frame
+  → FFmpeg video/audio encoding
+```
+
+## Authoring and runtime boundaries
+
+Node resolves project configuration, bundles source, prepares native LaTeX/font/image resources, launches Chromium, and encodes artifacts. The browser constructs the scene and renders each exact time requested by preview or export.
+
+## Timeline sampling
+
+Each scheduled animation contains a target, start, duration, easing function, and destination state/style. Sampling reconstructs its contribution at the requested time. Targeted updaters run after timeline state is established, allowing derived labels and geometry to read other sampled states.
+
+## Hybrid visual tree
+
+Tattvas form one logical tree even when their renderers differ:
+
+- DOM/SVG content is efficient for 2D graphics, labels, and accessible layout.
+- React content enables complex declarative components.
+- Three.js content provides meshes, materials, lighting, and camera projection.
+- Scene views render a child scene offscreen and place its picture in the parent tree.
+
+Themes resolve through the logical tree before renderer-specific output. This keeps semantic styling consistent across all three render technologies.
+
+## Assets
+
+Literal `fontFile()` and `imageFile()` declarations are discovered during bundling and embedded or mapped into browser-loadable resources. LaTeX sources are typeset into vector resources before the browser scene starts.
+
+## Why no ECS requirement?
+
+Murali JavaScript uses object identity and a logical scene tree rather than requiring an entity-component system. Its workload is author-driven, bounded, and dominated by deterministic sampling/rendering. Specialised semantic models—such as tensors and neural networks—remain separate data structures and feed their view tattvas.

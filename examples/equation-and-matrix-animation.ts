@@ -1,21 +1,9 @@
-import {
-  BLUE_B,
-  Equation,
-  GOLD_C,
-  GRAY_A,
-  GRAY_B,
-  Label,
-  NumberLine,
-  Scene,
-  TEAL_C,
-  Tattva,
-  Timeline,
-  WHITE,
-  continuityPlacement,
-  easeInOutCubic,
-  matrixMarkup,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline, easeInOutCubic } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Label } from "murali-js/text";
+import { Equation, Matrix, continuityPlacement } from "murali-js/maths";
+const { BLUE_B, GOLD_C, GRAY_A, GRAY_B, TEAL_C, WHITE } = palette;
 
 const entries = [
   ["2", "-1", "0"],
@@ -54,24 +42,32 @@ class EquationAndMatrixAnimation extends Scene {
     const equationCaption = this.add(Label(
       "The shared terms keep their place in the viewer's memory while only the moved term changes role.",
     ).height(0.16).color(GRAY_A).typewriter(), { at: [0, -0.15, 0] });
-    const numberLine = this.add(NumberLine([-3, 6]).step(1).color(GRAY_B).originColor(GOLD_C).build(), { at: [0, -0.45, 0] });
-    const matrixHeading = this.add(Label("Matrix Steps").height(0.19).color(GRAY_B).typewriter(), { at: [0, -0.9, 0] });
-    const matrix = this.add(new SteppedMatrix());
-    matrix.at([0, -2.1, 0]);
+    const matrixHeading = this.add(Label("Matrix Steps").height(0.19).color(GRAY_B).typewriter(), { at: [0, -0.72, 0] });
+    const matrix = this.add(Matrix(entries).cellHeight(0.44));
+    matrix.at([0, -2, 0]);
     const matrixCaption = this.add(Label(
       "Row, column, and cell highlights turn a static array into a guided explanation.",
-    ).height(0.16).color(GRAY_A).typewriter(), { at: [0, -4, 0] });
+    ).height(0.16).color(GRAY_A).typewriter(), { at: [0, -3.72, 0] });
+    const targetKeys = new Set(target.terms.map((term) => term.key));
 
     this.updater((time, states) => {
       const start = 3.15;
       const duration = 1.5;
       if (time < start) return;
       const eased = easeInOutCubic(Math.min(1, (time - start) / duration));
-      const sourceState = states.get(sourceGroup);
       const targetState = states.get(targetGroup);
-      if (sourceState) sourceState.opacity = 1 - eased;
       if (targetState) targetState.opacity = 1;
-      for (const place of continuityPlacement(source.terms, target.terms, eased)) {
+      for (const term of source.terms) {
+        const state = states.get(term.tattva);
+        if (!state) continue;
+        // Matching terms are represented by the moving target glyphs. Only
+        // source-only syntax remains here long enough to fade away.
+        state.opacity = targetKeys.has(term.key) ? 0 : 1 - eased;
+      }
+      for (const place of continuityPlacement(source.terms, target.terms, eased, {
+        path: "arc",
+        arcHeight: 0.32,
+      })) {
         const state = states.get(place.tattva);
         if (!state) continue;
         state.x = place.x;
@@ -88,41 +84,24 @@ class EquationAndMatrixAnimation extends Scene {
     timeline.animate(equationHeading).at(1.25).duration(0.85).ease("linear").typewrite();
     timeline.animate(sourceGroup).at(1.7).duration(0.5).ease("outCubic").appear();
     timeline.animate(equationCaption).at(2.1).duration(1.2).ease("linear").typewrite();
-    timeline.animate(numberLine).at(2.45).duration(0.45).ease("outCubic").appear();
     timeline.animate(matrixHeading).at(4.8).duration(0.85).ease("linear").typewrite();
     timeline.animate(matrix).at(5.15).duration(0.5).ease("outCubic").appear();
     timeline.animate(matrixCaption).at(5.45).duration(1.1).ease("linear").typewrite();
+    timeline.animate(matrix).at(6).duration(0.95).focus(matrix.row(1), {
+      color: TEAL_C,
+      dim: 0.28,
+    });
+    timeline.animate(matrix).at(7.1).duration(0.95).focus(matrix.column(1), {
+      color: BLUE_B,
+      dim: 0.24,
+    });
+    timeline.animate(matrix).at(8.2).duration(1).focus(matrix.diagonal(), {
+      color: GOLD_C,
+      dim: 0.24,
+    });
     this.play(timeline);
     if (this.duration < 9.2) this.wait(9.2 - this.duration);
   }
-}
-
-class SteppedMatrix extends Tattva {
-  constructor() {
-    super();
-    this.dynamicGeometry = true;
-    this.revealKind = "none";
-    this.worldSize = { width: 4.2, height: 2.4 };
-  }
-
-  override contentHTML(time = 0): string {
-    return matrixMarkup(entries, 0.44, focusAt(time));
-  }
-}
-
-function focusAt(time: number) {
-  const row = step(time, 6, 0.95);
-  const column = step(time, 7.1, 0.95);
-  const diagonal = step(time, 8.2, 1);
-  if (diagonal > 0) return { cells: [[0, 0], [1, 1], [2, 2]] as const, color: GOLD_C, amount: diagonal, dim: 0.24 };
-  if (column > 0) return { cells: [[0, 1], [1, 1], [2, 1]] as const, color: BLUE_B, amount: column, dim: 0.24 };
-  if (row > 0) return { cells: [[1, 0], [1, 1], [1, 2]] as const, color: TEAL_C, amount: row, dim: 0.28 };
-  return null;
-}
-
-function step(time: number, start: number, duration: number): number {
-  if (time < start) return 0;
-  return easeInOutCubic(Math.min(1, (time - start) / duration));
 }
 
 render(import.meta.url, EquationAndMatrixAnimation);

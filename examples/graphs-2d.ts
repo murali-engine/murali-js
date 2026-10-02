@@ -1,21 +1,11 @@
-import {
-  Axes,
-  BLUE_B,
-  GRAY_A,
-  GRAY_B,
-  GOLD_C,
-  Group,
-  Label,
-  NumberPlane,
-  ORANGE_B,
-  PlotLegend,
-  ScatterPlot,
-  Scene,
-  Timeline,
-  WHITE,
-  render,
-  worldPath,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Group } from "murali-js/layout";
+import { worldPath } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+import { Axes, NumberPlane, PlotLegend, ScatterPlot } from "murali-js/maths";
+const { BLUE_B, GRAY_A, GRAY_B, GOLD_C, ORANGE_B, WHITE } = palette;
 
 /** Port of Murali `examples/graphs_2d.rs`. */
 class Graphs2D extends Scene {

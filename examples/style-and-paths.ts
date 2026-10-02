@@ -1,23 +1,9 @@
-import {
-  Arrow,
-  BLUE_B,
-  BLUE_D,
-  Circle,
-  GRAY_A,
-  GRAY_B,
-  GOLD_C,
-  GREEN_D,
-  Label,
-  Line,
-  PURPLE_B,
-  Rectangle,
-  Scene,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-  worldPath,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Arrow, Circle, Line, Rectangle, worldPath } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_B, BLUE_D, GRAY_A, GRAY_B, GOLD_C, GREEN_D, PURPLE_B, TEAL_C, WHITE } = palette;
 
 /** Port of Murali `examples/style_and_paths.rs`. */
 class StyleAndPaths extends Scene {

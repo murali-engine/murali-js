@@ -1,0 +1,80 @@
+---
+title: Themes, fonts, and branding
+description: Semantic color roles, palette swatches, local fonts, and persistent overlays.
+---
+
+# Themes, fonts, and branding
+
+## Semantic themes
+
+Themes describe reusable intent: background, surfaces, text, accents, status colors, strokes, typography, radii, and effects.
+
+```ts
+import { createTheme, themeColor, themes } from "murali-js/style";
+
+const kavriq = createTheme(themes.dark, {
+  name: "kavriq",
+  colors: {
+    background: "#050513",
+    textPrimary: "#fffaf0",
+    accent: "#52d8ff",
+    accentAlt: "#a78bfa",
+  },
+});
+
+class ThemedScene extends Scene {
+  constructor() {
+    super({ theme: kavriq });
+  }
+
+  override construct() {
+    this.add(Circle().fill(themeColor("accent")));
+  }
+}
+```
+
+Explicit object styles win over inherited theme values. A `Group` can override a subtree with `.theme({ colors: ... })`. Resolved roles are also exposed as `--murali-*` CSS variables.
+
+## Fixed palette
+
+Use semantic roles for reusable components. Use `palette` when a specific swatch is intentionally part of the artwork.
+
+```ts
+import { palette } from "murali-js/style";
+
+Circle().fill(palette.TEAL_C);
+```
+
+## Fonts
+
+Browser/system fonts work directly:
+
+```ts
+Label("Editorial title").font("Georgia, serif").fontWeight(700);
+```
+
+Embed a local TTF, OTF, WOFF, or WOFF2 file:
+
+```ts
+import { fontFile } from "murali-js/core";
+
+const satoshi = fontFile("Satoshi", "./assets/Satoshi-Bold.ttf", { weight: 700 });
+
+override construct() {
+  this.registerFont(satoshi);
+  this.add(Label("KAVRIQ").font(satoshi, "Inter", "sans-serif").fontWeight(700));
+}
+```
+
+Keep file paths literal so the bundler can discover them. Missing optional private fonts fall back cleanly. `fontUrl()` supports browser-loadable URLs and data URLs.
+
+## Persistent branding
+
+```ts
+this.addBranding(Label("KAVRIQ").height(0.2).opacity(0.72), {
+  position: "bottomRight",
+  margin: 0.35,
+});
+```
+
+Branding stays camera-independent for the full scene. Add more than one brand by calling `addBranding()` again with another position or an explicit `at` point.

@@ -1,0 +1,63 @@
+---
+slug: /
+sidebar_position: 1
+title: Introduction
+description: Deterministic, code-first animation for mathematical and visual storytelling.
+---
+
+# Introduction
+
+Murali is a deterministic, code-first animation engine built on the web platform. A scene is ordinary TypeScript, visual objects live in a mathematical world, and every rendered frame is sampled at an exact virtual time.
+
+The browser is a rendering surface, not the clock. Preview, MP4 export, PNG export, screenshots, and GIF captures all sample the same scene model. Given the same code and inputs, Murali produces the same picture at the same time.
+
+## Why Murali?
+
+- **Deterministic timelines** — animation state is derived from scene time rather than wall-clock playback.
+- **A mathematical coordinate system** — compose in world units and choose pixel resolution only when rendering.
+- **One hybrid scene** — DOM/SVG, React, and Three.js tattvas can share a timeline and camera.
+- **Reusable visual language** — primitives, mathematical notation, AI diagrams, particles, 3D objects, and storytelling components use the same core model.
+- **Production output** — preview while authoring, then export video, stills, timestamped screenshots, GIFs, and optional audio.
+
+## The core vocabulary
+
+| Concept | Meaning |
+| --- | --- |
+| `Scene` | Owns the frame, camera, tattvas, timeline schedule, theme, fonts, updaters, and captures. |
+| `Tattva` | Any visual element: a shape, label, formula, group, 3D object, or reusable composition. |
+| `Timeline` | Describes how sampled state changes over time. |
+| `Clip` | A reusable timeline fragment that can be sequenced or overlapped. |
+| `render()` | Bundles the scene and opens preview or produces an artifact. |
+
+## A first look
+
+```ts
+import { render } from "murali-js";
+import { Scene, clip, timeline } from "murali-js/core";
+import { Circle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+
+class HelloMurali extends Scene {
+  override construct() {
+    const title = this.add(Label("Hello, Murali").height(0.55));
+    const circle = this.add(Circle().radius(0.7).fill("#58c4dd"), { at: [-4, 0] });
+
+    this.play(timeline()
+      .then(clip((local) => {
+        local.animate(title).duration(0.7).typewrite();
+        local.animate(circle).at(0.25).duration(1.8).ease("inOutCubic").moveTo([3, 0]);
+      }))
+      .wait(0.6));
+  }
+}
+
+render(import.meta.url, HelloMurali, { output: "./output/hello.mp4" });
+```
+
+Continue with [Installation](./installation), [Your first scene](./getting-started), and the [mental model](./mental-model).
+
+:::note Native engine
+
+This portal documents Murali JavaScript. If a specialised project needs lower-level native control or exceeds the JavaScript engine's current limits, see [Murali (Rust)](https://github.com/murali-engine/murali-rs/tree/main/docs).
+
+:::

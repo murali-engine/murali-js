@@ -1,0 +1,57 @@
+---
+title: Camera, 3D, and depth
+description: Orthographic and perspective cameras, camera animation, and hybrid depth modes.
+---
+
+# Camera, 3D, and depth
+
+Every scene owns one `SceneCamera`. It can switch deterministically between orthographic and perspective projection.
+
+```ts
+this.camera
+  .perspective({ fov: 42, near: 0.1, far: 200 })
+  .position([7, 5, 10])
+  .lookAt([0, 0, 0]);
+```
+
+For flat explanatory scenes:
+
+```ts
+this.camera
+  .orthographic({ viewHeight: 9 })
+  .position([0, 0, 10])
+  .lookAt([0, 0, 0]);
+```
+
+## Camera animation
+
+```ts
+const motion = timeline();
+motion.animateCamera(this.camera)
+  .duration(2)
+  .ease("inOutCubic")
+  .orbitTo({ azimuth: 55, elevation: 24, radius: 12, target: [0, 0, 0] });
+this.play(motion);
+```
+
+Camera verbs include `frameTo`, `moveTo`, `lookAt`, `zoomTo`, `fovTo`, `viewHeightTo`, and `orbitTo`.
+
+## Hybrid scenes
+
+A scene may contain Three.js objects and browser-rendered labels at once:
+
+```ts
+const annotation = Label("surface normal")
+  .height(0.24)
+  .at([1, 1, 0.5])
+  .depthMode("world");
+
+const title = Label("Parametric surface")
+  .height(0.5)
+  .depthMode("overlay")
+  .layer(100);
+```
+
+World content follows camera projection and can be occluded. Overlay content is ideal for titles, captions, UI, and branding.
+
+See `examples/three-camera.ts`, `examples/surfaces-3d.ts`, and `examples/css-3d-transforms.ts`.

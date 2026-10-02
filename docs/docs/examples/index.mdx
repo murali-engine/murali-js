@@ -1,0 +1,59 @@
+---
+title: Example gallery
+description: Find executable examples by concept and preview the complete collection.
+---
+
+# Example gallery
+
+The repository examples are executable studies, not generated API snippets. Run one from the repository root:
+
+```bash
+npm run example -- hello-shapes --preview
+npm run example -- maths/linear-algebra/03-matrix-as-linear-map
+npm run example -- --list
+```
+
+## Foundations
+
+| Example | Covers |
+| --- | --- |
+| `hello-shapes.ts` | Scene, shapes, labels, and first timeline |
+| `motion-basics.ts` | Transforms, easing, and timing |
+| `layout-and-groups.ts` | Groups, horizontal/vertical stacks, relative layout |
+| `theme-system.ts` | Themes, scoped overrides, palette |
+| `style-and-paths.ts` | Fill, stroke, dashes, arrows, Bézier paths |
+| `updater-coordinate-readout.ts` | Targeted per-frame updater |
+
+## Text and morphing
+
+`text-animation.ts`, `code-blocks.ts`, `latex-and-typst.ts`, `text-3d.ts`, `shape-morphing.ts`, `text-and-formula-morphing.ts`, and `latex-vector-morphing.ts` show the text and geometry pipeline at increasing depth.
+
+## Mathematics
+
+Use `graphs-2d.ts`, `force-fields.ts`, `streamlines.ts`, `traced-paths.ts`, `surfaces-3d.ts`, `fourier-formula-trace.ts`, `map-projection-morph.ts`, and the curated `maths/linear-algebra/` folder.
+
+## AI
+
+The `examples/ai/` folder includes semantic tensors, slicing, operations, normalisation, KV cache, self-attention, transformer blocks, neural networks, context windows, and next-token sampling.
+
+## Storytelling and production
+
+`kavriq-opening.ts`, `wave-mesh-background.ts`, `celebration-fireworks.ts`, `youtube-subscribe.ts`, `branding-and-fonts.ts`, `capture-markers.ts`, and the two Murali logo examples cover reusable production elements.
+
+## Preview all examples
+
+```bash
+cd examples
+npm run preview:all
+```
+
+Useful controls:
+
+```bash
+npm run preview:all -- --delay 4
+npm run preview:all -- --match ai/
+npm run preview:all -- --skip 20
+npm run preview:all -- --from maths/linear-algebra/03-matrix-as-linear-map
+```
+
+Each preview prints its stable one-based gallery index. The runner continues after failures and reports them at the end unless `--stop-on-error` is supplied.

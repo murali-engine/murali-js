@@ -1,22 +1,10 @@
-import {
-  BLUE_B,
-  Circle,
-  GRAY_A,
-  GRAY_B,
-  GOLD_C,
-  GREEN_D,
-  Label,
-  ORANGE_B,
-  PURPLE_B,
-  RED_B,
-  Scene,
-  Square,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
-import type { Tattva, Vec3 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, Square } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_B, GRAY_A, GRAY_B, GOLD_C, GREEN_D, ORANGE_B, PURPLE_B, RED_B, TEAL_C, WHITE } = palette;
+import type { Tattva, Vec3 } from "murali-js/core";
 
 /** Port of Murali `examples/layout_and_groups.rs`. */
 class LayoutAndGroups extends Scene {

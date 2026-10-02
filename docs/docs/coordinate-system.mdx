@@ -1,0 +1,60 @@
+---
+sidebar_position: 5
+title: Frames, coordinates, and layout
+description: Landscape, portrait, square, world units, depth modes, and layout helpers.
+---
+
+# Frames, coordinates, and layout
+
+Murali uses a centered, y-up coordinate system. Positive x is right, positive y is up, and positive z participates in 3D depth.
+
+## Frame presets
+
+| Frame | Logical size | Typical output |
+| --- | --- | --- |
+| `landscape` | `16 × 9` | 1920×1080 |
+| `portrait` | `9 × 16` | 1080×1920 |
+| `square` | `9 × 9` | 1080×1080 |
+
+```ts
+class ShortScene extends Scene {
+  constructor() {
+    super({ frame: "portrait", width: 1080, height: 1920 });
+  }
+}
+```
+
+`viewWidth` can override the logical width when a specialised coordinate scale is useful. The logical height follows the output aspect ratio.
+
+## Positioning
+
+```ts
+const title = this.add(Label("A title").height(0.5));
+this.toEdge(title, "up", { margin: 0.6 });
+
+const caption = this.add(Label("Explanation").height(0.25));
+this.nextTo(caption, title, "down", { gap: 0.35 });
+this.alignTo(caption, title, "centerX");
+```
+
+`toEdge`, `nextTo`, and `alignTo` use each tattva's layout bounds rather than hard-coded pixels.
+
+## Groups and stacks
+
+```ts
+import { Group, HStack, VStack } from "murali-js/layout";
+
+const row = Group([Circle().radius(0.45), Square().size(0.9)])
+  .layout(HStack, { gap: 0.4 });
+const column = Group([title, row]).layout(VStack, { gap: 0.7 });
+this.add(column);
+```
+
+## World and overlay depth
+
+```ts
+label.depthMode("world");   // transformed and occluded in the 3D scene
+label.depthMode("overlay"); // screen-aligned, useful for titles and UI
+```
+
+Use `.layer(number)` to order overlay content. For persistent corner marks, prefer `scene.addBranding()` over manual coordinates.

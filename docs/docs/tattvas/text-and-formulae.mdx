@@ -1,0 +1,65 @@
+---
+title: Text, code, and formulae
+description: Labels, code blocks, math text, LaTeX, and true 3D text.
+---
+
+# Text, code, and formulae
+
+## Labels
+
+```ts
+const label = Label("Deterministic motion")
+  .height(0.42)
+  .color("#ffffff")
+  .font("Inter", "sans-serif")
+  .fontWeight(700)
+  .typewriter();
+```
+
+Use `.reserveText(longestPossibleText)` for a dynamic readout so its layout bounds do not jump.
+
+## Math text and native LaTeX
+
+```ts
+import { Latex, MathText } from "murali-js/text";
+
+MathText("E = mc^2").height(0.7);
+Latex(String.raw`\int_0^1 x^2\,dx = \frac{1}{3}`).height(0.8);
+```
+
+`MathText` is a lightweight browser representation. `Latex` runs full LaTeX typesetting and converts output into native vector glyph outlines.
+
+## Formula outlines
+
+```ts
+const points = FormulaOutline(String.raw`\pi`).height(3).samplePoints(900);
+```
+
+This is useful for Fourier epicycles and other algorithms that require the actual contours of a typeset formula.
+
+## Code blocks
+
+```ts
+CodeBlock("const x = 42;", "rust")
+  .theme("dark")
+  .title("Example")
+  .lineNumbers();
+```
+
+The current syntax selector accepts `rust` and `toml`; the displayed source can still contain other text.
+
+## True 3D text
+
+```ts
+Text3D("MURALI", {
+  height: 1.2,
+  depth: 0.35,
+  faceColor: "#fffaf0",
+  sideColor: "#675f54",
+  bevel: { enabled: true, size: 0.025, thickness: 0.03 },
+});
+```
+
+`Text3D` uses vector-extruded geometry with real front, back, holes, and side walls. It is not a stack of bitmap layers. Custom Three.js typeface JSON and raw TTF data can be parsed with `parseText3DFont` and `parseText3DTTF`.
+
+See `examples/text-animation.ts`, `examples/latex-and-typst.ts`, and `examples/text-3d.ts`.

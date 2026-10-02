@@ -1,0 +1,42 @@
+---
+title: API map
+description: A concise map of Murali JavaScript's public packages and core entry points.
+---
+
+# API map
+
+## Core workflow
+
+```ts
+import { render } from "murali-js";
+import { Scene, Tattva, Timeline, clip, timeline } from "murali-js/core";
+```
+
+Use `Scene` to author, `Tattva` to extend, `Timeline`/`Clip` to animate, and `render()` to preview or export.
+
+## Package entry points
+
+| Import | Representative APIs |
+| --- | --- |
+| `murali-js/core` | `Scene`, `Tattva`, `Timeline`, `clip`, `timeline`, `Camera3D`, `SceneView`, `fontFile`, `imageFile` |
+| `murali-js/style` | `themes`, `createTheme`, `themeColor`, `palette` |
+| `murali-js/layout` | `Group`, `HStack`, `VStack` |
+| `murali-js/primitives` | Shapes, `Path`, `Line`, `Arrow`, `ShapeMorph`, `Prop3D` |
+| `murali-js/text` | `Label`, `MathText`, `Latex`, morphs, `CodeBlock`, `Text3D` |
+| `murali-js/maths` | Graphs, matrices, equations, linear algebra, fields, curves, surfaces, maps, Fourier |
+| `murali-js/ai` | Neural networks, semantic tensors, attention, transformers, context, sampling |
+| `murali-js/storytelling` | `Stepwise`, `ChatInput`, `Opening`, `Fireworks` |
+| `murali-js/composite` | `MuraliLogoMark`, `WaveMesh`, `YouTubeSubscribe` |
+| `murali-js/table` | `Table` |
+| `murali-js/utility` | `TracedPath` |
+| `murali-js/adapters` | `ReactTattva`, `ThreeTattva`, `useMuraliTheme` |
+| `murali-js/render` | `render`, `renderScene`, render/capture types |
+
+The root `murali-js` export remains available for compatibility. Prefer category imports in new code.
+
+## Reading this documentation
+
+- Start with [Scenes and tattvas](../core/scenes-and-tattvas) and [Animations and timelines](../core/animations-and-timelines).
+- Browse the [Tattva catalog](../tattvas/) for visual APIs.
+- Use the [Example gallery](../examples/) for executable compositions.
+- Read [Determinism and rendering architecture](../architecture/determinism-and-rendering) when extending the engine.

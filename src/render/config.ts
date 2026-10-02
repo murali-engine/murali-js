@@ -9,6 +9,8 @@ interface FileRenderConfig {
   outputDir?: string;
   fps?: number;
   progress?: boolean;
+  transparent?: boolean;
+  at?: number;
   audio?: AudioTrack;
 }
 
@@ -33,11 +35,11 @@ function parseEnv(contents: string): Record<string, string> {
   return values;
 }
 
-function parseBoolean(value: string | undefined): boolean | undefined {
+function parseBoolean(value: string | undefined, label: string): boolean | undefined {
   if (value === undefined) return undefined;
   if (["1", "true", "yes", "on"].includes(value.toLowerCase())) return true;
   if (["0", "false", "no", "off"].includes(value.toLowerCase())) return false;
-  throw new Error(`Render progress must be a boolean; received ${value}.`);
+  throw new Error(`${label} must be a boolean; received ${value}.`);
 }
 
 async function readOptional(path: string): Promise<string | undefined> {
@@ -79,9 +81,19 @@ export async function resolveRenderOptions(
     ?? renderConfig.output
     ?? join(outputDirectory, `${sourceName}.mp4`);
   const progress = overrides.progress
-    ?? parseBoolean(env.MURALI_PROGRESS)
+    ?? parseBoolean(env.MURALI_PROGRESS, "Render progress")
     ?? renderConfig.progress
     ?? true;
+  const transparent = overrides.transparent
+    ?? parseBoolean(env.MURALI_TRANSPARENT, "Render transparency")
+    ?? renderConfig.transparent
+    ?? false;
+  const configuredAt = env.MURALI_AT;
+  const at = overrides.at
+    ?? (configuredAt === undefined ? renderConfig.at : Number.parseFloat(configuredAt));
+  if (at !== undefined && (!Number.isFinite(at) || at < 0)) {
+    throw new Error(`PNG sample time must be a non-negative number; received ${String(at)}.`);
+  }
   const audio = overrides.audio
     ?? env.MURALI_AUDIO
     ?? renderConfig.audio;
@@ -94,8 +106,8 @@ export async function resolveRenderOptions(
       progress,
       onProgress: overrides.onProgress,
       format: overrides.format,
-      transparent: overrides.transparent,
-      at: overrides.at,
+      transparent,
+      at,
       args: overrides.args,
       audio,
     },

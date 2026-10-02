@@ -1,0 +1,54 @@
+---
+title: Storytelling and composites
+description: Stepwise stories, openings, fireworks, wave mesh, subscribe CTA, and the Murali logo.
+---
+
+# Storytelling and composites
+
+## Stepwise stories
+
+```ts
+const story = Stepwise((s) => {
+  const ask = s.step("Ask");
+  const retrieve = s.step("Retrieve");
+  const answer = s.step("Answer");
+  s.connect(ask, retrieve).route("right");
+  s.connect(retrieve, answer).route("right");
+  s.sequence([ask, retrieve, answer]);
+}).gap(1.2).signalColor("#5cd0b3");
+```
+
+Animate its `reveal` and `signal` state to separate construction from replay.
+
+## Openings
+
+`Opening(title, tagline)` creates real extruded 3D letters, deterministic landing/bounce/shake choreography, particles, and a tagline. Configure geometry and colors with `.style()`, timing with `.timing()`, and `whiteMarble`, `blackMarble`, or `plain` texture.
+
+## Fireworks
+
+`Fireworks()` is deterministic and responsive across landscape, portrait, and square frames:
+
+```ts
+Fireworks({ layout: "portrait" })
+  .burstCount(7)
+  .particlesPerBurst(48)
+  .glow(0.8)
+  .seed(42);
+```
+
+## Wave mesh
+
+`WaveMesh()` is a Three.js wire terrain for lower thirds and backgrounds. It supports authored size, samples, amplitude, palette, far-edge opacity fade, nodes, sparkles, glow variation, and a custom periodic profile.
+
+## YouTube subscribe CTA
+
+`YouTubeSubscribe` has wide and compact layouts, with a ready-made `YouTubeSubscribeSequence` for entrance, subscribe action, and bell ring.
+
+## Murali logo
+
+```ts
+const mark = this.add(MuraliLogoMark({ width: 6.6 }));
+this.play(MuraliLogoSequence(mark, { duration: 6.4 }));
+```
+
+The sequence loops from one oval through the three-oval mark and back. See `examples/murali-logo-image.ts` for transparent and background PNG export.

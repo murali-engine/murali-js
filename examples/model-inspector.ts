@@ -1,16 +1,16 @@
+import { render } from "murali-js";
+import { Scene } from "murali-js/core";
 import {
-  Label,
   Prop3D,
-  Scene,
   centeredPropPosition,
   fittedScale,
   framingDistance,
   modelCenter,
   modelDimensions,
   parseGltf,
-  render,
-} from "murali-js";
-import type { Vec3 } from "murali-js";
+} from "murali-js/primitives";
+import { Label } from "murali-js/text";
+import type { Vec3 } from "murali-js/core";
 import { appleBin, appleGltf } from "./assets/props/files.ts";
 
 const FOV = 42;

@@ -1,17 +1,9 @@
-import {
-  BLUE_B,
-  GOLD_C,
-  GREEN_C,
-  Label,
-  PINK_C,
-  PURPLE_B,
-  Scene,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  WordCloud,
-  render,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Label } from "murali-js/text";
+import { WordCloud } from "murali-js/maths";
+const { BLUE_B, GOLD_C, GREEN_C, PINK_C, PURPLE_B, TEAL_C, WHITE } = palette;
 
 const WORDS = [
   ["Murali JS", 100], ["animation", 88], ["deterministic", 82], ["timeline", 75],

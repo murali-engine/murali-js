@@ -1,20 +1,13 @@
-import {
-  Axes3D,
-  BLUE_B,
-  GOLD_C,
-  GRAY_B,
-  Label,
-  ORANGE_B,
-  ParametricSurface,
-  Scene,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
-import type { Vec3 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline, imageFile } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Label } from "murali-js/text";
+import { Axes3D, ParametricSurface } from "murali-js/maths";
+const { BLUE_B, GOLD_C, GRAY_B, ORANGE_B, TEAL_C, WHITE } = palette;
+import type { Vec3 } from "murali-js/core";
+const EARTH_TEXTURE = imageFile("./assets/textures/earthmap1k.jpg");
 
-/** Port of Murali `examples/textured_surface.rs`. The wrap is a generated map, not the bundled Earth JPEG. */
+/** Port of Murali `examples/textured_surface.rs`, using the same Earth surface image. */
 class TexturedSurface extends Scene {
   override construct(): void {
     this.camera.perspective({ fov: 42, near: 0.1, far: 100 }).position([-3.2, 1.9, 5.8]).lookAt([0, 0, 0]);
@@ -31,7 +24,7 @@ class TexturedSurface extends Scene {
     const surface = this.add(ParametricSurface([0, Math.PI], [0, Math.PI * 2], sphere)
       .samples(40, 54)
       .writeProgress(1)
-      .texture(paintEarth)
+      .texture(EARTH_TEXTURE)
       .opacity(0));
     const xLabel = this.add(Label("x").height(0.2).color(ORANGE_B).typewriter(), { at: [2.55, 0, 0] });
     const yLabel = this.add(Label("y").height(0.2).color(BLUE_B).typewriter(), { at: [0, 2.55, 0] });
@@ -60,22 +53,6 @@ class TexturedSurface extends Scene {
 function sphere(u: number, v: number): Vec3 {
   const radius = 1.35;
   return [radius * Math.sin(u) * Math.cos(v), radius * Math.cos(u), radius * Math.sin(u) * Math.sin(v)];
-}
-
-function paintEarth(context: CanvasRenderingContext2D, width: number, height: number): void {
-  context.fillStyle = "#1d4e89";
-  context.fillRect(0, 0, width, height);
-  context.fillStyle = "#2f6b4f";
-  for (let index = 0; index < 12; index += 1) {
-    const x = ((index * 97) % width);
-    const y = ((index * 53) % height);
-    context.beginPath();
-    context.ellipse(x, y, 28 + (index % 4) * 8, 14 + (index % 3) * 6, index, 0, Math.PI * 2);
-    context.fill();
-  }
-  context.fillStyle = "#d9e7c4";
-  context.fillRect(0, height * 0.08, width, height * 0.08);
-  context.fillRect(0, height * 0.84, width, height * 0.08);
 }
 
 function hex(value: string): readonly [number, number, number, number] {

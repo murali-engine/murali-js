@@ -1,0 +1,15 @@
+export {
+  KvCache,
+  KvCacheTattva,
+  TensorGrid,
+  attentionMatrices,
+  causalMask,
+  matmul2,
+  scaleMatrix,
+  softmaxRows,
+  tensorSemanticsFrame,
+  transpose2,
+  type CachePanel,
+  type Matrix2,
+  type TensorFrame,
+} from "./teaching.ts";

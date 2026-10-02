@@ -1,26 +1,12 @@
-import {
-  BLUE_B,
-  BLUE_D,
-  Circle,
-  GOLD_C,
-  GRAY_A,
-  GRAY_B,
-  GRAY_C,
-  GREEN_C,
-  Label,
-  Line,
-  ORANGE_C,
-  PINK_C,
-  PURPLE_B,
-  Rectangle,
-  Scene,
-  SceneView,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
-import type { CircleTattva, LabelTattva, RectangleTattva, Vec3 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, SceneView, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, Line, Rectangle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_B, BLUE_D, GOLD_C, GRAY_A, GRAY_B, GRAY_C, GREEN_C, ORANGE_C, PINK_C, PURPLE_B, TEAL_C, WHITE } = palette;
+import type { Vec3 } from "murali-js/core";
+import type { CircleTattva, RectangleTattva } from "murali-js/primitives";
+import type { LabelTattva } from "murali-js/text";
 
 /**
  * Port of Murali `examples/scene_view.rs`.

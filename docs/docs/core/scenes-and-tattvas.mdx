@@ -1,0 +1,68 @@
+---
+title: Scenes and tattvas
+description: The core object model and shared state surface.
+---
+
+# Scenes and tattvas
+
+## Scene options
+
+```ts
+super({
+  frame: "landscape",       // landscape | portrait | square
+  width: 1920,
+  height: 1080,
+  viewWidth: 16,
+  fps: 60,
+  background: "#070b14",
+  theme: themes.dark,
+});
+```
+
+The scene duration is the end of its scheduled timelines and waits. `prepare()` calls `construct()` once and resolves fonts, themes, children, and captures for rendering.
+
+## Adding tattvas
+
+```ts
+const circle = this.add(Circle().radius(0.8), { at: [-2, 0] });
+const [title, subtitle] = this.add(
+  Label("Title").height(0.5),
+  Label("Subtitle").height(0.25),
+);
+```
+
+Groups expose children through the logical scene tree. `scene.allTattvas` includes nested children; `scene.tattvas` contains top-level objects.
+
+## Shared tattva methods
+
+| Method | Purpose |
+| --- | --- |
+| `.at(point)` / `.position(point)` | Set `[x, y]` or `[x, y, z]`. |
+| `.scale(value)` / `.scale3D(vec)` | Set uniform or per-axis scale. |
+| `.rotate(degrees)` / `.rotation3D(vec)` | Set 2D or Euler rotation in degrees. |
+| `.opacity(value)` / `.visible()` | Set initial visibility. |
+| `.layer(number)` | Order overlay content. |
+| `.depthMode("world" | "overlay")` | Choose camera participation. |
+| `.css(styles)` / `.cssVar(name, value)` | Apply browser styles. |
+| `.themeScope(patch)` | Override semantic theme values for a subtree. |
+| `.set(partialState)` | Set specialised state exposed by a tattva. |
+
+## Custom state
+
+Custom tattvas extend `Tattva<State>`. Their state must remain serialisable and interpolable where animation is expected.
+
+```ts
+interface MeterState extends TattvaState { value: number }
+
+class Meter extends Tattva<MeterState> {
+  constructor() {
+    super({ state: { value: 0 } });
+  }
+
+  override contentHTML(_time?: number, state = this.initialState) {
+    return `<div>${Math.round(state.value * 100)}%</div>`;
+  }
+}
+```
+
+Animate specialised fields with `.to({ value: 1 })`.

@@ -1,0 +1,73 @@
+---
+title: Animations and timelines
+description: Animation verbs, easing, clips, overlap, stagger, and composition.
+---
+
+# Animations and timelines
+
+## Animation builder
+
+```ts
+timeline()
+  .animate(circle)
+  .at(0.4)
+  .duration(1.2)
+  .ease("inOutCubic")
+  .moveTo([3, 1]);
+```
+
+Built-in easing names are `linear`, `inQuad`, `outQuad`, `inOutQuad`, `inCubic`, `outCubic`, and `inOutCubic`. You may also pass a custom easing function.
+
+## Common animation verbs
+
+| Transform/state | Reveal | Specialised |
+| --- | --- | --- |
+| `moveTo`, `moveBy`, `positionTo` | `appear`, `disappear` | `morphTo` |
+| `scaleTo`, `scale3DTo` | `draw`, `undraw` | `focus`, `clearFocus` |
+| `rotateTo`, `rotate3DTo` | `typewrite`, `untypewrite` | `indicate` |
+| `fadeTo`, `setColor` | `revealText`, `hideText` | `to`, `setStyle` |
+
+`draw()` and `undraw()` require path-like reveal support. `typewrite()` requires a text tattva. TypeScript and runtime checks help catch incompatible verbs.
+
+## Multiple targets and stagger
+
+```ts
+local.animate([a, b, c])
+  .at(0.2)
+  .stagger(0.12)
+  .duration(0.7)
+  .ease("outCubic")
+  .appear();
+```
+
+Stagger shifts each target's start by its ordered index.
+
+## Compose clips
+
+```ts
+const reveal = clip((local) => {
+  local.animate(title).duration(0.7).typewrite();
+  local.animate(shape).at(0.3).duration(0.8).draw();
+});
+
+const move = clip((local) => {
+  local.animate(shape).duration(1.2).moveTo([3, 0]);
+});
+
+this.play(
+  timeline()
+    .then(reveal)
+    .overlap(move, { by: 0.25 })
+    .wait(0.6),
+);
+```
+
+- `then(clip)` appends at the composition cursor.
+- `overlap(clip)` shares the current sequential group.
+- `overlap(clip, { by })` starts before the current end.
+- `add(clip, { at })` places at an exact absolute time without moving the cursor.
+- `wait(seconds)` advances the composition cursor.
+
+## Initial and target state
+
+Animation baselines are captured deterministically. When consecutive animations affect the same state, the later animation begins from the state produced by the earlier schedule at its start time.

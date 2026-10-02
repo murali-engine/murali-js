@@ -1,18 +1,10 @@
-import {
-  Axes3D,
-  BLUE_B,
-  GOLD_C,
-  GRAY_B,
-  Label,
-  ORANGE_B,
-  ParametricSurface,
-  Scene,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
-import type { Vec3 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Label } from "murali-js/text";
+import { Axes3D, ParametricSurface } from "murali-js/maths";
+const { BLUE_B, GOLD_C, GRAY_B, ORANGE_B, TEAL_C, WHITE } = palette;
+import type { Vec3 } from "murali-js/core";
 
 /** Port of Murali `examples/wireframe_surfaces.rs`. */
 class WireframeSurfaces extends Scene {

@@ -45,6 +45,30 @@ export interface ScheduledAnimation<State extends TattvaState = TattvaState> {
   styleFrom?: CSSStyles;
 }
 
+export interface FocusAnimationSpec<State extends TattvaState> {
+  to: Partial<State>;
+  from: Partial<State>;
+  hideBeforeStart?: boolean;
+}
+
+/** Capability implemented by semantic objects that support timeline focus transitions. */
+export interface FocusAnimationTarget<
+  State extends TattvaState,
+  Selection,
+  Options,
+> {
+  createFocusAnimation(selection: Selection, options?: Options): FocusAnimationSpec<State>;
+  createClearFocusAnimation(options?: Options): FocusAnimationSpec<State>;
+}
+
+type FocusSelectionOf<Target> = Target extends FocusAnimationTarget<any, infer Selection, any>
+  ? Selection
+  : never;
+type FocusOptionsOf<Target> = Target extends FocusAnimationTarget<any, any, infer Options>
+  ? Options
+  : never;
+type TattvaStateOf<Target> = Target extends Tattva<infer State> ? State : never;
+
 export interface ClipPlacementOptions {
   at: number;
 }
@@ -61,11 +85,13 @@ export class Timeline {
   private compositionCursor = 0;
   private compositionGroupStart = 0;
 
-  animate<State extends TattvaState>(tattva: Tattva<State>): AnimationBuilder<State>;
+  animate<Target extends Tattva<any>>(
+    tattva: Target,
+  ): AnimationBuilder<TattvaStateOf<Target>, Target>;
   animate(tattvas: readonly Tattva<any>[]): MultiAnimationBuilder;
   animate<State extends TattvaState>(
     target: Tattva<State> | readonly Tattva<any>[],
-  ): AnimationBuilder<State> | MultiAnimationBuilder {
+  ): AnimationBuilder<State, Tattva<State>> | MultiAnimationBuilder {
     return Array.isArray(target)
       ? new MultiAnimationBuilder(this, target)
       : new AnimationBuilder(this, target as Tattva<State>);
@@ -236,14 +262,17 @@ export class CameraAnimationBuilder<State extends Camera3DState> {
   }
 }
 
-export class AnimationBuilder<State extends TattvaState> {
+export class AnimationBuilder<
+  State extends TattvaState,
+  Target extends Tattva<State> = Tattva<State>,
+> {
   private startTime = 0;
   private animationDuration = 1;
   private easing: Easing = easeInOutCubic;
 
   constructor(
     private readonly timeline: Timeline,
-    private readonly tattva: Tattva<State>,
+    private readonly tattva: Target,
   ) {}
 
   at(seconds: number): this {
@@ -371,6 +400,45 @@ export class AnimationBuilder<State extends TattvaState> {
   indicate(): Timeline {
     this.requireRevealKind("text", "indicate");
     return this.commit({ indicate: 1 } as Partial<State>, { indicate: 0 } as Partial<State>);
+  }
+
+  /** Transition a semantic focus target, such as a Matrix selection. */
+  focus(
+    this: Target extends FocusAnimationTarget<any, any, any> ? AnimationBuilder<State, Target> : never,
+    selection: FocusSelectionOf<Target>,
+    options?: FocusOptionsOf<Target>,
+  ): Timeline {
+    const target = this.tattva as unknown as Partial<FocusAnimationTarget<State, unknown, unknown>>;
+    if (typeof target.createFocusAnimation !== "function") {
+      throw new Error(`focus() requires a focus-capable Tattva; received ${this.tattva.constructor.name}.`);
+    }
+    const animation = target.createFocusAnimation(selection, options);
+    return this.commit(animation.to, animation.from, animation.hideBeforeStart ?? true);
+  }
+
+  /** Return a semantic focus target to its unfocused appearance. */
+  clearFocus(
+    this: Target extends FocusAnimationTarget<any, any, any> ? AnimationBuilder<State, Target> : never,
+    options?: FocusOptionsOf<Target>,
+  ): Timeline {
+    const target = this.tattva as unknown as Partial<FocusAnimationTarget<State, unknown, unknown>>;
+    if (typeof target.createClearFocusAnimation !== "function") {
+      throw new Error(`clearFocus() requires a focus-capable Tattva; received ${this.tattva.constructor.name}.`);
+    }
+    const animation = target.createClearFocusAnimation(options);
+    return this.commit(animation.to, animation.from, animation.hideBeforeStart ?? true);
+  }
+
+  /** Morph a keyframed Tattva to one of its authored stages. */
+  morphTo(stage: number): Timeline {
+    const count = this.tattva.morphStageCount;
+    if (count === undefined) {
+      throw new Error(`morphTo() requires a morph-capable Tattva; received ${this.tattva.constructor.name}.`);
+    }
+    if (!Number.isInteger(stage) || stage < 0 || stage >= count) {
+      throw new Error(`Morph stage must be an integer from 0 to ${count - 1}; received ${stage}.`);
+    }
+    return this.commit({ morphProgress: stage } as Partial<State>);
   }
 
   private commit(
@@ -521,6 +589,10 @@ export class MultiAnimationBuilder {
   indicate(): Timeline {
     this.requireRevealKind("text", "indicate");
     return this.apply((animation) => animation.indicate());
+  }
+
+  morphTo(stage: number): Timeline {
+    return this.apply((animation) => animation.morphTo(stage));
   }
 
   private apply(terminal: (animation: AnimationBuilder<any>) => Timeline): Timeline {

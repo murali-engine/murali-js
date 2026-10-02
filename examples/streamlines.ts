@@ -1,19 +1,11 @@
-import {
-  Circle,
-  GOLD_C,
-  GRAY_A,
-  GRAY_B,
-  Label,
-  Scene,
-  StreamLines,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  circleSeeds,
-  easeInOutQuad,
-  render,
-} from "murali-js";
-import type { Vec2 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline, easeInOutQuad } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+import { StreamLines, circleSeeds } from "murali-js/maths";
+const { GOLD_C, GRAY_A, GRAY_B, TEAL_C, WHITE } = palette;
+import type { Vec2 } from "murali-js/core";
 
 const growthStart = 2;
 const growthDuration = 2.8;

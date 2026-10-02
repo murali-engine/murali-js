@@ -1,0 +1,50 @@
+---
+title: Screenshots and GIFs
+description: Capture exact timestamps and ranges while exporting a video.
+---
+
+# Screenshots and GIFs
+
+Captures are authored on the scene and produced alongside the main video export.
+
+## Screenshots
+
+```ts
+this.captureScreenshots([0, 1.5, 3.25]);
+
+this.captureScreenshotsNamed([
+  [0.75, "opening.png"],
+  [2.4, "diagram/complete.png"],
+]);
+```
+
+Unnamed captures are written under `captures/`. Named paths resolve relative to the render artifact directory.
+
+## GIF from exact timestamps
+
+```ts
+this.captureGif("key-moments.gif", [0.5, 0.8, 1.15, 1.6, 2.1]);
+```
+
+This is useful when the desired frames are not evenly spaced.
+
+## GIF from a continuous range
+
+```ts
+this.captureGifRange("morph.gif", {
+  from: 1.2,
+  to: 3.8,
+  fps: 24,
+});
+```
+
+The range is inclusive and uses the scene FPS when `fps` is omitted.
+
+## Behaviour
+
+- Captures use exact virtual scene times.
+- They are generated while exporting, not during preview.
+- The render result reports the screenshot and GIF paths.
+- Transparent PNG settings are also respected by authored captures where supported.
+
+See `examples/capture-markers.ts`.

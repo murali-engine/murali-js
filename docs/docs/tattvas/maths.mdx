@@ -1,0 +1,54 @@
+---
+title: Mathematics and data
+description: Graphs, equations, matrices, fields, Fourier traces, curves, surfaces, and maps.
+---
+
+# Mathematics and data
+
+## Graphs and vectors
+
+`NumberPlane`, `Axes`, `VectorArrow`, `ScatterPlot`, and `PlotLegend` produce composable 2D graph elements.
+
+```ts
+const plane = NumberPlane([-5, 5], [-3, 3])
+  .step(1)
+  .gridStyle("#273142", 0.012)
+  .axisStyle("#8b96a8", 0.025)
+  .build();
+```
+
+## Matrices and semantic focus
+
+```ts
+const matrix = Matrix([
+  ["2", "-1", "0"],
+  ["-1", "2", "-1"],
+  ["0", "-1", "2"],
+]).cellHeight(0.44);
+
+this.play(timeline((t) => {
+  t.animate(matrix).duration(0.8).focus(matrix.row(1), { color: "#5cd0b3", dim: 0.28 });
+  t.animate(matrix).at(1).duration(0.8).focus(matrix.diagonal(), { color: "#f0ac5f" });
+  t.animate(matrix).at(2).duration(0.3).clearFocus();
+}));
+```
+
+Selections include rows, columns, cells, diagonals, anti-diagonals, predicates, and set operations (`union`, `intersect`, `except`).
+
+## Animated linear algebra
+
+`BasisExplorer2D`, `ProjectionDiagram2D`, `LinearMap2D`, `DeterminantArea`, and `MatrixVectorFlow` recompute mathematical geometry from timeline state. See the five curated examples under `examples/maths/linear-algebra/`.
+
+## Vector fields and traces
+
+`VectorField`, `StreamLines`, `circleSeeds`, and `TracedPath` support time-dependent fields and deterministic histories. `TracedPath` rebuilds its polyline from absolute time rather than accumulating prior frames.
+
+## Curves and surfaces
+
+`Axes3D`, `ParametricCurve`, and `ParametricSurface` support sampled 3D mathematics. Surfaces can render solid, wireframe, or textured modes, accept custom color functions, and animate write progress.
+
+## Maps and Fourier helpers
+
+Map projection helpers interpolate equirectangular, sinusoidal, Mollweide, Hammer, and Mercator projections. Fourier helpers convert a clean geometric π outline or sampled formula outline into epicycle terms.
+
+See `examples/graphs-2d.ts`, `examples/force-fields.ts`, `examples/surfaces-3d.ts`, `examples/map-projection-morph.ts`, and `examples/fourier-formula-trace.ts`.

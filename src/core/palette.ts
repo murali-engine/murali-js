@@ -84,6 +84,28 @@ export const PURE_RED = "#ff0000";
 export const PURE_GREEN = "#00ff00";
 export const PURE_BLUE = "#0000ff";
 
+/**
+ * Murali's fixed compatibility palette. Prefer semantic theme roles for
+ * reusable components; use this namespace when a specific swatch is intended.
+ */
+export const palette = Object.freeze({
+  WHITE, BLACK,
+  GRAY_A, GRAY_B, GRAY_C, GRAY_D, GRAY_E, GRAY, GREY,
+  BLUE_A, BLUE_B, BLUE_C, BLUE_D, BLUE_E, BLUE,
+  TEAL_A, TEAL_B, TEAL_C, TEAL_D, TEAL_E, TEAL,
+  GREEN_A, GREEN_B, GREEN_C, GREEN_D, GREEN_E, GREEN,
+  YELLOW_A, YELLOW_B, YELLOW_C, YELLOW_D, YELLOW_E, YELLOW,
+  GOLD_A, GOLD_B, GOLD_C, GOLD_D, GOLD_E, GOLD,
+  ORANGE_A, ORANGE_B, ORANGE_C, ORANGE_D, ORANGE_E, ORANGE,
+  RED_A, RED_B, RED_C, RED_D, RED_E, RED,
+  MAROON_A, MAROON_B, MAROON_C, MAROON_D, MAROON_E, MAROON,
+  PURPLE_A, PURPLE_B, PURPLE_C, PURPLE_D, PURPLE_E, PURPLE,
+  PINK_A, PINK_B, PINK_C, PINK_D, PINK_E, PINK,
+  PURE_RED, PURE_GREEN, PURE_BLUE,
+});
+
+export type Palette = typeof palette;
+
 const namedColors: Record<string, string> = {
   WHITE, BLACK,
   GRAY_A, GRAY_B, GRAY_C, GRAY_D, GRAY_E, GRAY, GREY,

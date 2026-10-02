@@ -1,0 +1,7 @@
+- Make rust docs ad md file friendly and the new rust repo docs will live in repo only
+- Clean python stuff from rust murali repo
+- Rename murali rust edition to murali-rs
+- Use similar semantics, and create proper docusaurus documentation for web version of murali
+- update CNAME
+- and update github build code for astro in new website
+- make new web based murali live

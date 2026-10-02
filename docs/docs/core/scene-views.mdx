@@ -1,0 +1,34 @@
+---
+title: Nested scene views
+description: Render one scene inside another with an independent camera and clock.
+---
+
+# Nested scene views
+
+`SceneView(child)` turns a prepared child scene into one movable parent tattva. The child retains its own camera, frame, timeline, and local clock.
+
+```ts
+const inset = this.add(
+  SceneView(new DiagramScene())
+    .size(5.2, 3.1)
+    .resolution(960, 540)
+    .background("#10151f")
+    .border(0.04, "#5cd0b3")
+    .cornerRadius(0.18)
+    .playback("once"),
+  { at: [3.8, -1.5] },
+);
+```
+
+## Playback modes
+
+| Mode | Behaviour |
+| --- | --- |
+| `"continuous"` | Local time continues beyond the child's authored end. |
+| `"once"` | Stops at the child duration. |
+| `"paused"` | Holds at `localTimeOffset`. |
+| `{ loop: seconds }` | Wraps local time over the specified duration. |
+
+`.startAt(parentTime)`, `.localTimeOffset(seconds)`, and `.timeScale(factor)` control the clock mapping. That mapping is a pure function, so seeking remains deterministic.
+
+Scene views are useful for picture-in-picture explanations, before/after comparisons, dashboards, and displaying an orthographic scene inside a perspective parent.

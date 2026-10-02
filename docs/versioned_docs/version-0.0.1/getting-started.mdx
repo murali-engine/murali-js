@@ -1,0 +1,34 @@
+---
+sidebar_position: 2
+title: Getting started
+description: Installation and first-scene placeholder for Murali JavaScript.
+---
+
+# Getting started
+
+This page is intentionally small while the documentation structure is being established.
+
+## Install
+
+```bash
+npm install murali-js
+```
+
+## First scene
+
+```ts
+import { render } from "murali-js";
+import { Scene } from "murali-js/core";
+import { Circle } from "murali-js/primitives";
+
+class FirstScene extends Scene {
+  override construct() {
+    this.add(Circle().radius(0.8).fill("#2563eb"));
+    this.wait(2);
+  }
+}
+
+render(import.meta.url, FirstScene);
+```
+
+More complete installation, preview, rendering, and deployment instructions will be added here.

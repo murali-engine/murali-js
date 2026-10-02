@@ -14,6 +14,54 @@
     "./render": {
       "types": "./dist/render/index.d.ts",
       "import": "./dist/render/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./style": {
+      "types": "./dist/style/index.d.ts",
+      "import": "./dist/style/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    },
+    "./layout": {
+      "types": "./dist/tattvas/layout/index.d.ts",
+      "import": "./dist/tattvas/layout/index.js"
+    },
+    "./primitives": {
+      "types": "./dist/tattvas/primitives/index.d.ts",
+      "import": "./dist/tattvas/primitives/index.js"
+    },
+    "./text": {
+      "types": "./dist/tattvas/text/index.d.ts",
+      "import": "./dist/tattvas/text/index.js"
+    },
+    "./maths": {
+      "types": "./dist/tattvas/maths/index.d.ts",
+      "import": "./dist/tattvas/maths/index.js"
+    },
+    "./ai": {
+      "types": "./dist/tattvas/ai/index.d.ts",
+      "import": "./dist/tattvas/ai/index.js"
+    },
+    "./composite": {
+      "types": "./dist/tattvas/composite/index.d.ts",
+      "import": "./dist/tattvas/composite/index.js"
+    },
+    "./storytelling": {
+      "types": "./dist/tattvas/storytelling/index.d.ts",
+      "import": "./dist/tattvas/storytelling/index.js"
+    },
+    "./table": {
+      "types": "./dist/tattvas/table/index.d.ts",
+      "import": "./dist/tattvas/table/index.js"
+    },
+    "./utility": {
+      "types": "./dist/tattvas/utility/index.d.ts",
+      "import": "./dist/tattvas/utility/index.js"
     }
   },
   "bin": { "murali": "./dist/cli.js" },
@@ -26,11 +74,14 @@
     "url": "https://github.com/murali-engine/murali-js/issues"
   },
   "files": ["dist", "README.md"],
-  "workspaces": ["examples"],
+  "workspaces": ["examples", "docs"],
   "scripts": {
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "render": "npm run build --silent && node dist/cli.js render",
     "example": "npm run build --silent && node scripts/run-example.mjs",
+    "docs:start": "npm --workspace @murali-js/docs run start",
+    "docs:build": "npm --workspace @murali-js/docs run build",
+    "docs:serve": "npm --workspace @murali-js/docs run serve",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/**/*.test.ts",
     "test:package": "node scripts/package-smoke.mjs",
@@ -45,15 +96,15 @@
     "playwright-core": "1.55.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "three": "^0.180.0"
+    "three": "^0.180.0",
+    "typescript": "^5.9.2"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@types/three": "^0.180.0",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "tsx": "^4.20.5"
   },
   "engines": { "node": ">=20" }
 }

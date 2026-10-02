@@ -2,7 +2,10 @@
   "name": "@murali-js/examples",
   "private": true,
   "type": "module",
-  "scripts": { "render": "tsx" },
+  "scripts": {
+    "render": "tsx",
+    "preview:all": "npm --prefix .. run build --silent && node ../scripts/preview-examples.mjs"
+  },
   "dependencies": {
     "react": "^19.1.1",
     "three": "^0.180.0",

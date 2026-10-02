@@ -1,0 +1,63 @@
+---
+title: Preview, rendering, and export
+description: MP4, PNG, transparency, configuration, and progress.
+---
+
+# Preview, rendering, and export
+
+## The render entry point
+
+```ts
+render(import.meta.url, MyScene, {
+  output: "./output/scene.mp4",
+  fps: 60,
+  progress: true,
+});
+```
+
+`import.meta.url` identifies the source entry so Murali can bundle it for Chromium.
+
+## Preview
+
+Run a scene with `--preview`:
+
+```bash
+npx tsx scene.ts --preview
+```
+
+Preview opens a real-time window and does not encode video. It uses the same virtual timeline but intentionally skips authored screenshot and GIF output.
+
+## MP4
+
+An `.mp4` output captures every frame at the effective FPS and streams it to FFmpeg. The scene's FPS is used unless the render options override it.
+
+## PNG and transparency
+
+```ts
+render(import.meta.url, LogoScene, {
+  output: "./output/logo.png",
+  at: 1.5,
+  transparent: true,
+});
+```
+
+PNG export samples exactly one scene time. Transparency is supported for PNG output; current MP4 output remains opaque.
+
+## `murali.json` and environment variables
+
+```json
+{
+  "render": {
+    "outputDir": "./output",
+    "fps": 60,
+    "progress": true,
+    "transparent": false
+  }
+}
+```
+
+Supported overrides include `MURALI_OUTPUT`, `MURALI_OUTPUT_DIR`, `MURALI_FPS`, `MURALI_PROGRESS`, `MURALI_TRANSPARENT`, `MURALI_AT`, and `MURALI_AUDIO`. Explicit `render()` options take precedence.
+
+## Progress
+
+Set `progress: false` for quiet CI, or pass `onProgress(completed, total)` to integrate a custom reporter.

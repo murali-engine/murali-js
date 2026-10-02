@@ -1,0 +1,22 @@
+.editionLabel {
+  margin-right: 0.75rem;
+  padding: 0.28rem 0.52rem;
+  color: var(--ifm-color-primary);
+  border: 1px solid color-mix(in srgb, var(--ifm-color-primary) 42%, transparent);
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 996px) {
+  .editionLabel,
+  .colorModeToggle {
+    display: none;
+  }
+}
+
+:global(.navbar__items--right) > :last-child {
+  padding-right: 0;
+}

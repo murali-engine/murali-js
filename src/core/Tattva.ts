@@ -1,4 +1,5 @@
 import type { CSSStyles, CSSValue } from "./css.ts";
+import { createTheme, themes, type Theme, type ThemePatch } from "./theme.ts";
 
 export type StateValue = number | string | boolean | null;
 export type Vec2 = readonly [number, number];
@@ -19,6 +20,8 @@ export interface TattvaState {
   color?: string;
   background?: string;
   revealProgress?: number;
+  /** Continuous keyframe position for geometry, text, or formula morph Tattvas. */
+  morphProgress?: number;
   /** 0 at the start and end of an indicate pulse, 1 at the requested peak time. */
   indicate?: number;
 }
@@ -53,6 +56,7 @@ export class Tattva<State extends TattvaState = TattvaState> {
   parent?: Tattva;
   elementClassName?: string;
   readonly initialStyle: CSSStyles;
+  private readonly explicitStyleKeys: Set<string>;
   readonly initialState: State;
   worldSize?: { width: number; height: number };
   worldStrokeWidth?: number;
@@ -67,6 +71,11 @@ export class Tattva<State extends TattvaState = TattvaState> {
   depthModeValue: DepthMode = "world";
   /** Geometry markup is rebuilt from scene time on every sample. */
   dynamicGeometry = false;
+  /** Number of authored morph keyframes when this Tattva supports `morphTo()`. */
+  morphStageCount?: number;
+  /** Fully resolved static theme for this logical point in the Tattva tree. */
+  resolvedTheme: Theme = themes.dark;
+  protected themeOverride?: ThemePatch;
 
   constructor(options: TattvaOptions<State> = {}) {
     this.id = options.id ?? `tattva-${++tattvaSequence}`;
@@ -75,6 +84,7 @@ export class Tattva<State extends TattvaState = TattvaState> {
     this.html = options.html;
     this.text = options.text;
     this.initialStyle = { ...options.css };
+    this.explicitStyleKeys = new Set(Object.keys(options.css ?? {}));
     this.initialState = {
       x: 0,
       y: 0,
@@ -147,8 +157,19 @@ export class Tattva<State extends TattvaState = TattvaState> {
   }
 
   css(styles: CSSStyles): this {
+    Object.keys(styles).forEach((key) => this.explicitStyleKeys.add(key));
     Object.assign(this.initialStyle, styles);
     return this;
+  }
+
+  /** Apply a component/theme-derived style without marking it as an author override. */
+  protected setComputedStyle(styles: CSSStyles): this {
+    Object.assign(this.initialStyle, styles);
+    return this;
+  }
+
+  protected hasExplicitStyle(property: keyof CSSStyles | string): boolean {
+    return this.explicitStyleKeys.has(String(property));
   }
 
   cssVar(name: `--${string}`, value: CSSValue): this {
@@ -160,6 +181,24 @@ export class Tattva<State extends TattvaState = TattvaState> {
     this.elementClassName = value;
     return this;
   }
+
+  /** Apply a semantic theme patch to this Tattva and its logical descendants. */
+  themeScope(patch: ThemePatch): this {
+    this.themeOverride = patch;
+    return this;
+  }
+
+  /** Resolve this object and its descendants against an inherited scene theme. */
+  resolveTheme(inherited: Theme): void {
+    this.resolvedTheme = this.themeOverride === undefined
+      ? inherited
+      : createTheme(inherited, this.themeOverride);
+    this.onThemeResolved(this.resolvedTheme);
+    this.children.forEach((child) => child.resolveTheme(this.resolvedTheme));
+  }
+
+  /** Built-in and custom Tattvas can map semantic roles after scope resolution. */
+  protected onThemeResolved(_theme: Theme): void {}
 
   set(next: Partial<State>): this {
     Object.assign(this.initialState, next);
@@ -191,7 +230,7 @@ export class Tattva<State extends TattvaState = TattvaState> {
     };
   }
 
-  contentHTML(_time?: number): string | undefined {
+  contentHTML(_time?: number, _state?: Readonly<State>): string | undefined {
     return this.html;
   }
 

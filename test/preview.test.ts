@@ -17,6 +17,20 @@ test("counts export frames from duration and frame rate", () => {
   assert.equal(frameCount(1 / 30, 30), 1);
 });
 
+test("automatically closes a preview after its first playback", { timeout: 60_000 }, async () => {
+  const started = performance.now();
+  const result = await previewScene(resolve("test/fixtures/short-preview-scene.ts"), {
+    headless: true,
+    autoCloseAfter: 0.02,
+  });
+  assert.equal(result.duration, 0.05);
+  assert.ok(performance.now() - started >= 50);
+  await assert.rejects(
+    () => previewScene(resolve("test/fixtures/short-preview-scene.ts"), { autoCloseAfter: -1 }),
+    /non-negative finite number/,
+  );
+});
+
 test("preview seeks the scene without writing a video", { timeout: 60_000 }, async () => {
   const result = await previewScene(resolve("examples/basic.ts"), {
     headless: true,
@@ -46,8 +60,67 @@ test("preview seeks the scene without writing a video", { timeout: 60_000 }, asy
   assert.ok(result.duration > 0);
 });
 
+test("preview embeds and waits for a registered local font", { timeout: 60_000 }, async () => {
+  await previewScene(resolve("test/fixtures/font-scene.ts"), {
+    headless: true,
+    async ready(page) {
+      const font = await page.locator(".murali-content").first().evaluate((element) => ({
+        family: getComputedStyle(element).fontFamily,
+        loaded: document.fonts.check('400 16px "Murali Test Pixel"'),
+      }));
+      assert.match(font.family, /Murali Test Pixel/);
+      assert.equal(font.loaded, true);
+    },
+  });
+});
+
+test("preview updates sampled label text from a targeted updater", { timeout: 60_000 }, async () => {
+  await previewScene(resolve("examples/updater-coordinate-readout.ts"), {
+    headless: true,
+    async ready(page) {
+      const seek = (time: number) => page.locator("#murali-scrub").evaluate((input, value) => {
+        const scrub = input as HTMLInputElement;
+        scrub.value = String(value);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      }, time);
+      const readout = page.getByText(/^x=/u);
+      await seek(0);
+      assert.equal(await readout.innerText(), "x=-5.00  y=-1.20");
+      await seek(2);
+      assert.equal(await readout.innerText(), "x=0.00  y=0.00");
+      await seek(4);
+      assert.equal(await readout.innerText(), "x=5.00  y=1.20");
+    },
+  });
+});
+
+test("context-window headings and row labels stay inside their layout columns", { timeout: 60_000 }, async () => {
+  await previewScene(resolve("examples/ai/context-window.ts"), {
+    headless: true,
+    async ready(page) {
+      const svg = await page.locator(".murali-content svg").boundingBox();
+      const heading = await page.locator("[data-context-heading]").boundingBox();
+      const budget = await page.locator("[data-context-budget]").boundingBox();
+      assert.ok(svg && heading && budget);
+      assert.ok(heading.x >= svg.x);
+      assert.ok(heading.x + heading.width + 12 <= budget.x);
+      assert.ok(budget.x + budget.width <= svg.x + svg.width);
+
+      const labels = page.locator("[data-context-label]");
+      const tracks = page.locator("[data-context-track]");
+      assert.equal(await labels.count(), 5);
+      for (let index = 0; index < await labels.count(); index += 1) {
+        const label = await labels.nth(index).boundingBox();
+        const track = await tracks.nth(index).boundingBox();
+        assert.ok(label && track);
+        assert.ok(label.x + label.width + 8 <= track.x);
+      }
+    },
+  });
+});
+
 test("preview scrubs semantic text and path reveals", { timeout: 60_000 }, async () => {
-  await previewScene(resolve("examples/text-and-paths.ts"), {
+  await previewScene(resolve("examples/style-and-paths.ts"), {
     headless: true,
     async ready(page) {
       const seek = (time: number) => page.locator("#murali-scrub").evaluate((input, value) => {
@@ -59,12 +132,48 @@ test("preview scrubs semantic text and path reveals", { timeout: 60_000 }, async
       await seek(0.5);
       const partialTitle = await page.locator(".murali-content").first().innerText();
       assert.ok(partialTitle.length > 0);
-      assert.ok(partialTitle.length < "Text and Paths ✨".length);
+      assert.ok(partialTitle.length < "Style And Paths".length);
 
-      await seek(4.2);
-      const arrow = page.locator("[data-murali-path]").nth(1);
-      assert.equal(await arrow.getAttribute("stroke-dashoffset"), "0");
-      assert.equal(await arrow.evaluate((path) => getComputedStyle(path).stroke), "rgb(56, 189, 248)");
+      await seek(6.9);
+      const authoredPaths = await page.locator("[data-murali-path]").evaluateAll((paths) => paths.map((path) => ({
+        color: getComputedStyle(path).stroke,
+        offset: path.getAttribute("stroke-dashoffset"),
+      })));
+      assert.ok(authoredPaths.some(({ color, offset }) =>
+        color === "rgb(177, 137, 198)" && Math.abs(Number(offset)) < 0.001
+      ));
+    },
+  });
+});
+
+test("grows and contracts a shape fill with its written boundary", { timeout: 60_000 }, async () => {
+  await previewScene(resolve("test/fixtures/shape-fill-reveal-scene.ts"), {
+    headless: true,
+    async ready(page) {
+      const seek = (time: number) => page.locator("#murali-scrub").evaluate((input, value) => {
+        const scrub = input as HTMLInputElement;
+        scrub.value = String(value);
+        scrub.dispatchEvent(new Event("input", { bubbles: true }));
+      }, time);
+      const source = page.locator("[data-murali-shape]");
+      const transient = page.locator("[data-murali-transient-fill]");
+
+      await seek(0);
+      assert.equal(await source.getAttribute("fill"), "none");
+      assert.equal(await transient.getAttribute("d"), "");
+
+      await seek(1);
+      const writingFill = await transient.getAttribute("d");
+      assert.equal(await source.getAttribute("fill"), "none");
+      assert.match(writingFill ?? "", /^M .+ Z$/);
+
+      await seek(2);
+      assert.equal(await source.getAttribute("fill"), "#ef4444");
+      assert.equal(await transient.getAttribute("d"), "");
+
+      await seek(3);
+      assert.equal(await source.getAttribute("fill"), "none");
+      assert.equal(await transient.getAttribute("d"), writingFill);
     },
   });
 });

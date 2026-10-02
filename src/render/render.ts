@@ -1,5 +1,5 @@
 import type { Scene } from "../core/Scene.ts";
-import { renderScene } from "./capture.ts";
+import { renderScene, type RenderResult } from "./capture.ts";
 import { resolveRenderOptions, type RenderOverrides } from "./config.ts";
 import { previewScene } from "./preview.ts";
 
@@ -13,14 +13,14 @@ export async function render(
   source: string | URL,
   _scene: SceneConstructor,
   overrides: RenderOverrides = {},
-): Promise<{ frames: number; duration: number }> {
+): Promise<RenderResult> {
   const resolved = await resolveRenderOptions(source, overrides);
   if (previewRequested(process.argv, overrides.preview)) {
     const preview = await previewScene(resolved.sourcePath, {
       args: resolved.options.args,
       audio: resolved.options.audio,
     });
-    return { frames: 0, duration: preview.duration };
+    return { frames: 0, duration: preview.duration, screenshots: [], gifs: [] };
   }
   return renderScene(resolved.sourcePath, resolved.options);
 }

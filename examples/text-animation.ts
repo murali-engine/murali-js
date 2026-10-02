@@ -1,17 +1,9 @@
-import {
-  BLUE_B,
-  GRAY_A,
-  GRAY_B,
-  GOLD_C,
-  Label,
-  PURPLE_B,
-  Scene,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-  worldPath,
-} from "murali-js";
+import { render } from "murali-js";
+import { Scene, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { worldPath } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+const { BLUE_B, GRAY_A, GRAY_B, GOLD_C, PURPLE_B, TEAL_C, WHITE } = palette;
 
 /** Port of Murali `examples/text_animation.rs`. */
 class TextAnimation extends Scene {

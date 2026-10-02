@@ -1,22 +1,11 @@
-import {
-  BLUE_D,
-  Circle,
-  GOLD_C,
-  GRAY_A,
-  GREEN_C,
-  Label,
-  Line,
-  Opening,
-  PINK_C,
-  Rectangle,
-  Scene,
-  SceneView,
-  TEAL_C,
-  Timeline,
-  WHITE,
-  render,
-} from "murali-js";
-import type { Tattva, Vec3 } from "murali-js";
+import { render } from "murali-js";
+import { Scene, SceneView, Timeline } from "murali-js/core";
+import { palette } from "murali-js/style";
+import { Circle, Line, Rectangle } from "murali-js/primitives";
+import { Label } from "murali-js/text";
+import { Opening } from "murali-js/storytelling";
+const { BLUE_D, GOLD_C, GRAY_A, GREEN_C, PINK_C, TEAL_C, WHITE } = palette;
+import type { Tattva, Vec3 } from "murali-js/core";
 
 const BACKGROUND = "#0a121c";
 

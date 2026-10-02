@@ -1,4 +1,7 @@
-import { Label, Scene, WaveMesh, timeline, render } from "murali-js";
+import { render } from "murali-js";
+import { Scene, timeline } from "murali-js/core";
+import { Label } from "murali-js/text";
+import { WaveMesh } from "murali-js/composite";
 
 /** Reusable lower-screen animated mesh inspired by event-stage motion graphics. */
 class WaveMeshBackground extends Scene {
