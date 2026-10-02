@@ -1,6 +1,6 @@
 ---
 title: Preview, rendering, and export
-description: MP4, PNG, transparency, configuration, and progress.
+description: MP4, transparent WebM, PNG, configuration, and progress.
 ---
 
 # Preview, rendering, and export
@@ -31,6 +31,21 @@ Preview opens a real-time window and does not encode video. It uses the same vir
 
 An `.mp4` output captures every frame at the effective FPS and streams it to FFmpeg. The scene's FPS is used unless the render options override it.
 
+MP4/H.264 remains Murali's normal video format. An opaque render never switches to WebM implicitly.
+
+## Transparent WebM
+
+```ts
+render(import.meta.url, OverlayScene, {
+  output: "./output/overlay.webm",
+  transparent: true,
+});
+```
+
+Transparent video is encoded as WebM with VP9 alpha. WebM is available only when `transparent: true`; a normal `.webm` export is rejected. Likewise, transparent `.mp4` output is rejected because Murali's standard H.264 MP4 path has no alpha channel.
+
+When no output path is supplied, `transparent: true` changes the default extension from `.mp4` to `.webm`. From the CLI, use `murali render scene.ts --transparent`, or supply `-o output/overlay.webm` explicitly.
+
 ## PNG and transparency
 
 ```ts
@@ -41,7 +56,7 @@ render(import.meta.url, LogoScene, {
 });
 ```
 
-PNG export samples exactly one scene time. Transparency is supported for PNG output; current MP4 output remains opaque.
+PNG export samples exactly one scene time. The same `transparent` flag removes the authored scene background for still images.
 
 ## `murali.json` and environment variables
 

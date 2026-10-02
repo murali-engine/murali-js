@@ -7,7 +7,7 @@ import { previewScene } from "./render/preview.ts";
 const program = new Command().name("murali").description("Render deterministic TypeScript scenes to video or PNG.");
 
 interface RenderCommandOptions {
-  output: string;
+  output?: string;
   fps?: number;
   preview?: boolean;
   transparent?: boolean;
@@ -32,9 +32,10 @@ async function runRender(scene: string, options: RenderCommandOptions): Promise<
     await previewScene(resolve(scene), { audio, autoCloseAfter: options.autoCloseAfter });
     return;
   }
+  const output = options.output ?? (options.transparent ? "output/scene.webm" : "output/scene.mp4");
   let lastPercent = -1;
   const result = await renderScene(resolve(scene), {
-    output: options.output,
+    output,
     fps: options.fps,
     transparent: options.transparent,
     at: options.at,
@@ -47,18 +48,18 @@ async function runRender(scene: string, options: RenderCommandOptions): Promise<
       }
     },
   });
-  process.stdout.write(`Created ${resolve(options.output)} (${result.frames} frames, ${result.duration.toFixed(2)}s)\n`);
+  process.stdout.write(`Created ${resolve(output)} (${result.frames} frames, ${result.duration.toFixed(2)}s)\n`);
   for (const path of result.screenshots) process.stdout.write(`Created screenshot ${path}\n`);
   for (const path of result.gifs) process.stdout.write(`Created GIF ${path}\n`);
 }
 
 program
   .command("render")
-  .description("Render a scene module to MP4 or PNG")
+  .description("Render a scene module to MP4, transparent WebM, or PNG")
   .argument("<scene>", "scene file exporting a Scene subclass")
-  .option("-o, --output <path>", "output path (.mp4 or .png)", "output/scene.mp4")
+  .option("-o, --output <path>", "output path (.mp4, .webm, or .png)")
   .option("--fps <number>", "override the scene frame rate", Number.parseFloat)
-  .option("--transparent", "omit the scene background when exporting a PNG")
+  .option("--transparent", "export alpha (PNG, or VP9 WebM for video)")
   .option("--at <seconds>", "scene time sampled when exporting a PNG", Number.parseFloat)
   .option("--preview", "open a preview window instead of writing an MP4")
   .option("--auto-close-after <seconds>", "close preview after playback plus this delay", Number.parseFloat)

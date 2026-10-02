@@ -12,6 +12,8 @@ export interface Encoder {
 export interface EncoderOptions {
   duration?: number;
   audio?: ResolvedAudioTrack;
+  /** MP4 is the normal video path; WebM is used only for alpha video export. */
+  format?: "mp4" | "webm";
 }
 
 export function createEncoderArguments(
@@ -37,13 +39,28 @@ export function createEncoderArguments(
       "-map", "[murali_audio]",
     );
   }
-  args.push(
-    "-c:v", "libx264",
-    "-pix_fmt", "yuv420p",
-  );
-  if (options.audio) args.push("-c:a", "aac", "-b:a", "192k");
+  const format = options.format ?? "mp4";
+  if (format === "webm") {
+    args.push(
+      "-c:v", "libvpx-vp9",
+      "-pix_fmt", "yuva420p",
+      "-auto-alt-ref", "0",
+      "-crf", "30",
+      "-b:v", "0",
+      "-metadata:s:v:0", "alpha_mode=1",
+    );
+  } else {
+    args.push(
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
+    );
+  }
+  if (options.audio) {
+    args.push("-c:a", format === "webm" ? "libopus" : "aac", "-b:a", "192k");
+  }
   if (options.duration !== undefined) args.push("-t", String(options.duration));
-  args.push("-movflags", "+faststart", output);
+  if (format === "mp4") args.push("-movflags", "+faststart");
+  args.push(output);
   return args;
 }
 

@@ -15,5 +15,6 @@ class MuraliLogoAnimation extends Scene {
 }
 
 render(import.meta.url, MuraliLogoAnimation, {
-  output: "./output/murali-logo-animation.mp4",
+  output: "./output/murali-logo-animation.webm",
+  transparent: true,
 });

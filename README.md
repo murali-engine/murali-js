@@ -108,7 +108,7 @@ Available domains include `core`, `style`, `adapters`, `layout`, `primitives`, `
 
 Murali JS displays frame progress by default while rendering. Disable it for scripts or CI with `render(import.meta.url, HelloScene, { progress: false })`, or provide `onProgress(completed, total)` for custom reporting.
 
-### Frame formats and transparent PNGs
+### Frame formats and transparent exports
 
 Murali has three resolution-independent frame presets. Landscape uses a logical `16 x 9` world, portrait uses `9 x 16`, and square uses `9 x 9`. Square coordinates therefore run from `-4.5` to `4.5` on both axes, regardless of the output pixel resolution:
 
@@ -134,7 +134,18 @@ render(import.meta.url, SquareScene, {
 });
 ```
 
-The equivalent CLI command is `murali render square-scene.ts -o output/square-mark.png --at 1.5 --transparent`. Project configuration accepts `render.transparent` and `render.at`; the matching environment variables are `MURALI_TRANSPARENT` and `MURALI_AT`. Transparent video is not implied by this option—current MP4 output remains opaque.
+The equivalent CLI command is `murali render square-scene.ts -o output/square-mark.png --at 1.5 --transparent`. Project configuration accepts `render.transparent` and `render.at`; the matching environment variables are `MURALI_TRANSPARENT` and `MURALI_AT`.
+
+Transparent video uses WebM with VP9 alpha:
+
+```ts
+render(import.meta.url, SquareScene, {
+  output: "./output/square-mark.webm",
+  transparent: true,
+});
+```
+
+Ordinary video remains MP4/H.264. WebM is deliberately reserved for `transparent: true`, and transparent MP4 is rejected because the normal MP4 path has no alpha channel. When no output path is provided, enabling transparency chooses a `.webm` path automatically. The CLI equivalent is `murali render square-scene.ts --transparent`; add `-o output/square-mark.webm` to choose its location.
 
 ### Murali logo assets
 
@@ -165,7 +176,7 @@ const mark = this.add(MuraliLogoMark({ width: 6.6 }));
 this.play(MuraliLogoSequence(mark));
 ```
 
-The default duration is 6.4 seconds. Pass `{ duration: 4 }` to retime the whole gesture without changing its relative choreography. [`examples/murali-logo-animation.ts`](./examples/murali-logo-animation.ts) is the standalone reference render; the same sequence is intended for reusable placements such as the documentation landing page.
+The default duration is 6.4 seconds. Pass `{ duration: 4 }` to retime the whole gesture without changing its relative choreography. [`examples/murali-logo-animation.ts`](./examples/murali-logo-animation.ts) is the standalone reference render and exports `murali-logo-animation.webm` with VP9 alpha; the same sequence is intended for reusable placements such as the documentation landing page.
 
 ### Themes and the system palette
 

@@ -13,9 +13,9 @@ export interface RenderOptions {
   fps?: number;
   progress?: boolean;
   onProgress?: (completed: number, total: number) => void;
-  /** Write one PNG instead of an MP4. Inferred when `output` ends in `.png`. */
-  format?: "mp4" | "png";
-  /** Force the scene background transparent for PNG output. */
+  /** Output format. Normally inferred from `.mp4`, `.webm`, or `.png`. */
+  format?: RenderFormat;
+  /** Remove the scene background. Video transparency requires WebM output. */
   transparent?: boolean;
   /** Scene time sampled for a PNG. Defaults to 0. */
   at?: number;
@@ -25,6 +25,8 @@ export interface RenderOptions {
   audio?: AudioTrack;
 }
 
+export type RenderFormat = "mp4" | "webm" | "png";
+
 export interface RenderResult {
   readonly frames: number;
   readonly duration: number;
@@ -32,7 +34,33 @@ export interface RenderResult {
   readonly gifs: readonly string[];
 }
 
+export function resolveRenderFormat(output: string, requested?: RenderFormat): RenderFormat {
+  if (requested !== undefined) return requested;
+  const lowerOutput = output.toLowerCase();
+  if (lowerOutput.endsWith(".png")) return "png";
+  if (lowerOutput.endsWith(".webm")) return "webm";
+  return "mp4";
+}
+
+export function validateRenderFormat(
+  format: RenderFormat,
+  transparent: boolean,
+  hasAudio: boolean,
+): void {
+  if (format === "png" && hasAudio) {
+    throw new Error("Audio is supported only for video output.");
+  }
+  if (format === "webm" && !transparent) {
+    throw new Error("WebM output is reserved for transparent video; pass transparent: true.");
+  }
+  if (format === "mp4" && transparent) {
+    throw new Error("Transparent video requires WebM output; use a .webm path with transparent: true.");
+  }
+}
+
 export async function renderScene(scenePath: string, options: RenderOptions): Promise<RenderResult> {
+  const format = resolveRenderFormat(options.output, options.format);
+  validateRenderFormat(format, options.transparent === true, options.audio !== undefined);
   const bundle = await bundleScene(scenePath);
   const browser = await chromium.launch({ headless: true });
   try {
@@ -48,21 +76,16 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
     if (!metadata) throw new Error("Scene runtime did not expose metadata.");
 
     await page.setViewportSize({ width: metadata.width, height: metadata.height });
-    const format = options.format ?? (options.output.toLowerCase().endsWith(".png") ? "png" : "mp4");
-    if (format === "png" && options.audio !== undefined) throw new Error("Audio is supported only for video output.");
-    if (options.transparent === true && format !== "png") {
-      throw new Error("Transparent background export is supported only for PNG output.");
-    }
     if (format === "png") {
       const time = options.at ?? 0;
       if (!Number.isFinite(time) || time < 0 || time > metadata.duration + 1e-9) {
         throw new Error(`PNG sample time ${time} must be inside the scene duration 0..${metadata.duration}.`);
       }
-      if (options.transparent === true) {
-        await page.locator("#stage").evaluate((stage) => {
-          (stage as HTMLElement).style.background = "transparent";
-        });
-      }
+    }
+    if (options.transparent === true) {
+      await page.locator("#stage").evaluate((stage) => {
+        (stage as HTMLElement).style.background = "transparent";
+      });
     }
     const fps = options.fps ?? metadata.fps;
     const artifacts = await captureAuthoredArtifacts(page, metadata, {
@@ -86,12 +109,16 @@ export async function renderScene(scenePath: string, options: RenderOptions): Pr
     const encoder = await createEncoder(resolve(options.output), fps, {
       duration: Math.max(metadata.duration, 1 / fps),
       audio,
+      format,
     });
     const reportProgress = options.onProgress
       ?? (options.progress === false ? undefined : createProgressReporter());
     for (let frame = 0; frame < frames; frame += 1) {
       await page.evaluate((time) => window.__murali?.renderFrame(time), frame / fps);
-      const png = await page.screenshot({ type: "png" });
+      const png = await page.screenshot({
+        type: "png",
+        omitBackground: options.transparent === true,
+      });
       await encoder.write(png);
       reportProgress?.(frame + 1, frames);
     }

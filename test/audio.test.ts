@@ -45,6 +45,20 @@ test("validates audio timing and builds a looped, delayed, duration-bound mix", 
   assert.ok(args.includes("10"));
 });
 
+test("uses VP9 alpha and Opus only for the WebM encoder path", () => {
+  const args = createEncoderArguments("overlay.webm", 60, {
+    format: "webm",
+    duration: 2,
+    audio: { source: "/tmp/music.mp3", start: 0, end: 2, volume: 0.4 },
+  });
+  assert.ok(args.includes("libvpx-vp9"));
+  assert.ok(args.includes("yuva420p"));
+  assert.ok(args.includes("alpha_mode=1"));
+  assert.ok(args.includes("libopus"));
+  assert.ok(!args.includes("libx264"));
+  assert.ok(!args.includes("-movflags"));
+});
+
 test("silently ignores a missing audio source", async () => {
   const audio = await resolveAudioTrack(
     "/path-that-does-not-exist/murali-missing-audio.mp3",

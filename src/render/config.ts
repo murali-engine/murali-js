@@ -20,7 +20,7 @@ interface MuraliConfig {
 
 export interface RenderOverrides extends Partial<RenderOptions> {
   configFile?: string;
-  /** Open a preview window instead of writing an MP4. */
+  /** Open a preview window instead of writing an output artifact. */
   preview?: boolean;
 }
 
@@ -74,12 +74,6 @@ export async function resolveRenderOptions(
     throw new Error(`Render FPS must be a positive number; received ${String(fps)}.`);
   }
 
-  const sourceName = basename(sourcePath, extname(sourcePath));
-  const outputDirectory = env.MURALI_OUTPUT_DIR ?? renderConfig.outputDir ?? "./output";
-  const output = overrides.output
-    ?? env.MURALI_OUTPUT
-    ?? renderConfig.output
-    ?? join(outputDirectory, `${sourceName}.mp4`);
   const progress = overrides.progress
     ?? parseBoolean(env.MURALI_PROGRESS, "Render progress")
     ?? renderConfig.progress
@@ -88,6 +82,12 @@ export async function resolveRenderOptions(
     ?? parseBoolean(env.MURALI_TRANSPARENT, "Render transparency")
     ?? renderConfig.transparent
     ?? false;
+  const sourceName = basename(sourcePath, extname(sourcePath));
+  const outputDirectory = env.MURALI_OUTPUT_DIR ?? renderConfig.outputDir ?? "./output";
+  const output = overrides.output
+    ?? env.MURALI_OUTPUT
+    ?? renderConfig.output
+    ?? join(outputDirectory, `${sourceName}.${transparent ? "webm" : "mp4"}`);
   const configuredAt = env.MURALI_AT;
   const at = overrides.at
     ?? (configuredAt === undefined ? renderConfig.at : Number.parseFloat(configuredAt));
