@@ -6,7 +6,10 @@ output/
 *.mp4
 .DS_Store
 **/.DS_Store
-package-lock.json
+# The root workspace lockfile is committed for reproducible installs and CI caching.
+# Nested workspace lockfiles are redundant because npm resolves every workspace here.
+**/package-lock.json
+!/package-lock.json
 /examples/assets/audio
 /assets/fonts/private/
 
