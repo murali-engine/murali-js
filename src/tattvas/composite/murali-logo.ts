@@ -16,6 +16,9 @@ export const MURALI_LOGO_COLORS = Object.freeze([
   "#ff6b5f",
 ]) satisfies MuraliLogoColors;
 
+/** Canonical opaque backdrop shared with the Murali documentation hero. */
+export const MURALI_LOGO_BACKGROUND = "radial-gradient(circle at 78% 18%, rgb(14 108 112 / 72%), transparent 30%), linear-gradient(125deg, #0b233f 0%, #123d59 58%, #0e6c70 100%)";
+
 export const MURALI_LOGO_PALETTES = Object.freeze({
   primary: MURALI_LOGO_COLORS,
   candyPop: Object.freeze([

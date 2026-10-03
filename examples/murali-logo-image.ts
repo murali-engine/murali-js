@@ -1,5 +1,5 @@
 import { render } from "murali-js";
-import { MuraliLogoMark } from "murali-js/composite";
+import { MURALI_LOGO_BACKGROUND, MuraliLogoMark } from "murali-js/composite";
 import { Scene } from "murali-js/core";
 
 const settings = logoImageSettings();
@@ -52,7 +52,7 @@ function logoImageSettings(): LogoImageSettings {
 
   const argv = typeof process === "undefined" ? [] : process.argv.slice(2);
   return {
-    background: argumentValue(argv, "--background") ?? "#f7f4ed",
+    background: argumentValue(argv, "--background") ?? MURALI_LOGO_BACKGROUND,
     outputDirectory: trimTrailingSlash(argumentValue(argv, "--output-dir") ?? "./output"),
   };
 }

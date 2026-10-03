@@ -149,12 +149,12 @@ Ordinary video remains MP4/H.264. WebM is deliberately reserved for `transparent
 
 ### Murali logo assets
 
-The canonical logo is `MuraliLogoMark`: three touching blue, violet, and coral ovals with no text or outline. [`examples/murali-logo-image.ts`](./examples/murali-logo-image.ts) always exports two square PNGs in one run: `murali-logo-background.png` using the supplied background color, and `murali-logo-transparent.png` with alpha. It uses the warm brand background by default:
+The canonical logo is `MuraliLogoMark`: three touching blue, violet, and coral ovals with no text or outline. [`examples/murali-logo-image.ts`](./examples/murali-logo-image.ts) always exports two square PNGs in one run: `murali-logo-background.png` using the supplied background, and `murali-logo-transparent.png` with alpha. The opaque asset uses the documentation hero's navy-to-teal brand gradient by default:
 
 ```bash
 cd examples
 npx tsx murali-logo-image.ts
-npx tsx murali-logo-image.ts -- --background "#071426"
+npx tsx murali-logo-image.ts -- --background "linear-gradient(145deg, #0b233f, #0e6c70)"
 ```
 
 Choose another destination directory when needed:

@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { Scene } from "../src/core/Scene.ts";
 import {
   MURALI_LOGO_COLORS,
+  MURALI_LOGO_BACKGROUND,
   MURALI_LOGO_PALETTES,
   MuraliLogoMark,
   MuraliLogoSequence,
@@ -13,6 +14,7 @@ test("builds the canonical Murali logo from three touching geometric ovals", () 
   const mark = MuraliLogoMark();
   assert.equal(mark.ovals.length, 3);
   assert.deepEqual(MURALI_LOGO_COLORS, ["#2563eb", "#7c3aed", "#ff6b5f"]);
+  assert.match(MURALI_LOGO_BACKGROUND, /#0b233f.+#0e6c70/);
   assert.deepEqual(MURALI_LOGO_PALETTES.candyPop, ["#54b8f3", "#fae561", "#e065b2"]);
   assert.deepEqual(mark.ovals.map((oval) => oval.initialState.background), MURALI_LOGO_COLORS);
   assert.ok(mark.ovals[0].initialState.x < mark.ovals[1].initialState.x);
