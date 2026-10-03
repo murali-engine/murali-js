@@ -1,11 +1,69 @@
 ---
-title: React, Three.js, and web content
-description: Extend Murali with React, browser rendering, and custom Three.js objects.
+title: Canvas, React, Three.js, and web content
+description: Extend Murali with Canvas 2D, React, browser rendering, and custom Three.js objects.
 ---
 
-# React, Three.js, and web content
+# Canvas, React, Three.js, and web content
 
-Murali's built-ins are conveniences. Custom content can use normal DOM/CSS, React, or Three.js as long as its picture is a deterministic function of sampled state and scene time.
+Murali's built-ins are conveniences. Custom content can use Canvas 2D, normal DOM/CSS, React, or Three.js as long as its picture is a deterministic function of sampled state and scene time.
+
+## Canvas 2D tattva
+
+`CanvasTattva` owns a real HTML `<canvas>` while Murali owns its outer placement, camera projection, opacity, layer, CSS, grouping, and timeline state. Its bitmap automatically matches the output resolution implied by its world-space `size`.
+
+```ts
+import { CanvasTattva } from "murali-js/adapters";
+import type { TattvaState } from "murali-js/core";
+
+interface WaveState extends TattvaState { phase: number }
+
+const wave = new CanvasTattva<WaveState>({
+  draw({ canvas, context, theme }, state, sample) {
+    const { width, height } = canvas;
+    context.fillStyle = theme.colors.surface;
+    context.fillRect(0, 0, width, height);
+    context.strokeStyle = "#22d3ee";
+    context.beginPath();
+    for (let x = 0; x <= width; x += 2) {
+      const y = height / 2 + Math.sin(x / width * Math.PI * 4 + state.phase) * height * 0.25;
+      if (x === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+    context.stroke();
+    context.fillText(`frame ${sample.frame}`, 16, 24);
+  },
+}, {
+  size: [8, 4],
+  state: { phase: 0 },
+});
+```
+
+`draw` receives the complete sampled state plus `{ time, fps, frame, duration, progress }`. Murali resets the 2D context before each draw, so every frame must draw the complete picture and cannot accidentally depend on the previously rendered frame. Use `canvas.width`, `canvas.height`, or `pixelsPerUnit` for resolution-aware drawing. Animate custom state through an ordinary `Timeline`.
+
+## Canvas 3D / WebGL2 tattva
+
+Browsers do not expose a literal `canvas.getContext("3d")`; raw 3D canvas rendering uses WebGL or WebGPU. `Canvas3DTattva` provides a persistent WebGL2 context for custom shaders and buffers:
+
+```ts
+import { Canvas3DTattva } from "murali-js/adapters";
+
+let program: WebGLProgram;
+
+const surface = new Canvas3DTattva({
+  setup({ gl }) {
+    program = gl.createProgram()!;
+    // Compile shaders, link the program, and create persistent buffers here.
+  },
+  draw({ gl }, state, sample) {
+    gl.useProgram(program);
+    // Apply all sampled uniforms and draw the complete frame here.
+  },
+}, { size: [8, 4] });
+```
+
+The runtime configures the viewport and clears color, depth, and stencil buffers before every draw. WebGL objects and state remain persistent, so `draw` must update every time-varying uniform and binding from `state` or `sample`. The context uses an alpha channel and preserves its drawing buffer for deterministic screenshots and exports.
+
+Use `Canvas3DTattva` when you want raw WebGL2. Use `ThreeTattva` when you prefer Three.js scene, camera, material, and geometry abstractions.
 
 ## React tattva
 
@@ -60,4 +118,4 @@ const globe = new ThreeTattva({
 - Derive visual state from the provided state, theme, and scene time.
 - Load required assets before the first frame through Murali's asset paths or deterministic setup.
 
-See `examples/react-card.tsx`, `examples/three-camera.ts`, and `examples/textured-surface.ts`.
+See `examples/canvas-2d.ts`, `examples/canvas-3d.ts`, `examples/react-card.tsx`, `examples/three-camera.ts`, and `examples/textured-surface.ts`.

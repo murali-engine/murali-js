@@ -13,6 +13,8 @@ import {
 } from "three";
 import type { Camera } from "three";
 import { MuraliThemeContext, type ReactTattva } from "../core/ReactTattva.ts";
+import type { CanvasContext, CanvasTattva } from "../core/CanvasTattva.ts";
+import type { Canvas3DContext, Canvas3DTattva } from "../core/Canvas3DTattva.ts";
 import type { Scene } from "../core/Scene.ts";
 import type { Tattva, TattvaState, Vec2 } from "../core/Tattva.ts";
 import type { ThreeContext, ThreeTattva } from "../core/ThreeTattva.ts";
@@ -51,6 +53,8 @@ interface MountedObject {
   paths?: MountedPath[];
   arrowheads?: SVGPathElement[];
   nested?: { host: HTMLElement; renderAt: (time: number) => void };
+  canvas?: CanvasContext;
+  canvas3d?: Canvas3DContext;
 }
 
 declare global {
@@ -570,6 +574,30 @@ function mountScene(
     mounted.push(item);
     if (tattva.kind === "react") {
       item.reactRoot = createRoot(item.content);
+    } else if (tattva.kind === "canvas") {
+      const canvas = item.content as HTMLCanvasElement;
+      canvas.dataset.muraliCanvas = "true";
+      canvas.width = Math.max(1, Math.round((tattva.worldSize?.width ?? 1) * pixelsPerUnit));
+      canvas.height = Math.max(1, Math.round((tattva.worldSize?.height ?? 1) * pixelsPerUnit));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error(`Canvas 2D context is unavailable for ${tattva.id}.`);
+      item.canvas = { canvas, context, pixelsPerUnit, theme: tattva.resolvedTheme };
+      (tattva as CanvasTattva).hooks.setup?.(item.canvas);
+    } else if (tattva.kind === "canvas3d") {
+      const canvasTattva = tattva as Canvas3DTattva;
+      const canvas = item.content as HTMLCanvasElement;
+      canvas.dataset.muraliCanvas3d = "true";
+      canvas.width = Math.max(1, Math.round((tattva.worldSize?.width ?? 1) * pixelsPerUnit));
+      canvas.height = Math.max(1, Math.round((tattva.worldSize?.height ?? 1) * pixelsPerUnit));
+      const gl = canvas.getContext("webgl2", {
+        antialias: true,
+        alpha: true,
+        ...canvasTattva.contextAttributes,
+        preserveDrawingBuffer: true,
+      });
+      if (!gl) throw new Error(`WebGL2 is unavailable for ${tattva.id}.`);
+      item.canvas3d = { canvas, gl, pixelsPerUnit, theme: tattva.resolvedTheme };
+      canvasTattva.hooks.setup?.(item.canvas3d);
     } else if (tattva.kind === "three") {
       const renderer = new WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
       renderer.setPixelRatio(1);
@@ -634,6 +662,39 @@ function mountScene(
           { value: item.tattva.resolvedTheme },
           content,
         )));
+      }
+      if (item.canvas) {
+        const canvasTattva = item.tattva as CanvasTattva;
+        const { canvas, context } = item.canvas;
+        if (typeof context.reset === "function") context.reset();
+        else canvas.width = canvas.width;
+        canvasTattva.hooks.draw(item.canvas, state, {
+          time,
+          fps: scene.fps,
+          frame: Math.round(time * scene.fps),
+          duration: scene.duration,
+          progress: scene.duration === 0 ? 0 : Math.min(1, Math.max(0, time / scene.duration)),
+        });
+      }
+      if (item.canvas3d) {
+        const canvasTattva = item.tattva as Canvas3DTattva;
+        const { gl } = item.canvas3d;
+        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+        gl.disable(gl.SCISSOR_TEST);
+        gl.colorMask(true, true, true, true);
+        gl.depthMask(true);
+        gl.stencilMask(0xff);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clearDepth(1);
+        gl.clearStencil(0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+        canvasTattva.hooks.draw(item.canvas3d, state, {
+          time,
+          fps: scene.fps,
+          frame: Math.round(time * scene.fps),
+          duration: scene.duration,
+          progress: scene.duration === 0 ? 0 : Math.min(1, Math.max(0, time / scene.duration)),
+        });
       }
       if (item.three) {
         const threeTattva = item.tattva as ThreeTattva;

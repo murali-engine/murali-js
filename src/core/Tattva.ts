@@ -47,7 +47,7 @@ export interface Size {
 let tattvaSequence = 0;
 
 export class Tattva<State extends TattvaState = TattvaState> {
-  readonly kind: "dom" | "react" | "three" = "dom";
+  readonly kind: "dom" | "react" | "three" | "canvas" | "canvas3d" = "dom";
   readonly id: string;
   readonly tag: keyof HTMLElementTagNameMap;
   readonly html?: string;

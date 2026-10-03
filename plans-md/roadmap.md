@@ -38,7 +38,7 @@ The project is already a broad working implementation, not an early prototype.
 | Area | Available today | Still incomplete |
 | --- | --- | --- |
 | Authoring | Single-file scenes, fluent Tattvas, scene helpers, clips, timelines, overlap, nesting, multi-target animation, stagger | A few APIs have inconsistent state, validation, or composition semantics |
-| Web platform | DOM/SVG output, direct CSS, React Tattvas, Three.js Tattvas, internal Canvas use | A general user-facing DOM/SVG/Canvas lifecycle, arbitrary-library adapters, browser-measured layout |
+| Web platform | DOM/SVG output, direct CSS, React Tattvas, Three.js Tattvas, first-class deterministic Canvas 2D and raw WebGL2 Tattvas | A general user-facing DOM/SVG lifecycle, arbitrary-library adapters, browser-measured layout |
 | Styling and layout | Typed CSS, CSS variables, animated styles, static typed themes, scoped theme overrides, groups, stacks, authored bounds, frame and camera-edge layout, persistent branding overlays | Browser-measured bounds, measurement invalidation, shape-safe CSS paints, timeline-driven theme changes |
 | 2D and text | Shapes, cubic closed-shape and compound SVG morphing, matching word/grapheme text, structural formula morphing, native LaTeX vector typesetting and cubic glyph-outline interpolation, labels, registered browser/local fonts, lines, arrows, paths, tables, code, MathML, semantic reveals, deterministic word clouds, Fireworks, YouTube CTA | Open-path morphing, general object matching, semantic TeX-token correspondence, Typst parity, imported-module formula discovery, general non-font asset handling |
 | 3D | Scene-owned orthographic and perspective camera, XYZ transforms, Three.js content, curves, surfaces, glTF props, true extruded Text3D, WaveMesh | Resource disposal, renderer sharing, cross-surface depth limits, broader performance testing |
@@ -98,9 +98,13 @@ Completion criteria:
 
 This is the main architectural expansion. A user must be able to create a visual Murali JS has never heard of without changing the renderer.
 
+Completed foundation:
+
+- `CanvasTattva` and `Canvas3DTattva` provide output-resolution-aware HTML Canvas 2D and raw WebGL2 surfaces with one-time setup, independently sampled drawing, typed custom animation state, theme access, and virtual-time metadata.
+
 - Design a small public lifecycle for custom browser content: mount, sampled update, optional measurement, and dispose.
 - Support author-created HTML elements and document fragments without requiring raw HTML strings.
-- Support inline SVG and Canvas 2D as ordinary scene content.
+- Support inline SVG as ordinary scene content; Canvas 2D is now available through `CanvasTattva`.
 - Allow a custom construct to declare strongly typed animation state and receive its sampled state and virtual-time context.
 - Preserve Murali JS's outer transform wrapper so user CSS transforms do not replace world placement, camera projection, opacity, or grouping.
 - Give custom content the standard builders: position, full XYZ transform, opacity, layer/depth mode, class, CSS, CSS variables, grouping, and timeline animation.

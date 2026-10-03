@@ -492,7 +492,7 @@ function sourceWidth(source: string): number {
   return Math.max(2, stripMath(source).length * 0.55);
 }
 
-interface Token { kind: "command" | "word" | "number" | "symbol" | "group"; value: string }
+interface Token { kind: "command" | "word" | "number" | "symbol"; value: string }
 
 function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -515,12 +515,6 @@ function tokenize(source: string): Token[] {
       index += 1;
       continue;
     }
-    if (char === "{") {
-      const end = source.indexOf("}", index);
-      tokens.push({ kind: "group", value: source.slice(index + 1, end === -1 ? source.length : end) });
-      index = end === -1 ? source.length : end + 1;
-      continue;
-    }
     if (/[0-9.]/.test(char)) {
       const number = /^[0-9.]+/.exec(source.slice(index));
       tokens.push({ kind: "number", value: number?.[0] ?? char });
@@ -539,10 +533,13 @@ function tokenize(source: string): Token[] {
   return tokens;
 }
 
-function parseMath(tokens: Token[]): { markup: string; index: number } {
+function parseMath(tokens: Token[], start = 0, stopAtGroupEnd = false): { markup: string; index: number } {
   let markup = "";
-  let index = 0;
+  let index = start;
   while (index < tokens.length) {
+    if (stopAtGroupEnd && tokens[index]?.kind === "symbol" && tokens[index]?.value === "}") {
+      return { markup, index: index + 1 };
+    }
     const parsed = parseAtom(tokens, index);
     markup += parsed.markup;
     index = parsed.index;
@@ -556,14 +553,28 @@ function parseAtom(tokens: Token[], index: number): { markup: string; index: num
   let markup = "";
   let next = index + 1;
   if (token.kind === "command" && token.value === "frac") {
-    const numerator = tokens[next];
-    const denominator = tokens[next + 1];
-    markup = `<mfrac>${mathml(numerator?.value ?? "")}${mathml(denominator?.value ?? "")}</mfrac>`;
-    next += 2;
+    const numerator = parseArgument(tokens, next);
+    const denominator = parseArgument(tokens, numerator.index);
+    markup = `<mfrac>${numerator.markup}${denominator.markup}</mfrac>`;
+    next = denominator.index;
   } else if (token.kind === "command" && token.value === "int") {
     markup = "<mo>∫</mo>";
-  } else if (token.kind === "group") {
-    markup = mathml(token.value);
+  } else if (token.kind === "command" && token.value === "sin") {
+    markup = '<mi mathvariant="normal">sin</mi>';
+  } else if (token.kind === "command" && Object.hasOwn(MATH_SYMBOLS, token.value)) {
+    markup = `<mi>${MATH_SYMBOLS[token.value]}</mi>`;
+  } else if (token.kind === "command" && (token.value === "left" || token.value === "right")) {
+    const delimiter = tokens[next];
+    markup = delimiter ? `<mo stretchy="true">${escapeHtml(delimiter.value)}</mo>` : "";
+    next += delimiter ? 1 : 0;
+  } else if (token.kind === "command") {
+    markup = `<mi>${escapeHtml(token.value)}</mi>`;
+  } else if (token.kind === "symbol" && token.value === "{") {
+    const group = parseMath(tokens, next, true);
+    markup = `<mrow>${group.markup}</mrow>`;
+    next = group.index;
+  } else if (token.kind === "symbol" && token.value === "}") {
+    return { markup: "", index: next };
   } else if (token.kind === "number") {
     markup = `<mn>${escapeHtml(token.value)}</mn>`;
   } else if (token.kind === "word") {
@@ -594,6 +605,29 @@ function parseAtom(tokens: Token[], index: number): { markup: string; index: num
   }
   return { markup, index: next };
 }
+
+function parseArgument(tokens: Token[], index: number): { markup: string; index: number } {
+  const token = tokens[index];
+  if (token?.kind === "symbol" && token.value === "{") {
+    const group = parseMath(tokens, index + 1, true);
+    return { markup: `<mrow>${group.markup}</mrow>`, index: group.index };
+  }
+  return parseAtom(tokens, index);
+}
+
+const MATH_SYMBOLS: Readonly<Record<string, string>> = {
+  alpha: "α",
+  beta: "β",
+  gamma: "γ",
+  delta: "δ",
+  theta: "θ",
+  lambda: "λ",
+  mu: "μ",
+  pi: "π",
+  sigma: "σ",
+  phi: "φ",
+  omega: "ω",
+};
 
 export type MatrixCoordinate = readonly [row: number, column: number];
 

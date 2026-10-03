@@ -1081,6 +1081,14 @@ test("writes a table, colors code, and lays out math from scene data", () => {
   assert.match(formula, /<mfrac>/);
   assert.match(formula, /∫/);
   assert.match(MathText("(a + b)^2").contentHTML(), /msup/);
+  const sineRing = MathText(String.raw`r = 4\sin\left(\frac{24\theta}{25}\right) + 10`).contentHTML();
+  assert.match(sineRing, /<mi mathvariant="normal">sin<\/mi>/);
+  assert.match(sineRing, /<mi>θ<\/mi>/);
+  assert.match(sineRing, /<mo stretchy="true">\(<\/mo>/);
+  assert.match(sineRing, /<mfrac><mrow><mn>24<\/mn><mi>θ<\/mi><\/mrow><mrow><mn>25<\/mn><\/mrow><\/mfrac>/);
+  assert.match(sineRing, /<mo stretchy="true">\)<\/mo>/);
+  const nestedFraction = mathml(String.raw`\frac{1}{1 + \frac{x}{2}}`);
+  assert.equal(nestedFraction.match(/<mfrac>/g)?.length, 2);
 
   const source = Equation([
     { text: "x", key: "x", color: "#5cd0b3" },
