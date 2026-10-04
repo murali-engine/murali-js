@@ -1,0 +1,189 @@
+---
+title: Newspaper opening
+description: Build stacked newspaper montages with selectable generated layouts, custom copy, image-backed pages, and exact timing.
+---
+
+# Newspaper opening
+
+`NewspaperOpening` places a sequence of fully opaque newspapers into an imperfect stack, then reveals a final title page. Each sheet can use a generated layout or a real newspaper image.
+
+```ts
+import { Newspaper, NewspaperOpening } from "murali-js/storytelling";
+
+const newspapers = [
+  new Newspaper("A New Era Begins")
+    .publication("THE MORNING REGISTER")
+    .date("OCTOBER 4, 2026")
+    .keyword("BREAKING")
+    .layout("lead"),
+
+  new Newspaper("Technology Reshapes the World")
+    .publication("THE GLOBAL OBSERVER")
+    .layout("columns"),
+
+  new Newspaper("Tomorrow Arrives Today")
+    .keyword("FUTURE")
+    .layout("tabloid"),
+];
+
+const opening = NewspaperOpening(newspapers, {
+  title: "THE WORLD IS CHANGING",
+  totalTime: 8,
+}).addTo(this);
+
+opening.animate(timeline);
+```
+
+## Generated layouts
+
+Murali currently provides three generated newspaper layouts:
+
+| Layout | Visual structure | Best suited to |
+| --- | --- | --- |
+| `lead` | Large lead headline, three article columns, and a separate image/keyword sidebar | A traditional front page or the primary story in a sequence |
+| `columns` | Headline banner followed by three balanced editorial columns and a central image area | Information-dense reporting, business stories, and conventional broadsheets |
+| `tabloid` | Oversized centered headline, strong keyword stamp, shorter copy, and a prominent image area | Urgent breaking news, dramatic reveals, and fast-moving montage beats |
+
+### Lead
+
+`lead` gives the headline most of the page while retaining a right-hand sidebar. It works well when the headline should dominate without losing the visual language of a traditional newspaper.
+
+```ts
+new Newspaper("A New Era Begins")
+  .section("WORLD DESK")
+  .keyword("BREAKING")
+  .deck("Markets and communities prepare for a new chapter.")
+  .layout("lead");
+```
+
+### Columns
+
+`columns` uses a more regular editorial grid. The headline and keyword share the top row, while article copy and an image placeholder fill three columns below it.
+
+```ts
+new Newspaper("Markets Transform Overnight")
+  .section("BUSINESS")
+  .keyword("GLOBAL")
+  .layout("columns");
+```
+
+### Tabloid
+
+`tabloid` prioritizes impact. It uses the largest headline treatment, centered composition, and a rotated keyword block.
+
+```ts
+new Newspaper("Tomorrow Arrives Today")
+  .section("EXCLUSIVE")
+  .keyword("FUTURE")
+  .layout("tabloid");
+```
+
+## Choosing layouts
+
+Set a layout directly on a newspaper when that page needs a specific design:
+
+```ts
+new Newspaper("Front-page story").layout("lead");
+```
+
+Alternatively, provide a layout cycle on the opening. Newspapers without their own layout use the next value in the cycle:
+
+```ts
+NewspaperOpening(newspapers, {
+  title: "THE DAILY ROUNDUP",
+  layouts: ["lead", "columns", "tabloid"],
+});
+```
+
+A newspaper's `.layout()` always takes priority over the opening-level `layouts` option. When neither is supplied, the opening cycles through `lead`, `columns`, and `tabloid`.
+
+## Newspaper content
+
+All visible generated-page copy can be authored with the fluent builder:
+
+```ts
+new Newspaper("Technology Reshapes the World")
+  .publication("THE GLOBAL OBSERVER")
+  .date("WEEKEND EDITION")
+  .volume("NO. 8,412")
+  .section("TECHNOLOGY")
+  .keyword("AI")
+  .deck("Inside the tools moving from research labs into daily life.")
+  .body(
+    "The first article paragraph.",
+    "A second paragraph used in another column.",
+  )
+  .layout("columns");
+```
+
+Missing values use newspaper-style defaults. Passing an empty string intentionally leaves that field blank.
+
+## Real newspaper images
+
+Use `Newspaper.fromImage()` when a real scan, photograph, or prepared newspaper design is available. The supplied image replaces the generated masthead, headline, columns, and layout completely.
+
+```ts
+import { imageFile } from "murali-js/core";
+import { Newspaper } from "murali-js/storytelling";
+
+const archive = Newspaper.fromImage(
+  imageFile("./assets/archive-front-page.jpg"),
+);
+
+const remote = Newspaper.fromImage("https://example.com/front-page.jpg", {
+  fit: "cover",
+  alt: "Historic newspaper front page",
+});
+```
+
+The default image fit is `contain`, which preserves the complete page. Use `cover` to fill the paper bounds even when the image must be cropped. Generated layout selection has no effect on image-backed newspapers.
+
+## Timing
+
+`totalTime` sets the exact duration of the complete opening and proportionally scales all phases:
+
+```ts
+NewspaperOpening(newspapers, {
+  title: "THE WORLD TODAY",
+  totalTime: 10,
+});
+```
+
+Use `timing` when the rhythm also needs to be shaped:
+
+```ts
+NewspaperOpening(newspapers, {
+  title: "THE WORLD TODAY",
+  totalTime: 10,
+  timing: {
+    introDelay: 0.2,
+    flashDuration: 0.7,       // landing duration for each sheet
+    flashStagger: 0.45,       // time between successive sheets
+    finalDelay: 0.3,
+    finalRevealDuration: 1.1,
+    endHold: 1.4,
+  },
+});
+```
+
+When `totalTime` and `timing` are both present, `timing` defines the relative rhythm and `totalTime` scales that rhythm to the requested duration.
+
+## Final title page
+
+Opening-level options configure the last page rather than the individual newspapers:
+
+```ts
+NewspaperOpening(newspapers, {
+  title: "THE WORLD IS CHANGING",
+  kicker: "A NEW ERA BEGINS",
+  publication: "THE FUTURE CHRONICLE",
+  date: "OCTOBER 4, 2026",
+  volume: "SUNDAY · VOL. 42",
+  finalBody: [
+    "Five editions and one defining story.",
+    "Discover what the next chapter may hold.",
+  ],
+});
+```
+
+See [`examples/openings/newspaper-opening.ts`](https://github.com/murali-engine/murali-js/blob/main/examples/openings/newspaper-opening.ts) for a complete executable composition.

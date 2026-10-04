@@ -7,7 +7,50 @@ const rustDocsUrl = "https://github.com/murali-engine/murali-rs/tree/main/docs";
 const config: Config = {
   title: "Murali",
   tagline: "Mathematics, beautifully in motion.",
-  favicon: "img/murali-mark.svg",
+  favicon: "img/favicon_io/favicon.ico",
+
+  headTags: [
+    {
+      tagName: "link",
+      attributes: {
+        rel: "icon",
+        type: "image/png",
+        sizes: "32x32",
+        href: "/img/favicon_io/favicon-32x32.png",
+      },
+    },
+    {
+      tagName: "link",
+      attributes: {
+        rel: "icon",
+        type: "image/png",
+        sizes: "16x16",
+        href: "/img/favicon_io/favicon-16x16.png",
+      },
+    },
+    {
+      tagName: "link",
+      attributes: {
+        rel: "apple-touch-icon",
+        sizes: "180x180",
+        href: "/img/favicon_io/apple-touch-icon.png",
+      },
+    },
+    {
+      tagName: "link",
+      attributes: {
+        rel: "manifest",
+        href: "/img/favicon_io/site.webmanifest",
+      },
+    },
+    {
+      tagName: "meta",
+      attributes: {
+        name: "theme-color",
+        content: "#0b233f",
+      },
+    },
+  ],
 
   url: "https://muraliengine.com",
   baseUrl: "/",

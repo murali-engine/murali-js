@@ -4,7 +4,7 @@ import { fontFamily, fontFile } from "murali-js/style";
 import { Opening } from "murali-js/storytelling";
 
 const PARTICLE_PALETTE = ["#2ed1c7", "#5294ff", "#eb6190", "#ffb838", "#7adc61", "#ff6666"];
-const SATOSHI = fontFile("Satoshi", "../assets/fonts/private/Satoshi-Bold.ttf", { weight: 700 });
+const SATOSHI = fontFile("Satoshi", "../../assets/fonts/private/Satoshi-Bold.ttf", { weight: 700 });
 
 /** Port of Murali `examples/kavriq_opening.rs`. */
 class KavriqOpening extends Scene {

@@ -37,6 +37,17 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: "category",
+      label: "Opening sequences",
+      collapsed: false,
+      link: { type: "doc", id: "openings/index" },
+      items: [
+        "openings/3d-title-ident",
+        "openings/wave-title-sequence",
+        "openings/newspaper-opening",
+      ],
+    },
+    {
+      type: "category",
       label: "Production guides",
       collapsed: false,
       items: [

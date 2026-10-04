@@ -1,0 +1,32 @@
+---
+title: 3D title ident
+description: Create a dimensional title landing, shake, particle dissolve, and tagline reveal.
+---
+
+# 3D title ident
+
+`Opening(title, tagline)` is Murali's compact brand-ident opener. Extruded letters land independently, settle, shake, dissolve into particles, and reveal a tagline.
+
+```ts
+import { Timeline } from "murali-js/core";
+import { Opening } from "murali-js/storytelling";
+
+const opening = Opening("KAVRIQ", "The Science Behind AI")
+  .texture("whiteMarble")
+  .style({
+    letterHeight: 2.4,
+    letterDepth: 0.95,
+    particleCount: 1400,
+    particleSize: 0.028,
+  })
+  .timing({ dissolveDuration: 0.82 })
+  .addTo(this);
+
+const timeline = new Timeline();
+opening.animate(timeline);
+this.play(timeline);
+```
+
+Available textures are `whiteMarble`, `blackMarble`, and `plain`. Geometry, colors, particle behavior, tagline typography, and every choreography phase are configurable through `.style()` and `.timing()`.
+
+Use `SceneView` when the ident should transition into another prepared scene rather than end on its tagline. See `examples/openings/kavriq-opening.ts` and `examples/openings/opening-scene-view.ts`.

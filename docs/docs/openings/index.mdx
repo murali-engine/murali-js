@@ -1,0 +1,45 @@
+---
+title: Opening sequences
+description: Full-screen animated introductions for brands, stories, videos, and presentations.
+slug: /openings/
+---
+
+# Opening sequences
+
+An **opening sequence**, or **opener**, is a full-screen animated introduction that establishes identity, subject, and tone before the main content begins.
+
+This is the umbrella term Murali uses for these compositions. More specific terms describe particular kinds of opener:
+
+- **Brand ident** — a short logo or brand-name reveal.
+- **Title sequence** — a longer introduction organized around a title and supporting motion.
+- **Title card** — usually one mostly static title screen, not an entire animated sequence.
+- **Background treatment** — an atmospheric visual such as a wave mesh that becomes an opener when combined with titles and timing.
+
+Murali's opening-sequence collection is intentionally extensible. New openers can be added when a story needs a distinct visual language without forcing every introduction into one component.
+
+## Available opening approaches
+
+| Opening | Primary building block | Character | Example |
+| --- | --- | --- | --- |
+| 3D title ident | `Opening` | Dimensional letters land, bounce, shake, dissolve into particles, and reveal a tagline | `openings/kavriq-opening.ts` |
+| 3D opener transitioning into a scene | `Opening` and `SceneView` | A branded ident hands off to the main visual narrative | `openings/opening-scene-view.ts` |
+| Wave title sequence | `WaveMesh` with text | Atmospheric event-stage or technology introduction with continuous 3D motion | `openings/wave-mesh-background.ts` |
+| Newspaper montage | `Newspaper` and `NewspaperOpening` | Fully opaque newspapers accumulate into an imperfect stack before the final title | `openings/newspaper-opening.ts` |
+
+## Choosing an opener
+
+Use the 3D title ident when the brand or product name is the central reveal. Use a wave opener when atmosphere and continuous motion matter more than narrative detail. Use a newspaper montage when several headlines, dates, publications, or archival pages need to establish context quickly.
+
+An opener does not have to be a single reusable Tattva. It can be a scene-level composition built from reusable pieces. What makes it an opening sequence is its narrative role: it introduces what follows.
+
+## Example organization
+
+Executable opener scenes live under `examples/openings/`. Example discovery is recursive:
+
+```bash
+npm run example -- openings/kavriq-opening
+npm run example -- openings/wave-mesh-background
+npm run example -- openings/newspaper-opening
+```
+
+Add future opening sequences to the same folder and document their purpose here. Reusable implementation code should continue to live in the most appropriate public package, such as `murali-js/storytelling` or `murali-js/composite`.

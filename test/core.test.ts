@@ -104,6 +104,8 @@ import {
   ChatInput,
   Opening,
   openingDuration,
+  Newspaper,
+  NewspaperOpening,
   extrudedMaskSidePositions,
   WordCloud,
   Stepwise,
@@ -1767,6 +1769,53 @@ test("authors a reusable opening on the ordinary scene timeline", () => {
   assert.throws(() => Opening("Murali JS", "invalid").duration(), /ASCII capitals/);
   assert.throws(() => Opening("   ", "invalid").duration(), /at least one capital/);
   assert.throws(() => Opening("MURALI", "invalid").style({ particleCount: 0 }).duration(), /positive integer/);
+});
+
+test("authors a user-configurable newspaper opening", () => {
+  class NewspaperTestScene extends Scene {
+    readonly composition = NewspaperOpening([
+      new Newspaper("Custom front page")
+        .publication("THE TEST REGISTER")
+        .date("TEST DAY")
+        .volume("VOL. TEST")
+        .section("CUSTOM SECTION")
+        .deck("Every visible field can be supplied by the caller.")
+        .body("Custom article copy.")
+        .layout("columns"),
+      new Newspaper("Tomorrow Arrives Today").layout("tabloid"),
+      Newspaper.fromImage("https://example.test/newspaper.jpg"),
+    ], {
+      title: "A NEW ERA",
+      totalTime: 4.5,
+      timing: { introDelay: 0.2, endHold: 0.4 },
+    }).addTo(this);
+
+    override construct(): void {
+      const timeline = new Timeline();
+      this.composition.animate(timeline, { at: 0.5 });
+      this.play(timeline);
+    }
+  }
+
+  const scene = new NewspaperTestScene().prepare();
+  const { visual, duration } = scene.composition;
+  assert.equal(visual.newspaperConfig.pages.length, 3);
+  assert.equal(visual.newspaperConfig.pages[0]?.publication, "THE TEST REGISTER");
+  assert.equal(visual.newspaperConfig.pages[0]?.layout, "columns");
+  assert.equal(visual.newspaperConfig.pages[1]?.headline, "Tomorrow Arrives Today");
+  assert.equal(visual.newspaperConfig.pages[1]?.layout, "tabloid");
+  assert.equal(visual.newspaperConfig.pages[2]?.image, "https://example.test/newspaper.jpg");
+  assert.ok(Math.abs(duration - 4.5) < 1e-9);
+  assert.equal(scene.duration, 0.5 + duration);
+  const newspaperAt = (time: number) => scene.sampleAt(time).get(visual) as unknown as { newspaperTime: number };
+  assert.equal(newspaperAt(0).newspaperTime, 0);
+  assert.ok(Math.abs(newspaperAt(0.5 + duration / 2).newspaperTime - duration / 2) < 1e-9);
+  assert.ok(Math.abs(newspaperAt(scene.duration).newspaperTime - duration) < 1e-9);
+  assert.throws(() => NewspaperOpening({ title: "", keywords: ["ONE"], headlines: ["Headline"] }), /title cannot be empty/);
+  assert.throws(() => NewspaperOpening({ title: "Title" }).duration(), /needs headlines/);
+  assert.throws(() => NewspaperOpening({ title: "Title", headlines: ["Headline"] }).newspaperCount(0), /positive integer/);
+  assert.throws(() => NewspaperOpening([], { title: "Title" }), /cannot be empty/);
+  assert.throws(() => new Newspaper().build(), /needs a headline/);
 });
 
 test("builds continuous side walls for extruded opening glyph masks", () => {

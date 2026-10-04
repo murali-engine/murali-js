@@ -1,0 +1,45 @@
+---
+title: Wave title sequence
+description: Combine WaveMesh with overlay text for an atmospheric full-screen opener.
+---
+
+# Wave title sequence
+
+`WaveMesh` is a reusable 3D background rather than a fixed title animation. Combined with overlay text and a timeline, it becomes an atmospheric opening sequence suitable for technology, conferences, explainers, and presentations.
+
+```ts
+import { timeline } from "murali-js/core";
+import { WaveMesh } from "murali-js/composite";
+import { Label } from "murali-js/text";
+
+const terrain = this.add(
+  WaveMesh()
+    .size(32, 18)
+    .amplitude(1.3)
+    .samples(81, 45)
+    .palette({
+      near: "#f0a9ff",
+      far: "#2637d4",
+      peak: "#fff5ff",
+      fill: "#5a27d6",
+    })
+    .farFade(0.68)
+    .glowVariation(0.28),
+  { at: [0, -2.35, -5] },
+);
+
+const title = this.add(
+  Label("Deterministic ideas, beautifully in motion")
+    .height(0.52)
+    .depthMode("overlay"),
+);
+
+this.play(timeline((local) => {
+  local.animate(terrain).duration(10).ease("linear").to({ phase: 2 });
+  local.animate(title).duration(0.8).appear();
+}));
+```
+
+Oversize and reposition the mesh so its side and front edges stay beyond the camera frustum. The grid density, amplitude, surface fill, nodes, sparkles, palette, depth fade, glow, and periodic wave profile are configurable.
+
+See `examples/openings/wave-mesh-background.ts` for the full scene.

@@ -556,7 +556,7 @@ const mesh = this.add(
 timeline.animate(mesh).duration(10).ease("linear").to({ phase: 2 });
 ```
 
-The grid density, surface fill, nodes, sparkles, colors, far-depth fade, glow variation, and wave profile are configurable. Oversize and reposition the mesh to keep its side and front edges beyond the camera frustum. See [`examples/wave-mesh-background.ts`](./examples/wave-mesh-background.ts).
+The grid density, surface fill, nodes, sparkles, colors, far-depth fade, glow variation, and wave profile are configurable. Oversize and reposition the mesh to keep its side and front edges beyond the camera frustum. See [`examples/openings/wave-mesh-background.ts`](./examples/openings/wave-mesh-background.ts).
 
 ### YouTube subscribe end cards
 
@@ -689,7 +689,7 @@ npm run example -- style-and-paths
 npm run example -- react-card
 npm run example -- three-camera
 npm run example -- text-3d
-npm run example -- wave-mesh-background
+npm run example -- openings/wave-mesh-background
 npm run example -- celebration-fireworks
 npm run example -- celebration-fireworks-short
 npm run example -- theme-system

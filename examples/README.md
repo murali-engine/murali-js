@@ -4,6 +4,7 @@ Examples follow the same subject taxonomy as the public Murali JS API. Categoriz
 
 - `ai/` — neural networks, transformers, tensors, sampling, and context
 - `maths/linear-algebra/` — vectors, projections, matrices, determinants, and transforms
+- `openings/` — full-screen title idents, atmospheric intros, and narrative opening sequences
 
 The remaining root scenes are retained while they are reviewed and moved into `primitives`, `text`, `layout`, `composite`, `storytelling`, `table`, `utility`, or `production`. Example discovery is recursive, so moving a scene does not remove it from `npm run preview:all`.
 
